@@ -1,0 +1,19 @@
+{% requirePermission "mux:settings" %}
+{% extends "_layouts/cp" %}
+
+{% set title = "MUX Playback Restrictions"|t('mux') %}
+{% set selectedSubnavItem = 'restrictions' %}
+
+{% set crumbs = [
+    { label: "MUX"|t('mux'), url: url('/mux') },
+    { label: "Settings"|t('mux'), url: url('/mux/settings') },
+    { label: "Playback Restrictions"|t('mux'), url: url('/mux/restrictions') }
+] %}
+
+{% block content %}
+    <div id="mux-settings">
+        <mux-settings>
+        </mux-settings>
+    </div>
+    {% do view.registerAssetBundle("rocketpark\\mux\\assetbundles\\mux\\MuxSettingsAsset") %}
+{% endblock %}

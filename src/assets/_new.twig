@@ -1,0 +1,64 @@
+{% extends '_layouts/cp' %}
+{% import '_includes/forms' as forms %}
+
+{% set fullPageForm = true %}
+{% set retainScrollOnSaveShortcut = true %}
+    
+{% set title = 'Create a new Mux asset' %}
+
+{% set crumbs = [
+    { label: "Mux" | t('mux'), url: url('mux/assets') },
+    { label: 'Assets' | t('mux'), url: url('mux/assets') },
+] %}
+
+{% block content %}
+    {{ actionInput('mux/assets/save') }}
+    {{ redirectInput('mux/assets/edit/{id}') }}
+    {{ csrfInput() }}
+
+    {{ forms.textField({
+        label: "Title"|t("mux"),
+        id: "title",
+        name: "title",
+        value: asset.title,
+        errors: asset.getErrors("title"),
+    }) }}
+
+
+    {% if asset.getFieldLayout().getTabs()|length %}
+        <div id="fields">
+            {{ fieldsHtml|raw }}
+        </div>
+    {% else %}
+        {{ "This asset doesn’t have any fields assigned to it in its field layout."|t('mux') }}
+    {% endif %}
+{% endblock %}
+
+    
+    {# {% block main %}
+        <div id="content-pane">        
+            <form method="post" accept-charset="UTF-8">
+                {{ actionInput('mux/assets/save') }}
+                {{ redirectInput('mux/assets/edit/{id}') }}
+                {{ csrfInput() }}
+        
+                <div class="">
+
+                    {{ forms.textField({
+                        label: "Title"|t("mux"),
+                        id: "title",
+                        name: "title",
+                        value: asset.title,
+                        errors: asset.getErrors("title"),
+                    }) }}
+        
+                    <hr>
+        
+                    <div class="buttons">
+                        <a href="{{ url('mux') }}" class="btn big fui-btn">{{ 'Cancel' | t('mux') }}</a>
+                        <button type="submit" class="btn big submit">{{ 'Save' | t('mux') }}</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    {% endblock %} #}

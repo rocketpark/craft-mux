@@ -1,0 +1,59 @@
+{# @var craft \craft\web\twig\variables\CraftVariable #}
+{#
+/**
+ * MUX plugin for Craft CMS
+ *
+ * MUX Dashboard index.twig
+ *
+ * @author    rocketpark
+ * @copyright Copyright (c) 2018 rocketpark
+ * @link      https://rocketpark.com/
+ * @package   MUX
+ * @since     1.0.0
+ */
+#}
+{% set title = "MUX Assets"|t('mux') %}
+
+{% set selectedSubnavItem = 'dashboard' %}
+
+{% requirePermission "mux:dashboard" %}
+{% requirePermission "mux:edit-assets" %}
+
+{% extends "_layouts/cp" %}
+
+{% import "_includes/forms" as forms %}
+
+{% do view.registerTranslations('mux', [
+    '404 File Not Found URL',
+    'Upload',
+]) %}
+
+{% block contextMenu %}
+    
+{% endblock %}
+
+{% block actionButton %}
+    <div class="buttons">
+        <upload-button></upload-button>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div>    
+        <assets-grid></assets-grid>
+    </div>
+    <slideout-container></slideout-container>
+{% endblock %}
+
+{% block footer %}
+    <pagination></pagination>
+{% endblock %}
+
+{% block foot %}
+    {# include our JavaScript modules #}
+    {{ parent() }}
+
+    {# <div class="mux-modal-shade"></div> #}
+
+    {% do view.registerAssetBundle("rocketpark\\mux\\assetbundles\\mux\\MuxDashboardAsset") %}
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends '_layouts/elementindex' %}
+{% set title = 'Mux Assets'|t('mux') %}
+{% requirePermission "mux:assets" %}
+{% set crumbs = [
+    { label: "MUX"|t('mux'), url: url('/mux') },
+    { label: "Assets"|t('mux'), url: url('/mux/assets') }
+] %}
+{% set elementType = 'rocketpark\\mux\\elements\\MuxAsset' %}
+{% set canHaveDrafts = false %}
+{% set selectedSubnavItem = 'assets' %}   
+
+{# {% block body %}
+    {{ parent() }}
+{% endblock %} #}
+
+{% block content %}
+    {{ parent() }}
+    <drop-zone-overlay></drop-zone-overlay>
+{% endblock %}
+
+{% block actionButton %}
+    {{ parent() }}
+    <upload-button view="element-index"></upload-button>
+{% endblock %}
+
+{% do view.registerAssetBundle("rocketpark\\mux\\assetbundles\\mux\\MuxDashboardAsset") %}

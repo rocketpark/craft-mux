@@ -1,0 +1,57 @@
+<legend class="h6">{{ "MUX Asset Details"|t('mux') }}</legend>
+<fieldset style="margin-top:12px;">
+    <div class="meta">
+        <div class="data">
+            
+            <h5 class="heading">{{ "ID"|t('mux') }} </h5>
+            <div class="value">
+                <span class="info">{{ muxAsset.asset_id }}</span>
+            </div>
+
+            <h5 class="heading">{{ "Duration:"|t('mux') }}</h5>
+            <div class="value flex">
+                {% set totalSeconds = muxAsset.duration %}
+                {% set hours = totalSeconds // 3600 %}
+                {% set minutes = (totalSeconds % 3600) // 60 %}
+                {% set seconds = totalSeconds % 60 %}
+                
+                {{ '%02d:%02d:%02d'|format(hours, minutes, seconds) }}
+            </div>
+
+            <h5 class="heading">{{ "Playback IDs"|t('mux') }}</h5>
+            <div class="value flex">
+                {% for item in muxAsset.playback_ids %}
+                    <div>
+                        {{ item.policy }} <span class="info">{{ item.id }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <h5 class="heading">{{ "Aspect Ratio"|t('mux') }}</h5>
+            <div class="value flex">
+                {{ muxAsset.aspect_ratio}}
+            </div>
+
+            <h5 class="heading">{{ "Upload ID"|t('mux') }}</h5>
+            <div class="value flex read-only">
+                <span class="info">{{ muxAsset.upload_id }}</span>
+            </div>
+
+            <h5 class="heading">{{ "Tracks"|t('mux') }}</h5>
+            <div class="value flex">
+                <ul>
+                {% for item in muxAsset.tracks %}
+                    {% switch item.type %}
+                        {% case "audio" %}
+                            <li>Audio {{ item.max_channel_layout }}</li>
+                        {% case "video" %}
+                            <li>Video {{ item.max_height }}p</li>
+                        {% case "text" %}
+                            <li>Text subtitles ({{ item.language_code }})</li>
+                    {% endswitch %}
+                {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</fieldset>

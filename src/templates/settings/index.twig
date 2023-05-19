@@ -1,0 +1,57 @@
+{# @var plugin \rocketpark\mux\Mux #}
+{# @var settings \rocketpark\mux\models\Settings #}
+{% requirePermission "mux:settings" %}
+
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% from "mux/_includes/macros.twig" import configWarning %}
+
+{% block content %}
+
+    <input type="hidden" name="action" value="mux/settings/save-plugin-settings">
+    <input type="hidden" name="pluginHandle" value="mux">
+
+    {{ redirectInput("mux/settings") }}
+
+    {% namespace "settings" %}
+        
+        {{ forms.textField({
+            label: "Plugin name"|t("mux"),
+            instructions: "The public-facing name of the plugin"|t("mux"),
+            id: "pluginName",
+            name: "pluginName",
+            suggestEnvVars: true,
+            value: settings.pluginName,
+            warning: configWarning("pluginName", "mux"),
+            errors: settings.getErrors("pluginName"),
+        }) }}
+
+
+        {{ forms.autosuggestField({
+            label: "MUX Token Id"|t("mux"),
+            instructions: "Mux Token Id generated in your [Mux account]('https://docs.mux.com/guides/video/stream-video-files#1-get-an-api-access-token')."|t("mux"),
+            id: "muxTokenId",
+            name: "muxTokenId",
+            suggestEnvVars: true,
+            value: settings.muxTokenId,
+            warning: configWarning("muxTokenId", "mux"),
+            errors: settings.getErrors("muxTokenId")
+        }) }}
+
+
+        {{ forms.autosuggestField({
+            label: "MUX Token Secret"|t("mux"),
+            instructions: "MUX Token Secret generated in your [Mux account]('https://docs.mux.com/guides/video/stream-video-files#1-get-an-api-access-token')."|t("mux"),
+            id: "muxTokenSecret",
+            name: "muxTokenSecret",
+            suggestEnvVars: true,
+            value: settings.muxTokenSecret,
+            warning: configWarning("muxTokenSecret", "mux"),
+            errors: settings.getErrors("muxTokenSecret"),
+        }) }}
+    {% endnamespace %}
+
+    {# include our JavaScript modules #}
+    {{ parent() }}
+{% endblock %}

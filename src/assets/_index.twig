@@ -1,0 +1,20 @@
+{% extends '_layouts/elementindex' %}
+{% set title = 'Mux Assets'|t('mux') %}
+{% set docTitle = title ~ ' - Mux' %}
+{% set elementType = 'rocketpark\\mux\\elements\\MuxAsset' %}
+{% set canHaveDrafts = false %}
+
+{% set crumbs = [
+    { label: "Mux" | t('mux'), url: url('mux/assets') },
+    { label: 'Assets' | t('mux'), url: url('mux/assets') },
+] %}
+
+{% block actionButton %}
+    {% if currentUser.can('mux-createAssets') %}
+        <div class="buttons">
+            <a class="btn submit add icon" href="{{ url('mux/assets/new') }}">
+                {{- 'New Asset' | t('mux') -}}
+            </a>
+        </div>
+    {% endif %}
+{% endblock %}

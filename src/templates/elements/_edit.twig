@@ -1,0 +1,207 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% requirePermission "mux:assets-edit" %}
+{% set selectedSubnavItem = 'list' %}    
+
+{% set muxAsset = craft.mux.id(id).one() %}
+{% if muxAsset is null %}
+    {% redirect cpUrl("mux/assets") %}
+{% endif %}
+
+{% set title = muxAsset.title %}
+{% set crumbs = [
+    { label: "MUX"|t('mux'), url: cpUrl('mux') },
+    { label: "Assets"|t('mux'), url: cpUrl('mux/assets') },
+    { label: title, url: cpUrl('mux/assets/' ~ id) }
+] %}
+
+{% block body %}
+    {{ tag ('a', {
+        id: 'global-skip-link',
+        text: 'Skip to content'|t('app'),
+        href: '#main',
+        class: 'skip-link btn',
+    }) }}
+
+    <div id="global-container">
+        {% include '_layouts/components/global-sidebar' %}
+
+        <div id="page-container">
+            {% include '_layouts/components/alerts' %}
+
+            <div id="global-header" role="region" aria-label="{{ 'My Account'|t('app') }}">
+                <div class="flex">
+                    {% include '_layouts/components/crumbs' %}
+                    <div class="flex-grow"></div>
+                    <button type="button" id="announcements-btn" class="btn hidden" title="{{ 'What’s New'|t('app') }}">
+                        <span class="visually-hidden">{{ 'What’s New'|t('app') }}</span>
+                        {{ svg('@app/icons/gift.svg') }}
+                    </button>
+
+                    {# New account dropdown #}
+                    <div class="account-toggle-wrapper">
+                        <button
+                            id="user-info"
+                            aria-controls="account-menu"
+                            class="btn menu-toggle"
+                            aria-label="{{ 'My Account'|t('app') }}"
+                            title="{{ 'My Account'|t('app') }}"
+                            data-disclosure-trigger>
+                            {{ userPhoto }}
+                        </button>
+                        <div id="account-menu" class="menu menu--disclosure" data-align="right" data-align-to=".header-photo">
+                            <ul>
+                                <li>
+                                    <a href="{{ url('myaccount') }}" class="flex flex-nowrap">
+                                        {% if currentUser.photoId %}
+                                            {{ userPhoto }}
+                                        {% endif %}
+                                        <div class="flex-grow">
+                                            <div>{{ currentUser.username }}</div>
+                                            {% if not craft.app.config.general.useEmailAsUsername %}
+                                                <div class="smalltext">{{ currentUser.email }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </a>
+                                </li>
+                            </ul>
+                            <hr>
+                            <ul>
+                                <li><a href="{{ url('logout') }}">{{ "Sign out"|t('app') }}</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="main-container">
+                <main {{ attr(mainAttributes) }}>
+                    {% set asset = {
+                        id: muxAsset.id,
+                        asset_id: muxAsset.asset_id,
+                        playback_ids: muxAsset.playback_ids,
+                        title: muxAsset.title,
+                        tracks: muxAsset.tracks
+                    } %}
+                    <asset-detail :mux-asset="{{ asset|json_encode }}">
+                        <template v-slot:page-title>
+                            {% block pageTitle %}
+                                {% if title is defined and title|length %}
+                                    <h1 class="screen-title" title="{{ title }}">{{ title }}</h1>
+                                {% endif %}
+                            {% endblock %}
+                            {{ contextMenu|raw }}
+                        </template>
+                        
+
+                        <template v-slot:details>
+                            <fieldset>
+                                <legend class="h6">{{ "MUX Asset Details"|t('mux') }}</legend>
+                                <div class="meta">
+                                    <div class="data">
+                                        
+                                        <h5 class="heading">{{ "ID:"|t('mux') }} </h5>
+                                        <div class="value">
+                                            <span class="info">{{ muxAsset.asset_id }}</span>
+                                        </div>
+                                        
+
+                                        <h5 class="heading">{{ "Duration:"|t('mux') }}</h5>
+                                        <div class="value flex">
+                                            {% set totalSeconds = muxAsset.duration %}
+                                            {% set hours = totalSeconds // 3600 %}
+                                            {% set minutes = (totalSeconds % 3600) // 60 %}
+                                            {% set seconds = totalSeconds % 60 %}
+                                            
+                                            {{ '%02d:%02d:%02d'|format(hours, minutes, seconds) }}
+                                        </div>
+
+                                        <h5 class="heading">{{ "Playback IDs:"|t('mux') }}</h5>
+                                        <div class="value flex">
+                                            {% for item in muxAsset.playback_ids %}
+                                                <div>
+                                                    {{ item.policy }} <span class="info">{{ item.id }}</span>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+
+                                        <h5 class="heading">{{ "Aspect Ratio:"|t('mux') }}</h5>
+                                        <div class="value flex">
+                                            {{ muxAsset.aspect_ratio}}
+                                        </div>
+
+                                        <h5 class="heading">{{ "Upload ID:"|t('mux') }}</h5>
+                                        <div class="value flex read-only">
+                                            <span class="info">{{ muxAsset.upload_id }}</span>
+                                        </div>
+
+                                        <h5 class="heading">{{ "Tracks:"|t('mux') }}</h5>
+                                        <div class="value flex">
+                                            <ul>
+                                            {% for item in muxAsset.tracks %}
+                                                {% switch item.type %}
+                                                    {% case "audio" %}
+                                                        <li>Audio {{ item.max_channel_layout }}</li>
+                                                    {% case "video" %}
+                                                        <li>Video {{ item.max_height }}p</li>
+                                                    {% case "text" %}
+                                                        <li>Text subtitles ({{ item.language_code }})</li>
+                                                {% endswitch %}
+                                            {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            <dl class="meta read-only">
+                                <div class="data">
+                                    <dt class="heading">ID</dt>
+                                    <dd class="value">{{ muxAsset.id }}</dd>
+                                </div>
+                                <div class="data">
+                                    <dt class="heading">Created at</dt>
+                                    <dd class="value">{{ muxAsset.dateCreated|date('m/d/Y, h:m A') }}</dd>
+                                </div>
+                                <div class="data">
+                                    <dt class="heading">Updated at</dt>
+                                    <dd class="value">{{ muxAsset.dateUpdated|date('m/d/Y, h:m A') }}</dd>
+                                </div>
+                            </dl>
+                        </template>
+                    </asset-detail>
+
+                </main><!-- #main -->
+            </div><!-- #main-container -->
+
+            <footer id="global-footer">
+                {% set fullEditionName = '{edition} edition'|t('app', {edition: editionName}) ~ (isTrial ? ' ' ~ '(trial)'|t('app')) %}
+                <div id="edition-logo" title="{{ fullEditionName }}">
+                    <div class="edition-name" aria-hidden="true">{{ editionName }}</div>
+                    {{ tag('span', {
+                        class: 'visually-hidden',
+                        text: fullEditionName,
+                    }) }}
+                    {% if isTrial %}
+                        <div class="edition-trial">{{ "Trial"|t('app') }}</div>
+                    {% endif %}
+                </div>
+                <div id="app-info">
+                    <span>Craft CMS {{ craft.app.version }}</span>
+                    {% if canUpgradeEdition %}
+                        {% set linkText = isTrial ? 'Buy Craft Pro'|t('app') : 'Upgrade to Craft Pro'|t('app') %}
+                        <span>
+                            <a class="go" href="{{ url('plugin-store/upgrade-craft') }}" aria-label="{{ linkText }}">{{ linkText }}</a>
+                        </span>
+                    {% endif %}
+                </div>
+            </footer>
+
+        </div><!-- #page-container -->
+    </div><!-- #global-container -->
+
+    {% include '_layouts/components/notifications' %}
+{% endblock %}
+
+{% do view.registerAssetBundle("rocketpark\\mux\\assetbundles\\mux\\MuxDashboardAsset") %}

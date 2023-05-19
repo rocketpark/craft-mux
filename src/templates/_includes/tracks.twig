@@ -1,0 +1,245 @@
+{% import "_includes/forms" as forms %}
+{% set ns = craft.app.view.getNamespace is not empty ? craft.app.view.getNamespace ~ "-" : ''  %}
+<div class="mux-edit-panel" id="mux-edit-panel" data-namespace="{{ craft.app.view.getNamespace }}" data-mux-asset-id="{{ muxAsset.asset_id }}">
+    <div class="flex">
+        <div class="flex-grow"></div>
+        <div class="">
+            {{ forms.button({
+                id: "mux-track-add",
+                name: "mux-track-add",
+                label: "Add Track"|t('mux'),
+                class: "submit mux-track-add"
+            })}}
+        </div>
+    </div>
+
+    <div class="mux-asset-tracks" id="mux-asset-tracks">    
+        {% for track in muxAsset.tracks %}
+            {% include "mux/_includes/track" with { id: muxAsset.id, track: track, asset_id: muxAsset.asset_id } only %}
+        {% endfor %}
+    </div>
+</div>
+
+{% js at endBody %}
+    $(function() { 
+        $("#{{ ns }}mux-asset-tracks").find('.mux-track-text').each(function(el) {
+            const track = $(this);
+            const deleteButton = $(this).find('button');
+            const spinner = deleteButton.find('.spinner');
+            const icon = deleteButton.find('.xcircleicon');
+            const _track_id = deleteButton.attr('data-track-id');
+            const _confirmMessage = deleteButton.attr('data-confirm-message');
+        
+            deleteButton.on('click', function(evt) {
+                evt.preventDefault();
+                if (confirm(_confirmMessage)) {
+                    spinner.toggleClass('hidden');
+                    icon.toggleClass('hidden');
+        
+                    let body = { id: "{{ muxAsset.asset_id }}", track_id: _track_id };
+                    body[Craft.csrfTokenName] = Craft.csrfTokenValue;
+        
+                    fetch('/actions/mux/assets/delete-asset-track-by-id', {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(body)
+                    }).then(res => {
+                        if (!res.ok) {
+                            throw new Error("HTTP error " + res.status);
+                        }
+                        return res.json();
+                    }).then(json => {
+                        if(json.success) {
+                            track.animate({opacity: 0, height: 0 }, 200, function() {
+                                $(this).remove();
+                            });
+        
+                            spinner.toggleClass('hidden');
+                            icon.toggleClass('hidden');
+                        }
+                    }).catch((err) => {
+                        console.log(err);
+                        spinner.toggleClass('hidden');
+                        icon.toggleClass('hidden');
+                    });
+                }
+            });
+        });
+
+        let $body = $("<div/>", {
+            class: "so-body"
+        });
+
+        let $header = $("<header/>", {
+            class: "pane-header"
+        }).appendTo($body);
+
+        let $toolbar = $("<div/>", {
+            class: "so-toolbar"
+        }).appendTo($header);
+        
+        let $heading = $('<h2/>').text('{{ 'Add Mux Track'|t('mux') }}').appendTo($body);
+
+        let $trackUrl = Craft.ui.createTextField({
+            id: 'mux-track-url',
+            name: 'track[url]',
+            label: '{{ 'Mux Asset Track URL'|t('mux') }}',
+            instructions: '{{ 'Upload the caption file of the asset in either .srt or .vtt format to Craft CMS Assets. Retrieve the URL associated with this input.'|t('mux') }}',
+            value: '',
+            maxLength: 200,
+            placeholder: '{{ 'Enter url of .srt or .vtt file'|t('mux') }}',
+            autofocus: true,
+            required: true,
+            validateOnBlur: true,
+            validationError: '{{ 'Please enter a proper url'|t('mux') }}',
+            class: '',
+            width: '100%'
+        }).appendTo($body);
+
+        let $trackType = $('<input>').attr({
+            type: 'hidden',
+            id: 'mux-track-type',
+            name: 'track[type]',
+            value: 'text'
+        }).appendTo($body);
+
+        let $trackTextType = $('<input>').attr({
+            type: 'hidden',
+            id: 'mux-track-type',
+            name: 'track[text_type]',
+            value: 'subtitles'
+        }).appendTo($body);
+
+        let $trackName = Craft.ui.createTextField({
+            id: 'mux-track-name',
+            name: 'track[name]',
+            value: '{{ 'US English'|t('mux') }}',
+            label: '{{ 'Language Name'|t('mux') }}',
+            maxLength: 200,
+            placeholder: '{{ 'US English'|t('mux') }}',
+            autofocus: true,
+            required: true,
+            validateOnBlur: true,
+            validationError: '{{ 'Please enter a title for the track'|t('mux') }}',
+            class: '',
+            width: '30%'
+        }).appendTo($body);
+
+        let $trackLanguageCode = Craft.ui.createSelectField({
+            label: Craft.t("mux",'Language Code'),
+            options: {{ langCodes|json_encode|raw }},
+            value: 'en-us',
+            required: true,
+            instructions: '{{ 'Please select an language code.'|t('mux') }}',
+            id: 'mux-track-language-code',
+            name: 'track[language_code]'
+        }).appendTo($body);
+
+        let $trackClosedCaptions = Craft.ui.createLightswitchField({
+            id: 'mux-track-closed-captions',
+            label: '{{ 'Closed Captions'|t('mux') }}',
+            name: 'track[closed_captions]',
+            value: true
+        }).appendTo($body);
+
+        let $footer = $("<div/>",{
+            class: "so-footer"
+        });
+
+        $("<div/>",{ class:"flex-grow" }).appendTo($footer);
+            
+        const $cancelBtn = Craft.ui.createButton({
+            label: '{{ 'Close'|t('mux') }}',
+            spinner: !0
+        }).appendTo($footer);
+
+        const $submitBtn = Craft.ui.createSubmitButton({ 
+            class:"submit",
+            label:  '{{ 'Create Track'|t('mux') }}',
+            spinner: true
+        }).appendTo($footer);
+
+        const $contents = $body.add($footer);
+
+        const $slideout = new Craft.Slideout(
+            $contents,
+            { 
+                containerElement: "form",
+                autoOpen: false,
+                containerAttributes:
+                {
+                    action: "/actions/mux/assets/add-asset-track-by-id",
+                    method: "post",
+                    novalidate: "",
+                    class: "mux-track-form" 
+                }
+        });
+
+        let $form = $($slideout.$container[0]);
+
+        $form.submit(function(evt) {
+            evt.preventDefault();
+            $submitBtn.toggleClass('loading');
+    
+            let formData = Object.fromEntries(new FormData($slideout.$container[0]));
+            let track = {
+                url: formData['track[url]'],
+                type: formData['track[type]'],
+                text_type: formData['track[text_type]'],
+                language_code: formData['track[language_code]'],
+                name: formData['track[name]'],
+                closed_captions: formData['track[closed_captions]'] == 1 ? true : false,
+            };
+    
+            let body = { id: "{{ muxAsset.asset_id }}", track: track };
+            body[Craft.csrfTokenName] = Craft.csrfTokenValue;
+    
+            if($(this)[0].checkValidity()){
+                fetch('/actions/mux/assets/add-asset-track-by-id', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(body)
+                }).then(res => {
+                    if (!res.ok) {
+                        throw new Error("HTTP error " + res.status);
+                    }
+                    return res.json();
+                }).then(json => {
+                    if(json.success) {
+                        $submitBtn.toggleClass('loading');
+                        if(Craft.elementIndex == undefined) {
+                            location.reload();
+                        } else {
+                            // Remove events before reloading the panel
+                            // Grab the panel: index 1 is the bottom 0 is the top panel.
+                            let panel = Craft.Slideout.openPanels[1];
+                            panel.load().then(() => {
+                                panel = Craft.Slideout.openPanels[1];
+                                let tabId = panel.tabManager.$lastTab.data('id');
+                                panel.tabManager.selectTab(tabId);
+                                // Reinitialize events for tracks & add tracks button
+                            });
+                        }
+                    }
+                }).catch((err) => {
+                    console.log(err);
+                    $submitBtn.toggleClass('loading');
+                });
+            }
+        });
+        
+        $cancelBtn.on('click', () => { 
+            $slideout.close();
+        });
+
+        $("#{{ ns }}mux-track-add").on('click', function() {
+            $slideout.open();
+        });
+    });
+{% endjs %}

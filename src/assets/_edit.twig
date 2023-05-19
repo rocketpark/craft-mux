@@ -1,0 +1,31 @@
+{% extends "_layouts/cp" %}
+{% import '_includes/forms' as forms %}
+{% set title = asset.title|t('site') %}
+{% set fullPageForm = true %}
+{% set retainScrollOnSaveShortcut = true %}
+
+{% set crumbs = [
+    { label: "Mux" | t('mux'), url: url('mux/assets') },
+    { label: 'Assets' | t('mux'), url: url('mux/assets') }
+] %}
+
+{% block content %}
+    {{ actionInput('mux/assets/save') }}
+    {{ csrfInput() }}
+
+    {{ forms.textField({
+        label: "Title"|t("mux"),
+        id: "title",
+        name: "title",
+        value: asset.title,
+        errors: asset.getErrors("title"),
+    }) }}
+
+    {% if asset.getFieldLayout().getTabs()|length %}
+        <div id="fields">
+            {{ fieldsHtml|raw }}
+        </div>
+    {% else %}
+        {{ "This asset doesn’t have any fields assigned to it in its field layout."|t('mux') }}
+    {% endif %}
+{% endblock %}
