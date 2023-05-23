@@ -17,7 +17,7 @@ class MuxAsset extends Model
     public $id;
     public $asset_id;
     public $created_at;
-    public $status;
+    public $asset_status;
     public $duration;
     public $max_stored_resolution;
     public $max_stored_frame_rate;

@@ -186,8 +186,10 @@ export const createAsset = (data) => {
     let body = {};
     // Reset the values so they correspond to the element model
     data.asset_id = data.id;
+    data.asset_status = data.status;
     data['title'] = data.title !== undefined ? data.title : data.id;
     delete data.id;
+    delete data.status;
     body = data;
     body[window.Craft.csrfTokenName] = window.Craft.csrfTokenValue;
 
@@ -219,6 +221,7 @@ export const saveAsset = (data) => {
     let body = {};
     // Reset the values so they correspond to the element model
     data['asset_id'] = data.id;
+    data['asset_status'] = data.status;
     data['id'] = null;
     body['asset'] = data;
     body[window.Craft.csrfTokenName] = window.Craft.csrfTokenValue;

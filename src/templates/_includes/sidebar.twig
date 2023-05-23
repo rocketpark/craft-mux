@@ -8,6 +8,11 @@
                 <span class="info">{{ muxAsset.asset_id }}</span>
             </div>
 
+            <h5 class="heading">{{ "Status:"|t('mux') }} </h5>
+            <div class="value">
+                <span>{{ muxAsset.asset_status }}</span>
+            </div>
+
             <h5 class="heading">{{ "Duration:"|t('mux') }}</h5>
             <div class="value flex">
                 {% set totalSeconds = muxAsset.duration %}

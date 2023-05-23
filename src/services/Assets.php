@@ -71,7 +71,7 @@ class Assets extends Component
         $asset->id = isset($params['id']) ? $params['id'] : null; 
         $asset->asset_id = $params['asset_id'];
         $asset->created_at = $params['created_at'];
-        $asset->status = isset($params['status']) ? $params['status'] : "";
+        $asset->asset_status = isset($params['asset_status']) ? $params['asset_status'] : "";
         $asset->duration = isset($params['duration']) ? $params['duration'] :  "";
         $asset->max_stored_resolution = isset($params['max_stored_resolution']) ? $params['max_stored_resolution'] : "";
         $asset->max_stored_frame_rate = isset($params['max_stored_frame_rate']) ? $params['max_stored_frame_rate'] : "";
@@ -107,7 +107,7 @@ class Assets extends Component
         $asset->title = $params['title'];
         $asset->asset_id = $params['asset_id'];
         $asset->created_at = $params['created_at'];
-        $asset->status = isset($params['status']) ? $params['status'] : "";
+        $asset->asset_status = isset($params['asset_status']) ? $params['asset_status'] : "";
         $asset->duration = isset($params['duration']) ? $params['duration'] :  "";
         $asset->max_stored_resolution = isset($params['max_stored_resolution']) ? $params['max_stored_resolution'] : "";
         $asset->max_stored_frame_rate = isset($params['max_stored_frame_rate']) ? $params['max_stored_frame_rate'] : "";
@@ -464,6 +464,9 @@ class Assets extends Component
                 if($key == 'id') {
                     $element->asset_id = $value;
                     continue;
+                } else if($key == 'status') {
+                    $element->asset_status = $value;
+                    continue;
                 }
                 $element[$key] = $value;
             }
@@ -504,6 +507,9 @@ class Assets extends Component
             foreach ($muxAsset as $key => $value) {
                 if($key == 'id') {
                     $element->asset_id = $value;
+                    continue;
+                } else if($key == 'status') {
+                    $element->asset_status = $value;
                     continue;
                 }
                 $element[$key] = $value;

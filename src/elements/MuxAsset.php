@@ -143,6 +143,7 @@ class MuxAsset extends Element
         return [
             'id',
             'asset_id',
+            'asset_status',
             'duration',
             'is_live',
             'passthrough',
@@ -152,7 +153,7 @@ class MuxAsset extends Element
 
     public ?string $asset_id = '';
     public ?string $created_at = '';
-    public ?string $status = '';
+    public ?string $asset_status = '';
     public ?string $duration = '';
     public ?string $max_stored_resolution = '';
     public ?string $max_stored_frame_rate = '';
@@ -263,6 +264,7 @@ class MuxAsset extends Element
         return [
             'id' => ['label' => Craft::t('app', 'ID')],
             'asset_id' => ['label' => Craft::t('mux', 'Mux Asset ID')],
+            'asset_status' => ['label' => Craft::t('mux', 'Asset Status')],
             'aspect_ratio' => ['label' => Craft::t('mux', 'Aspect Ratio')],
             'duration' => ['label' => Craft::t('mux', 'Duration')],
             'uid' => ['label' => Craft::t('app', 'UID')],
@@ -286,6 +288,7 @@ class MuxAsset extends Element
         return [
             'id',
             'asset_id',
+            'asset_status',
             'aspect_ratio',
             'duration',
             'dateCreated',
@@ -406,7 +409,7 @@ class MuxAsset extends Element
                 'id' => $this->id,
                 'asset_id' => $this->asset_id,
                 'created_at' => $this->created_at,
-                'status' => $this->status,
+                'asset_status' => $this->asset_status,
                 'duration' => $this->duration,
                 'max_stored_resolution' => $this->max_stored_resolution,
                 'max_stored_frame_rate' => $this->max_stored_frame_rate,
@@ -433,7 +436,7 @@ class MuxAsset extends Element
             Db::update('{{%mux_assets}}', [
                 'asset_id' => $this->asset_id,
                 'created_at' => $this->created_at,
-                'status' => $this->status,
+                'asset_status' => $this->asset_status,
                 'duration' => $this->duration,
                 'max_stored_resolution' => $this->max_stored_resolution,
                 'max_stored_frame_rate' => $this->max_stored_frame_rate,

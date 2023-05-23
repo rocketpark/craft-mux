@@ -2,5 +2,8 @@
     "/src/web/dist/mux-field.js": "/src/web/dist/mux-field.js",
     "/src/web/dist/mux-dashboard.js": "/src/web/dist/mux-dashboard.js",
     "/src/web/dist/mux-settings.js": "/src/web/dist/mux-settings.js",
-    "/src/web/dist/mux-element-edit.css": "/src/web/dist/mux-element-edit.css"
+    "/src/web/dist/mux-element-edit.css": "/src/web/dist/mux-element-edit.css",
+    "/src/web/dist/mux-field.min.js": "/src/web/dist/mux-field.min.js",
+    "/src/web/dist/mux-dashboard.min.js": "/src/web/dist/mux-dashboard.min.js",
+    "/src/web/dist/mux-settings.min.js": "/src/web/dist/mux-settings.min.js"
 }

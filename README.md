@@ -30,10 +30,17 @@ You must obtain a MUX Token ID & Token Secret from your MUX environment access t
  
 "An environment represents the highest grouping of data you want to combine and compare within. Multiple websites/apps or video platforms can use the same environment, but we suggest not combining staging and production data." - MUX
 
+### Webhooks
+In the MUX settings a webhook can be added to inform the plugin of asset updates. 
+Include the following endbpoint in the MUX webhook control pannel.
+
+`https://site.com/actions/mux/webhooks/mux-webhooks`
+
 ## MUX Roadmap
 
 Some things to do, and ideas for potential features:
 
 * **Organization of video** - Allow for folders or sections to organize videos.
+* **Webhook verification** - Verify the webhook is coming from MUX via their Webhook Signing Secret.
 
 Brought to you by [Rocket Park](https://rocketpark.com/)

@@ -178,7 +178,7 @@ class Mux extends Plugin
                     $element = $e->element;
                     $attributes = $element->getAttributes();
                     /* 
-                        If trashed == true the element is being hard deleted (removed FOREVER see:https://media.giphy.com/media/hEwkspP1OllJK/giphy.gif)
+                        If (trashed == true) the element is being hard deleted (removed FOREVER see:https://media.giphy.com/media/hEwkspP1OllJK/giphy.gif)
                           then we remove it from MUX. 
                     */
                     if($attributes['trashed'] == 'true') {

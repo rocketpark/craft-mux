@@ -76,9 +76,9 @@ class MuxAsset extends Element
                 'type' => Type::string(),
                 'description' => 'Creation time of the object'
             ],
-            'status' => [
+            'asset_status' => [
                 'type' => Type::string(),
-                'description' => 'Status of the object'
+                'description' => 'Status of the mux asset'
             ],
             'duration' => [
                 'type' => Type::string(),

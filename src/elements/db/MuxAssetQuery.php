@@ -13,6 +13,7 @@ class MuxAssetQuery extends ElementQuery
 {
 
     public $asset_id = null;
+    public $asset_status = null;
     public $aspect_ratio = null;
     public $duration = null;
     public $is_live = false;
@@ -24,6 +25,13 @@ class MuxAssetQuery extends ElementQuery
     public function asset_id(string|null $value): self
     {
         $this->asset_id = $value;
+
+        return $this;
+    }
+
+    public function asset_status(string|null $value): self
+    {
+        $this->asset_status = $value;
 
         return $this;
     }
@@ -84,6 +92,7 @@ class MuxAssetQuery extends ElementQuery
         $this->query->select([
             'mux_assets.id',
             'mux_assets.asset_id',
+            'mux_assets.asset_status',
             'mux_assets.aspect_ratio',
             'mux_assets.duration',
             'mux_assets.is_live',
@@ -99,6 +108,10 @@ class MuxAssetQuery extends ElementQuery
 
         if($this->asset_id) {
             $this->subQuery->andWhere(Db::parseParam('mux_assets.asset_id', $this->asset_id));
+        }
+
+        if($this->asset_status) {
+            $this->subQuery->andWhere(Db::parseParam('mux_assets.asset_status', $this->asset_status));
         }
 
         if($this->is_live){

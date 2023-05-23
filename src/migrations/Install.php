@@ -21,7 +21,7 @@ class Install extends Migration
                 'id' => $this->primaryKey(),
                 'asset_id' => $this->char(255)->notNull(),
                 'created_at' => $this->string()->notNull(),
-                'status' => $this->string()->null(),
+                'asset_status' => $this->string()->null(),
                 'duration' => $this->double()->null(),
                 'max_stored_resolution' => $this->string()->null(),
                 'max_stored_frame_rate' => $this->double()->null(),
