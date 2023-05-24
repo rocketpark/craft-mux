@@ -1,22 +1,24 @@
 <template>
-    <div class="dropzone-overlay"
-        v-if="isOverDropZone || uploadState.uploading">
+    <div
+        v-if="isOverDropZone || uploadState.uploading"
+        class="dropzone-overlay"
+    >
         <div class="dropzone-overlay_progress">
             <div class="dropzone-overlay_label" v-text="uploadState.uploadingFile != null ? uploadState.uploadingFile.name : 'Preparing to upload…'"></div>
-            <progress-bar :value="uploadState.progress"></progress-bar>
+            <progress-bar :value="uploadState.progress" />
         </div>
     </div>
 </template>
 <script setup>
-    import { defineProps, toRefs, watch } from 'vue';
-    import { uploadState } from './AssetsStore';
-    import ProgressBar from './ProgressBar.vue';
-    const props = defineProps({
-        isOverDropZone: {
-            type: Boolean,
-            default: false
-        }
-    }); 
+import { defineProps, toRefs, watch } from 'vue';
+import { uploadState } from './AssetsStore';
+import ProgressBar from './ProgressBar.vue';
+const props = defineProps({
+    isOverDropZone: {
+        type: Boolean,
+        default: false,
+    },
+});
 </script>
 <style scoped>
 .dropzone-overlay {

@@ -1,8 +1,8 @@
-import { reactive, toRefs, toRaw } from "vue";
+import { reactive, toRefs, toRaw } from 'vue';
 import axios from 'axios';
 import * as UpChunk from '@mux/upchunk';
 
-export const state  = reactive({
+export const state = reactive({
     assets: [],
     asset: null,
     total: 0,
@@ -10,15 +10,15 @@ export const state  = reactive({
     loading: false,
     params: {
         limit: 12,
-        page: 1
-    }
+        page: 1,
+    },
 });
 
 export const uploadState = reactive({
     progress: 0,
     progressTotal: 100,
     uploading: false,
-    uploadingFile: null
+    uploadingFile: null,
 });
 
 
@@ -26,16 +26,16 @@ export const uploadState = reactive({
  * Set Selected Mux Asset
  * @param {JSON} selected
  */
-export function setSelected (selected) {
+export function setSelected(selected) {
     state.selected = selected;
 }
 
 /**
  * Set the State page params
- * @param {offset:string, page:int} params 
+ * @param {offset:string, page:int} params
  */
-export function setPageParams (params) {
-    state.params = Object.assign({}, state.params, params);
+export function setPageParams(params) {
+    state.params = { ...state.params, ...params };
 }
 
 /**
@@ -43,13 +43,13 @@ export function setPageParams (params) {
  */
 function updateAssetsCount() {
     axios.get(
-        `/actions/mux/assets/use-asset-elements-count`
-    ).then(function (response) {
+        '/actions/mux/assets/use-asset-elements-count',
+    ).then((response) => {
         state.total = response.data;
     })
-    .catch(function (error) {
-        console.log(error);
-    });
+        .catch((error) => {
+            console.log(error);
+        });
 }
 
 
@@ -59,19 +59,19 @@ function updateAssetsCount() {
  */
 export function useAssets() {
     state.loading = true;
-    
+
     return axios.get(
-        `/actions/mux/assets/use-asset-elements`,
-        { params:  state.params }
-    ).then(function (response) {
+        '/actions/mux/assets/use-asset-elements',
+        { params: state.params },
+    ).then((response) => {
         state.assets = response.data;
         updateAssetsCount();
         updatedSelectedAsset();
         state.loading = false;
     })
-    .catch(function (error) {
-        console.log(error);
-    });
+        .catch((error) => {
+            console.log(error);
+        });
 }
 
 
@@ -82,15 +82,15 @@ export function useAssets() {
 export function useAssetById(id) {
     state.loading = true;
     return axios.get(
-        `/actions/mux/assets/use-asset-element-by-id`,
-        { params: { id: id } }
-    ).then(function (response) {
+        '/actions/mux/assets/use-asset-element-by-id',
+        { params: { id } },
+    ).then((response) => {
         state.asset = response.data;
         state.loading = false;
     })
-    .catch(function (error) {
-        console.log(error);
-    });
+        .catch((error) => {
+            console.log(error);
+        });
 }
 
 
@@ -100,7 +100,7 @@ export function useAssetById(id) {
  *  updated it with newly updated assets
  */
 export function updatedSelectedAsset() {
-    state.selected = state.selected !== null ? state.assets.find(asset => asset.id === state.selected.id) : null;
+    state.selected = state.selected !== null ? state.assets.find((asset) => { return asset.id === state.selected.id; }) : null;
 }
 
 
@@ -110,45 +110,45 @@ export function updatedSelectedAsset() {
  */
 export const getUploadUrl = () => {
     return new Promise((resolve, reject) => {
-        fetch('/actions/mux/assets/upload-asset').then(res => {
+        fetch('/actions/mux/assets/upload-asset').then((res) => {
             if (!res.ok) {
-                throw new Error("HTTP error " + res.status);
+                throw new Error(`HTTP error ${res.status}`);
             }
             return res.json();
-        }).then(json => {
+        }).then((json) => {
             resolve(json);
-        }).catch((err) =>{
+        }).catch((err) => {
             reject(err);
         });
     });
-}
+};
 
 
 /**
  * Get Mux Asset By Upload ID
- * @param {string} id 
+ * @param {string} id
  * @returns Promise
  */
 export const getUploadById = (id) => {
-  
-    let body = { id: id };
+
+    const body = { id };
     body[window.Craft.csrfTokenName] = window.Craft.csrfTokenValue;
     return fetch('/actions/mux/assets/get-upload-by-id', {
         method: 'POST',
         headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
         },
-        body: JSON.stringify(body)
-    }).then(res => {
-        if (!res.ok) return Promise.reject(new Error(`HTTP error ${res.status}`));
+        body: JSON.stringify(body),
+    }).then((res) => {
+        if (!res.ok) { return Promise.reject(new Error(`HTTP error ${res.status}`)); }
         updateAssetsCount();
         return res.json();
-    }).catch(err => {
+    }).catch((err) => {
         return Promise.reject(err);
     });
- 
-}
+
+};
 
 /**
  * Get Mux Asset By ID
@@ -156,38 +156,38 @@ export const getUploadById = (id) => {
  * @returns Promise
  */
 export const getAssetById = (id) => {
-    
-    let body = { id: id };
+
+    const body = { id };
     body[window.Craft.csrfTokenName] = window.Craft.csrfTokenValue;
 
     return fetch('/actions/mux/assets/get-asset-by-id', {
         method: 'POST',
         headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
         },
-        body: JSON.stringify(body)
-    }).then(res => {
-        if (!res.ok) return Promise.reject(new Error(`HTTP error ${res.status}`));
+        body: JSON.stringify(body),
+    }).then((res) => {
+        if (!res.ok) { return Promise.reject(new Error(`HTTP error ${res.status}`)); }
         return res.json();
-    }).catch(err => {
+    }).catch((err) => {
         return Promise.reject(err);
     });
-    
-}
+
+};
 
 /**
  * Create Mux Asset
- * @param {JSON} data 
+ * @param {JSON} data
  * @returns Promise
  */
 export const createAsset = (data) => {
-    
+
     let body = {};
     // Reset the values so they correspond to the element model
     data.asset_id = data.id;
     data.asset_status = data.status;
-    data['title'] = data.title !== undefined ? data.title : data.id;
+    data.title = data.title !== undefined ? data.title : data.id;
     delete data.id;
     delete data.status;
     body = data;
@@ -196,75 +196,75 @@ export const createAsset = (data) => {
     return fetch('/actions/mux/assets/create', {
         method: 'POST',
         headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
         },
-        body: JSON.stringify(body)
-    }).then(res => {
-        if (!res.ok) return Promise.reject(new Error(`HTTP error ${res.status}`));
+        body: JSON.stringify(body),
+    }).then((res) => {
+        if (!res.ok) { return Promise.reject(new Error(`HTTP error ${res.status}`)); }
         updateAssetsCount();
         return res.json();
-    }).catch(err => {
+    }).catch((err) => {
         return Promise.reject(err);
     });
-    
-}
+
+};
 
 
 /**
  * Save Mux Asset
- * @param {JSON} data 
+ * @param {JSON} data
  * @returns Promise
  */
 export const saveAsset = (data) => {
 
-    let body = {};
+    const body = {};
     // Reset the values so they correspond to the element model
-    data['asset_id'] = data.id;
-    data['asset_status'] = data.status;
-    data['id'] = null;
-    body['asset'] = data;
+    data.asset_id = data.id;
+    data.asset_status = data.status;
+    data.id = null;
+    body.asset = data;
     body[window.Craft.csrfTokenName] = window.Craft.csrfTokenValue;
 
     return fetch('/actions/mux/assets/save', {
         method: 'POST',
         headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
         },
-        body: JSON.stringify(body)
-    }).then(res => {
-        if (!res.ok) return Promise.reject(new Error(`HTTP error ${res.status}`));
+        body: JSON.stringify(body),
+    }).then((res) => {
+        if (!res.ok) { return Promise.reject(new Error(`HTTP error ${res.status}`)); }
         return res.json();
-    }).catch(err => {
+    }).catch((err) => {
         return Promise.reject(err);
     });
-}
+};
 
 
 /**
  * Update Mux Asset
- * @param {JSON} data 
+ * @param {JSON} data
  * @returns Promise
  */
 export const updateAsset = (data) => {
-    let body = data;
+    const body = data;
     body[window.Craft.csrfTokenName] = window.Craft.csrfTokenValue;
 
     return fetch('/actions/mux/assets/update', {
         method: 'POST',
         headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
         },
-        body: JSON.stringify(body)
-    }).then(res => {
-        if (!res.ok) return Promise.reject(new Error(`HTTP error ${res.status}`));
+        body: JSON.stringify(body),
+    }).then((res) => {
+        if (!res.ok) { return Promise.reject(new Error(`HTTP error ${res.status}`)); }
         return res.json();
-    }).catch(err => {
+    }).catch((err) => {
         return Promise.reject(err);
     });
-}
+};
 
 /**
  * Delete Mux Asset By ID
@@ -275,76 +275,75 @@ export const deleteAssetById = (id) => {
     return fetch('/actions/mux/assets/delete-asset-by-id', {
         method: 'POST',
         headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
         },
         body: JSON.stringify({
             id,
-            [window.Craft.csrfTokenName]: window.Craft.csrfTokenValue
-        })
-    }).then(res => {
-        if (!res.ok) return Promise.reject(new Error(`HTTP error ${res.status}`));
+            [window.Craft.csrfTokenName]: window.Craft.csrfTokenValue,
+        }),
+    }).then((res) => {
+        if (!res.ok) { return Promise.reject(new Error(`HTTP error ${res.status}`)); }
         updateAssetsCount();
         return res.json();
-    }).catch(err => {
+    }).catch((err) => {
         return Promise.reject(err);
     });
-}
+};
 
 /**
  * Upload File - Mux Asset
  * @param {file} file
- * @param {string} res 
+ * @param {string} res
  * @returns Promise
  */
 const uploadFile = (file, res) => {
     return new Promise((resolve, reject) => {
         const upload = UpChunk.createUpload({
             endpoint: res.url,
-            file: file,
+            file,
             chunkSize: 30720, // Uploads the file in ~30 MB chunks
         });
 
         // subscribe to events
-        upload.on('error', err => {
+        upload.on('error', (err) => {
             console.error('💥 🙀', err.detail);
             reject(err);
             uploadState.uploading = false;
         });
 
-        upload.on('progress', prog => {
+        upload.on('progress', (prog) => {
             uploadState.progress = prog.detail;
         });
 
         upload.on('success', (data) => {
             getUploadById(res.id)
-                .then(data => getAssetById(data.asset_id))
-                .then(data => {
+                .then((data) => { return getAssetById(data.asset_id); })
+                .then((data) => {
                     data.title = file.name;
                     createAsset(data);
                 })
-                .then(data => {
+                .then((data) => {
                     uploadState.progress = 0;
                     resolve(data);
                 });
-            //console.log("Wrap it up, we're done here. 👋");
+            // console.log("Wrap it up, we're done here. 👋");
         });
     });
-}
-
+};
 
 
 /**
  * Upload Files - Video Files
- * @param {files} files 
+ * @param {files} files
  */
-export const uploadFiles = async (files) => {
+export const uploadFiles = async(files) => {
     uploadState.uploading = true;
     uploadState.progressTotal = files.length * 100;
-    
+
     try {
         const uploadPromises = [];
-        
+
         for (const file of files) {
             uploadState.uploadingFile = file;
             const upload_url = await getUploadUrl();
@@ -352,109 +351,88 @@ export const uploadFiles = async (files) => {
             uploadPromises.push(promise);
             await promise;
         }
-        
+
         await Promise.all(uploadPromises);
         uploadState.uploading = false;
         return Promise.resolve();
-      
-    } catch(error) {
+
+    } catch (error) {
         uploadState.uploading = false;
         return Promise.reject(error);
     }
-}
-
-// export const uploadFiles = (files) => {
-//     return new Promise((resolve, reject) => {
-//         uploadState.uploading = true;
-//         uploadState.progressTotal = (files.length * 100);
-
-//         getUploadUrl().then(upload_url => {
-//             let promises = [];
-//             for (let index = 0; index < files.length; index++) {
-//                 let file = files[index];
-//                 uploadState.uploadingFile = file;
-//                 promises.push(uploadFile(file, upload_url));
-//             }
-
-//             Promise.all(promises).then((values) => {
-//                 resolve();
-//                 uploadState.uploading = false;
-//             });
-//         });
-//     });
-// }
+};
 
 /**
  * Remove Asset By ID
  *   - Removes the asset from the state assets variable array.
- * @param {string|number} id 
+ * @param {string|number} id
  */
 export const removeAssetById = (id) => {
-    state.assets = state.assets.filter(asset => asset.id !== id);
+    state.assets = state.assets.filter((asset) => { return asset.id !== id; });
 };
 
 /**
  * Add Asset Track By ID
- * @param {string|number} _id 
- * @param {object} _track 
- * @returns 
+ * @param {string|number} _id
+ * @param {object} _track
+ * @returns
  */
 export const addAssetTrackById = (_id, _track) => {
     return new Promise((resolve, reject) => {
-        let body = { id: _id, track: _track };
-        let csrfKey = window.Craft.csrfTokenName;
+        const body = { id: _id, track: _track };
+        const csrfKey = window.Craft.csrfTokenName;
         body[csrfKey] = window.Craft.csrfTokenValue;
 
         fetch('/actions/mux/assets/add-asset-track-by-id', {
             method: 'POST',
             headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify(body)
-        }).then(res => {
+            body: JSON.stringify(body),
+        }).then((res) => {
             if (!res.ok) {
-                throw new Error("HTTP error " + res.status);
+                throw new Error(`HTTP error ${res.status}`);
             }
             return res.json();
-        }).then(json => {
+        }).then((json) => {
             resolve(json);
         }).catch((err) => {
             console.log(err);
             reject('Adding asset track failed!');
         });
     });
-}
+};
 
 /**
  * Delete Asset Track By ID
- * @param {*} _id 
- * @param {*} _track_id 
- * @returns 
+ * @param {*} _id
+ * @param {*} _track_id
+ * @returns
  */
 export const deleteAssetTrack = (_id, _track_id) => {
     return new Promise((resolve, reject) => {
-        let body = { id: _id, track_id: _track_id };
-        let csrfKey = window.Craft.csrfTokenName;
+        const body = { id: _id, track_id: _track_id };
+        const csrfKey = window.Craft.csrfTokenName;
         body[csrfKey] = window.Craft.csrfTokenValue;
 
         fetch('/actions/mux/assets/delete-asset-track-by-id', {
             method: 'POST',
             headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify(body)
-        }).then(res => {
+            body: JSON.stringify(body),
+        }).then((res) => {
             if (!res.ok) {
-                throw new Error("HTTP error " + res.status);
+                throw new Error(`HTTP error ${res.status}`);
             }
             return res.json();
-        }).then(json => {
+        }).then((json) => {
             resolve(json);
         }).catch((err) => {
             console.log(err);
             reject('Delete Aasset Track Failed!');
         });
     });
-}
+};

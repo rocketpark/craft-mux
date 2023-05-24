@@ -1,38 +1,56 @@
 <template>
-    <div class="dropzone-container"
-        ref="dropZoneRef" @keyup.esc="onEsc">
-        <div class="mux-grid"
-            v-if="!loading">
-            <asset v-for="(item, index, key) in assets"
+    <div
+        ref="dropZoneRef"
+        class="dropzone-container" @keyup.esc="onEsc"
+    >
+        <div
+            v-if="!loading"
+            class="mux-grid"
+        >
+            <asset
+                v-for="(item, index, key) in assets"
+                :key="key"
                 :asset="item"
-                :key="key"></asset>
+            />
         </div>
-        <div class="mux-grid"
-            v-if="loading">
-            <div class="pl-video"
+        <div
+            v-if="loading"
+            class="mux-grid"
+        >
+            <div
                 v-for="n in params.limit"
-                :key="n + '-d'">
-
+                :key="n + '-d'"
+                class="pl-video"
+            >
                 <div class="aspect-video"></div>
             </div>
         </div>
-        <drop-zone-overlay :is-over-drop-zone="isOverDropZone"></drop-zone-overlay>
+        <drop-zone-overlay :is-over-drop-zone="isOverDropZone" />
     </div>
 </template>
 <script>
-import { inject, onMounted, toRefs, ref } from 'vue';
-import { state, uploadState, uploadFiles, useAssets } from './AssetsStore';
+import {
+    inject, onMounted, toRefs, ref,
+} from 'vue';
+import {
+    state, uploadState, uploadFiles, useAssets,
+} from './AssetsStore';
 import Asset from './Asset';
 import DropZoneOverlay from './DropZoneOverlay.vue';
 import { useDropZone } from '@vueuse/core';
 import ProgressBar from './ProgressBar.vue';
 
 export default {
+    components: {
+        Asset,
+        DropZoneOverlay,
+        ProgressBar,
+    },
     props: {
         siteId: {
             type: [Number, String],
-            default: null
-        }
+            default: null,
+        },
     },
     setup(props) {
         const emitter = inject('emitter');
@@ -41,12 +59,14 @@ export default {
 
         const onDrop = (files) => {
             if (files) {
-                filesData.value = files.map(file => ({
-                    name: file.name,
-                    size: file.size,
-                    type: file.type,
-                    lastModified: file.lastModified,
-                }));
+                filesData.value = files.map((file) => {
+                    return {
+                        name: file.name,
+                        size: file.size,
+                        type: file.type,
+                        lastModified: file.lastModified,
+                    };
+                });
                 uploadFiles(files).then(() => {
                     useAssets();
                 });
@@ -54,10 +74,10 @@ export default {
         };
 
         const onEsc = () => {
-            emitter.emit("close-panel");
-        }
+            emitter.emit('close-panel');
+        };
 
-        onMounted(async () => {
+        onMounted(async() => {
             const assets = await useAssets();
             emitter.on('mux-asset-track-deleted', () => {
                 useAssets();
@@ -67,7 +87,7 @@ export default {
             });
             emitter.on('onPage', () => {
                 useAssets();
-            })
+            });
         });
 
         const { isOverDropZone } = useDropZone(dropZoneRef, onDrop);
@@ -77,15 +97,10 @@ export default {
             ...toRefs(uploadState),
             dropZoneRef,
             isOverDropZone,
-            onEsc
-        }
+            onEsc,
+        };
     },
-    components: {
-        Asset,
-        DropZoneOverlay,
-        ProgressBar
-    }
-}
+};
 </script>
 <style>
 .dropzone-container {

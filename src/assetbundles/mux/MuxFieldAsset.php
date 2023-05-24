@@ -31,7 +31,7 @@ class MuxFieldAsset extends AssetBundle
         $this->sourcePath = '@rocketpark/mux/web/dist';
 
         $this->js = [
-            'mux-field.js',
+            'js/mux-field.js',
         ];
 
         $this->depends = [

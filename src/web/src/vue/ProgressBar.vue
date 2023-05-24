@@ -1,27 +1,29 @@
 <template>
     <div class="progressbar">
-        <div class="progressbar-inner"
+        <div
+            ref="bar"
+            class="progressbar-inner"
             :style="`--progressbar-width:${value}%;`"
-            ref="bar"></div>
+        ></div>
     </div>
 </template>
 <script>
-import { ref, watch } from "vue";
+import { ref, watch } from 'vue';
 export default {
     props: {
         value: {
             type: Number,
-            default: 0
-        }
+            default: 0,
+        },
     },
     setup(props) {
         const bar = ref();
 
         return {
-            bar
-        }
-    }
-}
+            bar,
+        };
+    },
+};
 </script>
 <style scoped>
 .progressbar {

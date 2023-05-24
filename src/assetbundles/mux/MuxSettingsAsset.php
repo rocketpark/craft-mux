@@ -31,7 +31,7 @@ class MuxSettingsAsset extends AssetBundle
         $this->sourcePath = '@rocketpark/mux/web/dist';
 
         $this->js = [
-            'mux-settings.js'
+            'js/mux-settings.js'
         ];
 
         $this->depends = [

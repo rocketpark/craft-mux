@@ -31,8 +31,12 @@ class MuxDashboardAsset extends AssetBundle
         $this->sourcePath = '@rocketpark/mux/web/dist';
 
         $this->js = [
-            'mux-dashboard.js',
+            'js/mux-dashboard.js',
             'https://cdn.jsdelivr.net/npm/@mux/mux-player'
+        ];
+
+        $this->css = [
+            'css/mux-dashboard.css',
         ];
 
         $this->depends = [

@@ -1,20 +1,20 @@
 <template>
-    <div class="mux-slideout" ref="slideout">
+    <div ref="slideout" class="mux-slideout">
         <header>
             <h3>Asset Tracks</h3>
             <button class="mux-slideout-close" @click.prevent.stop="closePanel()"></button>
         </header>
         <section>
-            <div class="" v-if="asset != null">
+            <div v-if="asset != null" class="">
                 <div>
                     <h3>Closed Captions Tracks</h3>
                     <div class="mux-tracks">
-                        <asset-track v-for="track in tracks" :key="track.id" :track="track" :asset-id="asset.asset_id"></asset-track>
+                        <asset-track v-for="track in tracks" :key="track.id" :track="track" :asset-id="asset.asset_id" />
                     </div>
                 </div>
 
                 <div class="mux-slideout-panel">
-                    <mux-asset-track-form :asset-id="asset.asset_id"></mux-asset-track-form>
+                    <mux-asset-track-form :asset-id="asset.asset_id" />
                 </div>
             </div>
         </section>
@@ -24,7 +24,7 @@
                 <div class="mux-buttons-group">
                     <button class="btn" @click.prevent="closePanel()">Close</button>
                     <!-- <button class="btn submit" v-if="!loading">Apply</button> -->
-                    <div class="spinner" v-if="loading"></div>
+                    <div v-if="loading" class="spinner"></div>
                 </div>
             </div>
         </footer>
@@ -32,34 +32,36 @@
 </template>
 
 <script setup>
-import { computed, inject, ref, watch } from "vue";
-import { state } from "./AssetsStore";
-import MuxAssetTrackForm from "./MuxAssetTrackForm.vue";
-import AssetTrack from "./AssetTrack.vue";
+import {
+    computed, inject, ref, watch,
+} from 'vue';
+import { state } from './AssetsStore';
+import MuxAssetTrackForm from './MuxAssetTrackForm.vue';
+import AssetTrack from './AssetTrack.vue';
 import { onClickOutside } from '@vueuse/core';
 
-const emitter = inject("emitter");
+const emitter = inject('emitter');
 const slideout = ref(null);
 const asset = ref(state.selected);
 const loading = ref(false);
 
-watch(() => state.selected, (newAsset) => {
-    asset.value = newAsset;
-},
-{ deep: true });
+watch(() => { return state.selected; }, (newAsset) => {
+          asset.value = newAsset;
+      },
+      { deep: true });
 
 onClickOutside(slideout, (evt) => {
-    emitter.emit("click-outside", "asset-track-panel");
+    emitter.emit('click-outside', 'asset-track-panel');
 });
 
 const tracks = computed(() => {
     return asset.value.tracks.filter((track) => {
-        return track.type === "text";
+        return track.type === 'text';
     });
 });
 
 const closePanel = () => {
-    emitter.emit("close-panel");
+    emitter.emit('close-panel');
 };
 </script>
 

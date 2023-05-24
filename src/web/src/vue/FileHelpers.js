@@ -1,13 +1,13 @@
-const accept_extensions = "mp4,webm,mov,m4v";
+const accept_extensions = 'mp4,webm,mov,m4v';
 const max_file_size = 50000 * 1024 * 1024; // 52GB
 const multiple_files = true;
 
-export const checkFileExtensions = function (files) {
+export const checkFileExtensions = function(files) {
     // get non-empty, unique extension items
     const extList = [...new Set(
         accept_extensions.toLowerCase()
             .split(',')
-            .filter(Boolean)
+            .filter(Boolean),
     )];
     const list = Array.from(files);
     // check if the selected files are in supported extensions
@@ -15,23 +15,23 @@ export const checkFileExtensions = function (files) {
         const ext = `${file.name.toLowerCase().split('.').pop()}`;
         return !extList.includes(ext);
     });
- 
+
     // all exts are valid
     return invalidFileIndex === -1;
-}
+};
 
-export const checkFileSize = function (files) {
+export const checkFileSize = function(files) {
     if (Number.isNaN(max_file_size)) {
         return true;
     }
     const list = Array.from(files);
     // find invalid file size
-    const invalidFileIndex = list.findIndex((file) => file.size > max_file_size);
+    const invalidFileIndex = list.findIndex((file) => { return file.size > max_file_size; });
     // all file size are valid
     return invalidFileIndex === -1;
-}
+};
 
-export const validate = function (files) {
+export const validate = function(files) {
     // file selection
     if (!multiple_files && files.length > 1) {
         return 'MULTIFILES_ERROR';
@@ -46,12 +46,12 @@ export const validate = function (files) {
     }
     // custom validation
     return true;
-}
+};
 
-export const preprocessFiles = function (files) {
+export const preprocessFiles = function(files) {
     return new Promise((resolve, reject) => {
         const result = validate(files);
-    
+
         if (result === true) {
             resolve(result);
         } else {
@@ -73,8 +73,8 @@ export const preprocessFiles = function (files) {
                     reject(result);
                     break;
             }
-           
+
         }
-        
+
     });
-}
+};

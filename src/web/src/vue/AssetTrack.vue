@@ -1,63 +1,63 @@
 <template>
     <div class="mux-track">
-        <div class="mux-track-item" v-if="track.type == 'text'">
-            <span><DocumentTextIcon class="icon" /></span> 
-            <span>Text</span> 
-            <span>{{  track.name }}</span>
-            <span v-if="track.closed_captions">subtitles</span> 
+        <div v-if="track.type == 'text'" class="mux-track-item">
+            <span><DocumentTextIcon class="icon" /></span>
+            <span>Text</span>
+            <span>{{ track.name }}</span>
+            <span v-if="track.closed_captions">subtitles</span>
             <span>({{ track.language_code }})</span>
         </div>
 
-        <div class="mux-track-item" v-if="track.type == 'audio'">
-            <span><MicrophoneIcon class="icon" /></span> 
-            <span>Audio</span> 
+        <div v-if="track.type == 'audio'" class="mux-track-item">
+            <span><MicrophoneIcon class="icon" /></span>
+            <span>Audio</span>
             <span>{{ track.max_channel_layout }}</span>
         </div>
 
-        <div class="mux-track-item" v-if="track.type == 'video'">
-            <span><VideoCameraIcon class="icon" /></span> 
-            <span>Video</span> 
+        <div v-if="track.type == 'video'" class="mux-track-item">
+            <span><VideoCameraIcon class="icon" /></span>
+            <span>Video</span>
             <span>{{ track.max_height }}p</span>
         </div>
-        
-        <button class="error" @click.prevent.stop="deleteTrack()" v-if="track.type == 'text'">
-            <XCircleIcon class="xcircleicon" v-if="!loading" />
-            <div class="spinner" v-if="loading"></div>
-            <span class="sr-only">Delete Track {{ track.name  }}</span>
+
+        <button v-if="track.type == 'text'" class="error" @click.prevent.stop="deleteTrack()">
+            <XCircleIcon v-if="!loading" class="xcircleicon" />
+            <div v-if="loading" class="spinner"></div>
+            <span class="sr-only">Delete Track {{ track.name }}</span>
         </button>
     </div>
 </template>
 <script setup>
-    import { defineProps, inject, ref } from 'vue';
-    import { MicrophoneIcon, VideoCameraIcon, DocumentTextIcon } from '@heroicons/vue/24/outline';
-    import { XCircleIcon } from '@heroicons/vue/24/solid';
-    import { deleteAssetTrack } from "./AssetsStore.js";
+import { defineProps, inject, ref } from 'vue';
+import { MicrophoneIcon, VideoCameraIcon, DocumentTextIcon } from '@heroicons/vue/24/outline';
+import { XCircleIcon } from '@heroicons/vue/24/solid';
+import { deleteAssetTrack } from './AssetsStore.js';
 
-    const emitter = inject('emitter');
-    const props = defineProps({
-        assetId: {
-            type: [String, Number],
-            required: true
-        },
-        track: {
-            type: Object,
-            required: true
-        }
-    });
+const emitter = inject('emitter');
+const props = defineProps({
+    assetId: {
+        type: [String, Number],
+        required: true,
+    },
+    track: {
+        type: Object,
+        required: true,
+    },
+});
 
-    const loading = ref(false);
+const loading = ref(false);
 
-    const deleteTrack = () => {
-        loading.value = true;
-        deleteAssetTrack(props.assetId, props.track.id)
-        .then(() => { 
+const deleteTrack = () => {
+    loading.value = true;
+    deleteAssetTrack(props.assetId, props.track.id)
+        .then(() => {
             loading.value = false;
             emitter.emit('mux-asset-track-deleted');
         })
-        .catch((err) => { 
+        .catch((err) => {
             loading.value = false;
         });
-    };
+};
 
 </script>
 <style scoped>

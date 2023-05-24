@@ -40,7 +40,7 @@ class MuxEditAsset extends AssetBundle
             ];
 
             $this->css = [
-                'mux-element-edit.css',
+                'css/mux-element-edit.css',
             ];
 
             $this->depends = [

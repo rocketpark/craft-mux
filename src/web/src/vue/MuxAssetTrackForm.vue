@@ -11,10 +11,12 @@
                         </ol>
                     </span>
                 </label>
-
             </div>
             <div class="input ltr">
-                <input type="text" id="mux-track-url" class="nicetext code text fullwidth" autocomplete="off" placeholder="" dir="ltr" required v-model="form.url">
+                <input
+                    id="mux-track-url" v-model="form.url" type="text" class="nicetext code text fullwidth" autocomplete="off" placeholder=""
+                    dir="ltr" required
+                >
             </div>
         </div>
         <div class="field-group">
@@ -23,7 +25,10 @@
                     <label id="mux-track-language-name-heading" for="mux-track-language-name">Language Name <span class="visually-hidden">Required</span><span class="required" aria-hidden="true"></span></label>
                 </div>
                 <div class="input ltr">
-                    <input type="text" id="mux-track-language-name" class="nicetext text fullwidth" autocomplete="off" placeholder="US English" dir="ltr" required v-model="form.name">
+                    <input
+                        id="mux-track-language-name" v-model="form.name" type="text" class="nicetext text fullwidth" autocomplete="off" placeholder="US English"
+                        dir="ltr" required
+                    >
                 </div>
             </div>
             <div class="field width-100">
@@ -31,19 +36,25 @@
                     <label id="mux-track-language-code-heading" for="mux-track-language-code">Language Code<span class="visually-hidden">Required</span><span class="required" aria-hidden="true"></span></label>
                 </div>
                 <div class="input ltr">
-                    <input type="text" id="mux-track-language-code" class="nicetext text fullwidth" autocomplete="off" placeholder="en-US" dir="ltr" required v-model="form.language_code">
+                    <input
+                        id="mux-track-language-code" v-model="form.language_code" type="text" class="nicetext text fullwidth" autocomplete="off" placeholder="en-US"
+                        dir="ltr" required
+                    >
                 </div>
             </div>
-            <div class="field lightswitch-field" >
+            <div class="field lightswitch-field">
                 <div class="heading">
                     <label id="mux-track-closed-captions-heading" for="mux-track-closed-captions">Closed Captions</label>
                 </div>
                 <div class="input ltr">
-                    <button @click.prevent="form.closed_captions = !form.closed_captions" type="button" id="mux-track-closed-captions" class="lightswitch" :class="[form.closed_captions ? 'on' : '']" role="switch" aria-checked="true" aria-labelledby="mux-track-closed-captions" aria-describedby="mux-track-closed-captions-instructions">
+                    <button
+                        id="mux-track-closed-captions" type="button" class="lightswitch" :class="[form.closed_captions ? 'on' : '']" role="switch" aria-checked="true"
+                        aria-labelledby="mux-track-closed-captions" aria-describedby="mux-track-closed-captions-instructions" @click.prevent="form.closed_captions = !form.closed_captions"
+                    >
                         <div class="lightswitch-container" :style="[form.closed_captions ? 'margin-left: 0px;' : 'margin-left: -12px;']">
                             <div class="handle"></div>
                         </div>
-                        <input type="hidden" name="mux-track-closed-captions"  v-model="form.closed_captions">
+                        <input v-model="form.closed_captions" type="hidden" name="mux-track-closed-captions">
                     </button>
                 </div>
             </div>
@@ -57,38 +68,38 @@
     </div>
 </template>
 <script setup>
-    import { inject, ref, reactive } from 'vue';
-    import { addAssetTrackById } from "./AssetsStore";
+import { inject, ref, reactive } from 'vue';
+import { addAssetTrackById } from './AssetsStore';
 
-    const emitter = inject('emitter');
-    const props = defineProps({
-        assetId: {
-            type: [Number, String],
-            required: true
-        }
-    });
-        
-    const loading = ref(false);
-    const form = reactive({
-        url: '',
-        type: 'text',
-        text_type: 'subtitles',
-        language_code: '',
-        name: '',
-        closed_captions:true,
-    });
-    
-    const onAddAssetTrack = function (evt) {
-        loading.value = true;
-        addAssetTrackById(props.assetId, form)
-        .then(res => {
+const emitter = inject('emitter');
+const props = defineProps({
+    assetId: {
+        type: [Number, String],
+        required: true,
+    },
+});
+
+const loading = ref(false);
+const form = reactive({
+    url: '',
+    type: 'text',
+    text_type: 'subtitles',
+    language_code: '',
+    name: '',
+    closed_captions: true,
+});
+
+const onAddAssetTrack = function(evt) {
+    loading.value = true;
+    addAssetTrackById(props.assetId, form)
+        .then((res) => {
             loading.value = false;
             emitter.emit('mux-asset-track-added');
         })
-        .catch((err) => { 
+        .catch((err) => {
             loading.value = false;
         });
-    }
+};
 </script>
 <style scoped>
 .mux-asset-track-form {
