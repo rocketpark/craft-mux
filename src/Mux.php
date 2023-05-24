@@ -29,7 +29,7 @@ use craft\web\twig\variables\CraftVariable;
 use craft\web\View;
 use Monolog\Formatter\LineFormatter;
 use Psr\Log\LogLevel;
-use rocketpark\mux\elements\MuxAsset as MuxAssetEelement;
+use rocketpark\mux\elements\MuxAsset as MuxAssetElement;
 use rocketpark\mux\fields\MuxAsset as MuxAssetField;
 use rocketpark\mux\models\MuxAsset;
 use rocketpark\mux\models\Settings;
@@ -112,7 +112,7 @@ class Mux extends Plugin
             Elements::class,
             Elements::EVENT_REGISTER_ELEMENT_TYPES,
             function(RegisterComponentTypesEvent $event) {
-                $event->types[] = MuxAssetEelement::class;
+                $event->types[] = MuxAssetElement::class;
             }
         );
 
@@ -157,16 +157,28 @@ class Mux extends Plugin
             function(ElementEvent $e) {
 
             // Update the asset passthrough attribute (which holds the title) on Mux.
-            if ($e->element instanceof MuxAssetEelement) {
+            if ($e->element instanceof MuxAssetElement) {
                 $element = $e->element;
                 $attributes = $element->getAttributes();
                 
+                $muxAsset = Mux::$plugin->assets->getMuxAsset($attributes['asset_id']);
+        
                 $asset = new MuxAsset();
+                
+                // Prevent an update loop from webhook.
+                if(array_key_exists('passthrough', $muxAsset)) {
+                    if($muxAsset['passthrough'] != $attributes['title']) {
+                        $asset->asset_id = $attributes['asset_id'];
+                        $asset->passthrough = $attributes['title']; 
 
-                $asset->asset_id = $attributes['asset_id'];
-                $asset->passthrough = $attributes['title']; 
+                        Mux::$plugin->assets->updateMuxAsset($asset);
+                    }
+                } else {
+                    $asset->asset_id = $attributes['asset_id'];
+                    $asset->passthrough = $attributes['title']; 
 
-                Mux::$plugin->assets->updateMuxAsset($asset);
+                    Mux::$plugin->assets->updateMuxAsset($asset);
+                }
             }
         });
 
@@ -174,7 +186,7 @@ class Mux extends Plugin
         Craft::$app->elements->on(
             Elements::EVENT_BEFORE_DELETE_ELEMENT, 
             function(ElementEvent $e) {
-                if ($e->element instanceof MuxAssetEelement) {
+                if ($e->element instanceof MuxAssetElement) {
                     $element = $e->element;
                     $attributes = $element->getAttributes();
                     /* 

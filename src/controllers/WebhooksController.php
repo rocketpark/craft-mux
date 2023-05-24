@@ -68,6 +68,7 @@ class WebhooksController extends Controller
                 Mux::info(json_encode($params), 'mux');
                 break;
             case 'video.asset.updated':
+                Mux::$plugin->assets->updateAssetElementWithMuxAsset($params['data']);
                 Mux::info(json_encode($params), 'mux');
                 break;
             case 'video.asset.deleted':
