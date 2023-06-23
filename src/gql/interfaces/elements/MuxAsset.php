@@ -10,10 +10,13 @@ use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Definition\InterfaceType as GqlInterfaceType;
 use yii\db\Schema;
+use craft\helpers\Gql;
 
 use rocketpark\mux\gql\types\generators\MuxAssetType;
 use rocketpark\mux\gql\types\elements\MuxAsset as MuxAssetElement;
 use rocketpark\mux\gql\resolvers\elements\MuxAsset as MuxAssetResolver;
+use rocketpark\mux\gql\types\PlaybackIdType;
+use rocketpark\mux\gql\types\TrackType;
 
 /**
  * Class MuxAssetGqlType
@@ -63,6 +66,65 @@ class MuxAsset extends Element
      */
     public static function getFieldDefinitions(): array
     {
+        $PlaybackIdType = new ObjectType([
+            'name' => 'PlaybackID',
+            'fields' => [
+                'id' => [
+                    'type' => Type::string(),
+                    'description' => 'ID of the playback'
+                ],
+                'policy' => [
+                    'type' => Type::string(),
+                    'description' => 'Policy of the playback'
+                ]
+            ]
+        ]);
+
+        $TracksType = new ObjectType([
+            'name' => 'Track',
+            'description' => 'Mux Asset Track',
+            'fields' => [
+                'id' => [
+                    'type' => Type::string(),
+                    'description' => 'Track ID'
+                ],
+                'type' => Type::string(),
+                'text_source' => Type::string(),
+                'text_type' => Type::string(),
+                'language_code' => Type::string(),
+                'name' => Type::string(),
+                'closed_captions' => Type::string(),
+                'duration' => [
+                    'type' => Type::int(),
+                    'description' => 'The duration of the track in seconds'
+                ],
+                'max_width' => [
+                    'type' => Type::int(),
+                    'description' => 'The maximum video bitrate of the track'
+                ],
+                'max_height' => [
+                    'type' => Type::int(),
+                    'description' => 'The maximum video bitrate of the track'
+                ],
+                'max_video_bitrate' => [
+                    'type' => Type::int(),
+                    'description' => 'The maximum video bitrate of the track'
+                ],
+                'max_audio_bitrate' => [
+                    'type' => Type::int(),
+                    'description' => 'The maximum audio bitrate of the track'
+                ],
+                'created_at' => [
+                    'type' => Type::string(),
+                    'description' => 'The creation time of the track'
+                ],
+                'updated_at' => [
+                    'type' => Type::string(),
+                    'description' => 'The last update time of the track'
+                ],
+            ]
+        ]);
+
         return Craft::$app->getGql()->prepareFieldDefinitions(array_merge(parent::getFieldDefinitions(), [
             'id' => [
                 'type' => Type::ID(),
@@ -97,67 +159,12 @@ class MuxAsset extends Element
                 'description' => 'Aspect ratio of the object'
             ],
             'playback_ids' => [
-                'type' => Type::listOf(new ObjectType([
-                    'name' => 'PlaybackID',
-                    'fields' => [
-                        'id' => [
-                            'type' => Type::string(),
-                            'description' => 'ID of the playback'
-                        ],
-                        'policy' => [
-                            'type' => Type::string(),
-                            'description' => 'Policy of the playback'
-                        ]
-                    ]
-                ])),
-                'description' => 'Playback IDs of the object'
+                'type' => Type::listOf(PlaybackIdType::getType()),
+                'description' => 'Playback IDs of the object',
             ],
             'tracks' => [
                 'name' => 'tracks',
-                'type' => Type::listOf(new ObjectType([
-                    'name' => 'Track',
-                    'description' => 'Mux Asset Track',
-                    'fields' => [
-                        'id' => [
-                            'type' => Type::string(),
-                            'description' => 'Track ID'
-                        ],
-                        'type' => Type::string(),
-                        'text_source' => Type::string(),
-                        'text_type' => Type::string(),
-                        'language_code' => Type::string(),
-                        'name' => Type::string(),
-                        'closed_captions' => Type::string(),
-                        'duration' => [
-                            'type' => Type::int(),
-                            'description' => 'The duration of the track in seconds'
-                        ],
-                        'max_width' => [
-                            'type' => Type::int(),
-                            'description' => 'The maximum video bitrate of the track'
-                        ],
-                        'max_height' => [
-                            'type' => Type::int(),
-                            'description' => 'The maximum video bitrate of the track'
-                        ],
-                        'max_video_bitrate' => [
-                            'type' => Type::int(),
-                            'description' => 'The maximum video bitrate of the track'
-                        ],
-                        'max_audio_bitrate' => [
-                            'type' => Type::int(),
-                            'description' => 'The maximum audio bitrate of the track'
-                        ],
-                        'created_at' => [
-                            'type' => Type::string(),
-                            'description' => 'The creation time of the track'
-                        ],
-                        'updated_at' => [
-                            'type' => Type::string(),
-                            'description' => 'The last update time of the track'
-                        ],
-                    ]
-                ])),
+                'type' => Type::listOf(TrackType::getType()),
             ],
             'errors' => [
                 'type' => Type::string(),
