@@ -10,7 +10,9 @@ use craft\helpers\Db;
 use craft\helpers\StringHelper;
 use craft\helpers\UrlHelper;
 use craft\helpers\App;
+use craft\helpers\ArrayHelper;
 use craft\helpers\ElementHelper;
+use Exception as GlobalException;
 use Throwable;
 use yii\base\Component;
 use rocketpark\mux\Mux;
@@ -28,6 +30,8 @@ use rocketpark\mux\elements\MuxAsset as MuxAssetElement;
 //use rocketpark\mux\models\Asset as MuxAsset;
 use rocketpark\mux\models\MuxAsset as MuxAsset;
 use rocketpark\mux\records\Assets as MuxAssetsRecord;
+use rocketpark\mux\events\MuxAssetSyncEvent;
+use rocketpark\mux\jobs\UpdateMuxAssetElement;
 use yii\base\Exception;
 use yii\base\InvalidArgumentException as BaseInvalidArgumentException;
 use yii\base\InvalidConfigException;
@@ -42,12 +46,15 @@ use function json_encode;
  */
 class Assets extends Component
 {
+
+    public const EVENT_BEFORE_SYNCHRONIZE_MUX_ASSET = 'beforeSynchronizeMuxAsset';
+
     /**
      * Creates MUX API Configuration
      * @return Configuration 
      * @throws BaseInvalidArgumentException 
      */
-    private function muxConf(): MuxPhp\Configuration
+    public function muxConf(): MuxPhp\Configuration
     {
         $settings = Mux::$settings;
         // Authentication Setup
@@ -57,7 +64,7 @@ class Assets extends Component
     }
 
     /**
-     * Builds a asset element from POST data.
+     * Builds a asset model from POST data.
      *
      * @return MuxAsset
      * @throws Exception
@@ -97,12 +104,21 @@ class Assets extends Component
         return $asset;
     }
 
+    /**
+     * Build Asset Element From Post
+     * @return MuxAssetElement 
+     * @throws InvalidConfigException 
+     */
     public function buildAssetElementFromPost(): MuxAssetElement
     {
         $request = Craft::$app->getRequest();
         $params = $request->getBodyParams();
-       
-        $asset = new MuxAssetElement();
+
+        $asset = MuxAssetElement::findOne(['asset_id' => $params['asset_id']]);
+
+        if(!$asset) {
+            $asset = new MuxAssetElement();
+        }
         
         $asset->title = $params['title'];
         $asset->asset_id = $params['asset_id'];
@@ -118,7 +134,7 @@ class Assets extends Component
         $asset->per_title_encode = isset($params['per_title_encode']) ? $params['per_title_encode'] : null;
         $asset->upload_id = isset($params['upload_id']) ? $params['upload_id'] : "";
         $asset->is_live = isset($params['is_live']) ? $params['is_live'] : "";
-        $asset->passthrough = isset($params['passthrough']) ? $params['passthrough'] : $params['title'];
+        $asset->passthrough = isset($params['passthrough']) ? ($params['passthrough'] == $params['asset_id'] ? $params['title'] : $params['passthrough']) : $params['title'];
         $asset->live_stream_id = isset($params['live_stream_id']) ? $params['live_stream_id'] : "";
         $asset->master = isset($params['master']) ? $params['master'] : [];
         $asset->master_access = isset($params['master_access']) ? $params['master_access'] : "";
@@ -220,6 +236,7 @@ class Assets extends Component
 
         try {
             $result = $apiInstance->createAsset($create_asset_request);
+            Mux::info("Asset created successfully: ". $result, 'mux');
         } catch (\Exception $e) {
             throw new Exception("Unable to retrieve video from Mux: {$e->getMessage()}");
         }
@@ -331,7 +348,7 @@ class Assets extends Component
                     }
                 }
             }
-
+            //Mux::info("Getting Mux Asset from MUX (mux\services\assets\getMuxAssetById): " . $id, 'mux');
             return $result->getData();
         } catch (\Exception $e) {
             throw new Exception("Exception when calling AssetsApi->getAsset: {$e->getMessage()} ");
@@ -511,6 +528,10 @@ class Assets extends Component
                 } else if($key == 'status') {
                     $element->asset_status = $value;
                     continue;
+                } else if($key == 'passthrough') {
+                    if($element->title != $value) {
+                        $element->title = $value;
+                    }
                 }
                 $element[$key] = $value;
             }
@@ -525,5 +546,159 @@ class Assets extends Component
             }
         }
         
+    }
+
+    public function createOrUpdateMuxAsset(Asset $asset) 
+    {
+        
+        $attributes = [
+            //"title" => $asset->getPassthrough(),
+            "asset_id" => $asset->getId(),
+            "created_at" => $asset->getCreatedAt(),
+            "asset_status" => $asset->getStatus(),
+            "duration" => $asset->getDuration(),
+            "max_stored_resolution" => $asset->getMaxStoredResolution(),
+            "max_stored_frame_rate" => $asset->getMaxStoredFrameRate(),
+            "aspect_ratio" => $asset->getAspectRatio(),
+            "playback_ids" => !empty($asset->getPlaybackIds()) ? array_map(function ($playbackId) {
+                return [
+                    'id' => $playbackId->getId(),
+                    'policy' => $playbackId->getPolicy()
+                ];
+            }, $asset->getPlaybackIds()) : [],
+            "tracks" => !empty($asset->getTracks()) ?  array_map(function ($track) {
+                return [
+                    'id' => $track->getId(),
+                    'type' => $track->getType(),
+                    'text_source' => $track->getTextSource(),
+                    'text_type' => $track->getTextType(),
+                    'language_code' => $track->getLanguageCode(),
+                    'name' => $track->getName(),
+                    'closed_captions' => $track->getClosedCaptions(),
+                    'duration' => $track->getDuration(),
+                    'max_width' => $track->getMaxWidth(),
+                    'max_height' => $track->getMaxHeight(),
+                    'max_frame_rate' => $track->getMaxFrameRate(),
+                ];
+            }, $asset->getTracks()) : [],
+            "errors" => $asset->getErrors(),
+            "per_title_encode" => "",
+            "upload_id" => $asset->getUploadId(),
+            "is_live" => $asset->getIsLive(),
+            "passthrough" => $asset->getPassthrough(),
+            "live_stream_id" => $asset->getLiveStreamId(),
+            "master" => $asset->getMaster(),
+            "master_access" => $asset->getMasterAccess(),
+            "mp4_support" => $asset->getMp4Support(),
+            "source_asset_id" => $asset->getSourceAssetId(),
+            "normalize_audio" => $asset->getNormalizeAudio(),
+            "static_renditions" => $asset->getStaticRenditions(),
+            "recording_times" => $asset->getRecordingTimes(),
+            "non_standard_input_reasons" => $asset->getNonStandardInputReasons(),
+            "test" => $asset->getTest()
+        ];
+
+        /** @var MuxAssetRecord $assetData */
+        $assetRecord = MuxAssetsRecord::find()->where(['asset_id' => $asset['id']])->one();
+        if($assetRecord) {
+            $assetRecord->setAttributes($attributes, false);
+            $assetRecord->save();
+        }
+
+        // Find the mux asset element or create one
+        /** @var MuxAssetElement|null $muxAssetElement */
+        $muxAssetElement = MuxAssetElement::find()
+            ->asset_id($asset['id'])
+            ->status(null)
+            ->one();
+            
+        if ($muxAssetElement === null) {
+            /** @var MuxAssetElement $muxAssetElement */
+            $muxAssetElement = new muxAssetElement();
+            $muxAssetElement->title = !empty($asset['passthrough']) ? $asset['passthrough'] : $asset['id'];
+        } else {
+            $muxAssetElement->title = $asset['passthrough'];
+        }
+
+        // Set attributes on the element to emulate it having been loaded with JOINed data:
+        $muxAssetElement->setAttributes($attributes, false);
+
+        $event = new MuxAssetSyncEvent([
+            'element' => $muxAssetElement,
+            'source' => $asset
+        ]);
+
+        $this->trigger(self::EVENT_BEFORE_SYNCHRONIZE_MUX_ASSET, $event);
+
+        if (!$event->isValid) {
+            Mux::info("Synchronization of MUX Asset ID #{$asset['id']} was stopped by a plugin.", 'mux');
+
+            return false;
+        }
+
+        if (!Craft::$app->getElements()->saveElement($muxAssetElement)) {
+            Mux::error("Failed to synchronize MUX Asset ID #{$asset['id']}.", 'mux');
+
+            return false;
+        }
+
+        return true;
+    }
+
+
+    public function syncAllMuxAssets() :void
+    {
+        $limit = 50;
+        $page = 1;
+
+        $config = Mux::$plugin->assets->muxConf();
+        // API Client Initialization
+        $apiInstance = new MuxPhp\Api\AssetsApi(
+            new Client(),
+            $config
+        );
+
+        do {
+            $assets = $apiInstance->listAssets($limit, $page)->getData();
+
+            // This helps to prevent a loop occuring with webhook enabled
+            if(empty($assets)) {
+                $this->deleteOrphanedMuxElements($assets);
+                break;
+            }
+
+            foreach ($assets as $asset) {
+                $this->createOrUpdateMuxAsset($asset);
+                // Craft::$app->getQueue()->push(new UpdateMuxAssetElement([
+                //     'description' => Craft::t('mux', 'Updating MUX asset “{id}”', [
+                //     'id' => $asset->getId(),
+                //     ]),
+                //     'asset_id' => $asset->getId(),
+                // ]));
+            }
+
+            // Remove any mux assets elements that are no longer in MUX just in case.
+            $this->deleteOrphanedMuxElements($assets);
+           
+            $page++;
+        } while (!empty($assets) && count($assets) >= $limit);
+    }
+
+    /**
+     * Delete all orphaned Mux Asset Elements
+     * @param array $assets 
+     * @return void 
+     * @throws BaseInvalidArgumentException 
+     * @throws GlobalException 
+     * @throws InvalidConfigException 
+     */
+    public function deleteOrphanedMuxElements(Array $assets): void
+    {
+        $muxAssetIds = ArrayHelper::getColumn($assets, 'id');
+        $deletableMuxAssetElements = MuxAssetElement::find()->asset_id(['not', $muxAssetIds])->all();
+
+        foreach ($deletableMuxAssetElements as $element) {
+            Craft::$app->elements->deleteElement($element);
+        }
     }
 }

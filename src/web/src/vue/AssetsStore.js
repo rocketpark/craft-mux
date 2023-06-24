@@ -188,6 +188,7 @@ export const createAsset = (data) => {
     data.asset_id = data.id;
     data.asset_status = data.status;
     data.title = data.title !== undefined ? data.title : data.id;
+    // We don't want these assigned to the Element since they have been reassigned
     delete data.id;
     delete data.status;
     body = data;

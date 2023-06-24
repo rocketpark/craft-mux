@@ -22,28 +22,28 @@ class MuxAssetQuery extends ElementQuery
     public $tracks = null;
     public $passthrough = null;
 
-    public function asset_id(string|null $value): self
+    public function asset_id(mixed $value): self
     {
         $this->asset_id = $value;
 
         return $this;
     }
 
-    public function asset_status(string|null $value): self
+    public function asset_status(mixed $value): self
     {
         $this->asset_status = $value;
 
         return $this;
     }
 
-    public function aspect_ratio(string|null $value): self
+    public function aspect_ratio(mixed $value): self
     {
         $this->aspect_ratio = $value;
 
         return $this;
     }
 
-    public function duration(string|null $value): self
+    public function duration(mixed $value): self
     {
         $this->duration = $value;
 
@@ -57,7 +57,7 @@ class MuxAssetQuery extends ElementQuery
         return $this;
     }
 
-    public function upload_id(string|null $value): self
+    public function upload_id(mixed $value): self
     {
         $this->upload_id = $value;
 

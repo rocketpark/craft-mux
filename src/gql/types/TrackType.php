@@ -87,21 +87,9 @@ class TrackType extends ObjectType
                 'type' => Type::int(),
                 'description' => 'The maximum video bitrate of the track'
             ],
-            'max_video_bitrate' => [
+            'max_frame_rate' => [
                 'type' => Type::int(),
                 'description' => 'The maximum video bitrate of the track'
-            ],
-            'max_audio_bitrate' => [
-                'type' => Type::int(),
-                'description' => 'The maximum audio bitrate of the track'
-            ],
-            'created_at' => [
-                'type' => Type::string(),
-                'description' => 'The creation time of the track'
-            ],
-            'updated_at' => [
-                'type' => Type::string(),
-                'description' => 'The last update time of the track'
             ]
         ];
 

@@ -90,6 +90,8 @@ class AssetsController extends Controller
     public function actionCreate(): Response
     {
         $this->requirePostRequest();
+
+        Mux::info('Creating Mux Asset Element (mux\controllers\actionCreate())', 'mux');
         $element = Mux::$plugin->assets->buildAssetElementFromPost();
 
         if (!Craft::$app->getElements()->saveElement($element)) {
@@ -99,7 +101,7 @@ class AssetsController extends Controller
                 'MuxAssetElement'
             );
         }
-    
+
         return $this->asModelSuccess(
             $element,
             Craft::t('app', 'Element saved.'),

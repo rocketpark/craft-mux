@@ -7,26 +7,19 @@ use craft\base\Model;
 use craft\base\Plugin;
 use craft\events\DefineBehaviorsEvent;
 use craft\events\ElementEvent;
-use craft\events\ModelEvent;
 use craft\events\RegisterComponentTypesEvent;
 use craft\events\RegisterGqlTypesEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
-use craft\events\PluginEvent;
-use craft\events\RegisterGqlEagerLoadableFields;
 use craft\events\RegisterGqlQueriesEvent;
-use craft\gql\ElementQueryConditionBuilder;
-use craft\services\Plugins;
 use craft\helpers\UrlHelper;
 use craft\log\MonologTarget;
 use craft\services\Elements;
 use craft\services\Fields;
-use craft\services\Gc;
 use craft\services\Gql;
 use craft\services\UserPermissions;
 use craft\web\UrlManager;
 use craft\web\twig\variables\CraftVariable;
-use craft\web\View;
 use Monolog\Formatter\LineFormatter;
 use Psr\Log\LogLevel;
 use rocketpark\mux\elements\MuxAsset as MuxAssetElement;
@@ -38,10 +31,11 @@ use rocketpark\mux\services\PlaybackRestrictions;
 use rocketpark\mux\services\SettingsService;
 use rocketpark\mux\variables\MuxAssetBehavior;
 use rocketpark\mux\gql\interfaces\elements\MuxAsset as MuxAssetInterface;
-use rocketpark\mux\gql\types\elements\MuxAsset as MuxAssetType;
 use rocketpark\mux\gql\queries\MuxAsset as MuxAssetGqlQuery;
-use rocketpark\mux\assetbundles\mux\MuxEditAsset;
 use yii\base\Event;
+use GuzzleHttp\Client;
+use MuxPhp;
+use yii\log\Logger;
 
 /**
  * Mux plugin
@@ -155,7 +149,6 @@ class Mux extends Plugin
         Craft::$app->elements->on(
             Elements::EVENT_AFTER_SAVE_ELEMENT, 
             function(ElementEvent $e) {
-
             // Update the asset passthrough attribute (which holds the title) on Mux.
             if ($e->element instanceof MuxAssetElement) {
                 $element = $e->element;
@@ -191,12 +184,29 @@ class Mux extends Plugin
                     $attributes = $element->getAttributes();
                     /* 
                         If (trashed == true) the element is being hard deleted (removed FOREVER see:https://media.giphy.com/media/hEwkspP1OllJK/giphy.gif)
-                          then we remove it from MUX. 
+                          then we remove it from MUX unless it has already been removed from MUX. 
                     */
                     if($attributes['trashed'] == 'true') {
-                        if(!Mux::$plugin->assets->deleteAssetById($attributes['asset_id'])) {
-                            return false;
+                        $config = Mux::$plugin->assets->muxConf();
+                        $apiInstance = new MuxPhp\Api\AssetsApi(
+                            new Client(),
+                            $config
+                        );
+
+                        try {
+                            $response = $apiInstance->getAsset($attributes['asset_id']);                        
+                            if($response) {
+                                if(!Mux::$plugin->assets->deleteAssetById($attributes['asset_id'])) {
+                                    return false;
+                                }
+                            }
+                        } catch(\MuxPhp\ApiException $e) {
+                            //$this->error($e->getCode());
+                            $this->error($e->getMessage());
+                            $this->info("Attempting to hard delete a trashed asset element and it's MUX counterpart. However, the asset cannot be found in MUX as it has already been deleted. Therefore, only the MuxAssetElement was deleted.");
+                            return true;
                         }
+                        
                     }
                 }
         });
