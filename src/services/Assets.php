@@ -579,6 +579,7 @@ class Assets extends Component
                     'max_width' => $track->getMaxWidth(),
                     'max_height' => $track->getMaxHeight(),
                     'max_frame_rate' => $track->getMaxFrameRate(),
+                    'max_channel_layout' => $track->getMaxChannelLayout(),
                 ];
             }, $asset->getTracks()) : [],
             "errors" => $asset->getErrors(),

@@ -18,7 +18,9 @@
             {% if track.closed_captions is defined and track.closed_captions == true %}            
                 <span>{{ "subtitles"|t('mux') }}</span> 
             {% endif %}
-            <span>({{ track.language_code }})</span>
+            {% if track.language_code is defined and track.language_code is not empty %}            
+                <span>({{ track.language_code }})</span>
+            {% endif %}
         {% case "audio" %}
             <span>
                 <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
@@ -26,7 +28,9 @@
                 </svg>
             </span> 
             <span>{{ "Audio"|t('mux') }}</span> 
-            <span>{{ track.max_channel_layout }}</span>
+            {% if track.max_channel_layout is defined and track.max_channel_layout is not empty %}   
+                <span>{{ track.max_channel_layout }}</span>
+            {% endif %}
         {% case "video" %}
             <span>
                 <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
@@ -34,7 +38,9 @@
                 </svg>
             </span> 
             <span>{{ "Video"|t('mux') }}</span> 
-            <span>{{ track.max_height }}p</span>
+            {% if track.max_height is defined and track.max_height is not empty %} 
+                <span>{{ track.max_height }}p</span>
+            {% endif %}
     {% endswitch %}
     </div>
     
