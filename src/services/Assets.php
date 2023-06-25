@@ -595,7 +595,7 @@ class Assets extends Component
             "normalize_audio" => $asset->getNormalizeAudio(),
             "static_renditions" => $asset->getStaticRenditions(),
             "recording_times" => $asset->getRecordingTimes(),
-            "non_standard_input_reasons" => $asset->getNonStandardInputReasons(),
+            "non_standard_input_reasons" => !empty($asset->getNonStandardInputReasons()) ? json_decode($asset->getNonStandardInputReasons(), true): [],
             "test" => $asset->getTest()
         ];
 

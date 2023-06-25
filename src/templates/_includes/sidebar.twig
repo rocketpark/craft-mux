@@ -13,15 +13,17 @@
                 <span>{{ muxAsset.asset_status }}</span>
             </div>
 
-            <h5 class="heading">{{ "Duration:"|t('mux') }}</h5>
-            <div class="value flex">
-                {% set totalSeconds = muxAsset.duration %}
-                {% set hours = totalSeconds // 3600 %}
-                {% set minutes = (totalSeconds % 3600) // 60 %}
-                {% set seconds = totalSeconds % 60 %}
-                
-                {{ '%02d:%02d:%02d'|format(hours, minutes, seconds) }}
-            </div>
+            {% if muxAsset.duration is defined and muxAsset.duration is not empty %} 
+                <h5 class="heading">{{ "Duration:"|t('mux') }}</h5>
+                <div class="value flex">
+                    {% set totalSeconds = muxAsset.duration %}
+                    {% set hours = totalSeconds // 3600 %}
+                    {% set minutes = (totalSeconds % 3600) // 60 %}
+                    {% set seconds = totalSeconds % 60 %}
+                    
+                    {{ '%02d:%02d:%02d'|format(hours, minutes, seconds) }}
+                </div>
+            {% endif %}
 
             <h5 class="heading">{{ "Playback IDs"|t('mux') }}</h5>
             <div class="value flex">
@@ -32,15 +34,19 @@
                 {% endfor %}
             </div>
 
-            <h5 class="heading">{{ "Aspect Ratio"|t('mux') }}</h5>
-            <div class="value flex">
-                {{ muxAsset.aspect_ratio}}
-            </div>
-
-            <h5 class="heading">{{ "Upload ID"|t('mux') }}</h5>
-            <div class="value flex read-only">
-                <span class="info">{{ muxAsset.upload_id }}</span>
-            </div>
+            {% if muxAsset.aspect_ratio is defined %}
+                <h5 class="heading">{{ "Aspect Ratio"|t('mux') }}</h5>
+                <div class="value flex">
+                    {{ muxAsset.aspect_ratio }}
+                </div>
+            {% endif %}
+            
+            {% if muxAsset.upload_id is defined %}            
+                <h5 class="heading">{{ "Upload ID"|t('mux') }}</h5>
+                <div class="value flex read-only">
+                    <span class="info">{{ muxAsset.upload_id }}</span>
+                </div>
+            {% endif %}
 
             <h5 class="heading">{{ "Tracks"|t('mux') }}</h5>
             <div class="value flex">
@@ -48,11 +54,17 @@
                 {% for item in muxAsset.tracks %}
                     {% switch item.type %}
                         {% case "audio" %}
-                            <li>Audio {{ item.max_channel_layout }}</li>
+                            {% if item.max_channel_layout is defined %}                            
+                                <li>Audio {{ item.max_channel_layout }}</li>
+                            {% endif %}
                         {% case "video" %}
-                            <li>Video {{ item.max_height }}p</li>
+                            {% if item.max_height is defined %}                                
+                                <li>Video {{ item.max_height }}p</li>
+                            {% endif %}
                         {% case "text" %}
-                            <li>Text subtitles ({{ item.language_code }})</li>
+                            {% if item.language_code is defined %}
+                                <li>Text subtitles ({{ item.language_code }})</li>
+                            {% endif %}
                     {% endswitch %}
                 {% endfor %}
                 </ul>
