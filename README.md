@@ -30,6 +30,11 @@ You must obtain a MUX Token ID & Token Secret from your MUX environment access t
  
 "An environment represents the highest grouping of data you want to combine and compare within. Multiple websites/apps or video platforms can use the same environment, but we suggest not combining staging and production data." - MUX
 
+## SYNC
+The plugin has a console command to sync data from MUX to CRAFT.
+
+`php craft mux/sync/all`
+
 ### Webhooks
 In the MUX settings a webhook can be added to inform the plugin of asset updates. 
 Include the following endbpoint in the MUX webhook control pannel.

@@ -173,7 +173,7 @@ class MuxAsset extends Element
     public ?string $normalize_audio = '';
     public ?array  $static_renditions = [];
     public ?array  $recording_times = [];
-    public ?string $non_standard_input_reasons = '';
+    public ?array $non_standard_input_reasons = [];
     public ?bool $test = null;
 
 
