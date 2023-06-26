@@ -55,9 +55,9 @@ class MuxAsset extends Model
     public function rules(): array
     {
         return [
-            [['playback_ids','tracks','master','static_rendition','recording_times'], 'default', 'value' => '{}'],
-            [['playback_ids','tracks','master','static_rendition','recording_times'], 'filter', 'filter' => 'json_decode'],
-            [['playback_ids','tracks','master','static_rendition','recording_times'], 'safe'],
+            [['playback_ids','tracks','master','static_rendition','recording_times','non_standard_input_reasons'], 'default', 'value' => '{}'],
+            [['playback_ids','tracks','master','static_rendition','recording_times','non_standard_input_reasons'], 'filter', 'filter' => 'json_decode'],
+            [['playback_ids','tracks','master','static_rendition','recording_times','non_standard_input_reasons'], 'safe'],
         ];
     }
 

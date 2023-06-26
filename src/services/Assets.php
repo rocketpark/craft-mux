@@ -98,7 +98,7 @@ class Assets extends Component
         $asset->normalize_audio = isset($params['normalize_audio']) ? $params['normalize_audio'] : "";
         $asset->static_renditions = isset($params['static_renditions']) ? $params['static_renditions'] : [];
         $asset->recording_times = isset($params['recording_times']) ? $params['recording_times'] : [];
-        $asset->non_standard_input_reasons = isset($params['non_standard_input_reasons']) ? $params['non_standard_input_reasons'] : "";
+        $asset->non_standard_input_reasons = isset($params['non_standard_input_reasons']) ? $params['non_standard_input_reasons'] : [];
         $asset->test = isset($params['test']) ? $params['test'] : "";
 
         return $asset;
@@ -143,7 +143,7 @@ class Assets extends Component
         $asset->normalize_audio = isset($params['normalize_audio']) ? $params['normalize_audio'] : "";
         $asset->static_renditions = isset($params['static_renditions']) ? $params['static_renditions'] : [];
         $asset->recording_times = isset($params['recording_times']) ? $params['recording_times'] : [];
-        $asset->non_standard_input_reasons = isset($params['non_standard_input_reasons']) ? $params['non_standard_input_reasons'] : "";
+        $asset->non_standard_input_reasons = isset($params['non_standard_input_reasons']) ? $params['non_standard_input_reasons'] : [];
         $asset->test = isset($params['test']) ? $params['test'] : "";
 
         return $asset;
