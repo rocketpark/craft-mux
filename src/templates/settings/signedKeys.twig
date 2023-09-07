@@ -1,0 +1,19 @@
+{% requirePermission "mux:settings" %}
+{% extends "_layouts/cp" %}
+
+{% set title = "MUX Signed Keys"|t('mux') %}
+{% set selectedSubnavItem = 'signedKeys' %}
+
+{% set crumbs = [
+    { label: "MUX"|t('mux'), url: url('/mux') },
+    { label: "Settings"|t('mux'), url: url('/mux/settings') },
+    { label: "Signed Keys"|t('mux'), url: url('/mux/signed-keys') }
+] %}
+
+{% block content %}
+    <div id="mux-signed-keys">
+        <mux-signed-keys>
+        </mux-signed-keys>
+    </div>
+    {% do view.registerAssetBundle("rocketpark\\mux\\assetbundles\\mux\\MuxSignedKeysAsset") %}
+{% endblock %}

@@ -2,9 +2,9 @@
 import MuxAssetTracks from './MuxAssetTracks.vue';
 
 export default {
-    name: "MuxElementEdit",
+    name: 'MuxElementEdit',
     components: {
-        MuxAssetTracks
-    }
-}
+        MuxAssetTracks,
+    },
+};
 </script>

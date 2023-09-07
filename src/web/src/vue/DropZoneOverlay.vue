@@ -24,7 +24,7 @@ const props = defineProps({
 .dropzone-overlay {
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     position: absolute;
     width: 100%;
     height: 100%;
@@ -32,6 +32,7 @@ const props = defineProps({
     left: 0px;
     bottom: 0px;
     right: 0px;
+    padding-top: 124px;
     background-color: rgba(96, 125, 159, .10);
     z-index: 20;
     backdrop-filter: blur(4px);

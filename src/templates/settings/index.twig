@@ -50,6 +50,22 @@
             warning: configWarning("muxTokenSecret", "mux"),
             errors: settings.getErrors("muxTokenSecret"),
         }) }}
+
+<hr>
+        {% set instructions %}
+            Secure playback requires you use a signed key in your playback url. 
+            <a href="https://docs.mux.com/guides/video/secure-video-playback#6-include-the-json-web-token-jwt-in-the-media-url" target="_blank">View Documentation</a>
+        {% endset %}
+        {{ forms.lightswitchField({
+            id: 'muxSecurePlayback',
+            name: 'muxSecurePlayback',
+            label: 'Secure Playback <div class="info">%s</div>'|format(instructions),
+            onLabel: 'Secure'|t('mux'),
+            offLabel: 'Public'|t('mux'),
+            value: settings.muxSecurePlayback,
+            on: settings.muxSecurePlayback,
+        }) }}
+
     {% endnamespace %}
 
     {# include our JavaScript modules #}

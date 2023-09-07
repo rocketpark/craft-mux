@@ -47,7 +47,18 @@
                 </div>
 
                 <div class="">
-                    <div class="mux-video">
+                    <div v-if="asset.playbackSecure" class="mux-video">
+                        <mux-player
+                            primary-color="#ffffff"
+                            stream-type="on-demand"
+                            :metadata-video-id="asset.asset_id"
+                            :playback-id="asset.playback_ids[0].id"
+                            :playback-token="asset.tokens[0]"
+                            :thumbnail-token="asset.tokens[0]"
+                            :metadata-video-title="asset.title"
+                        />
+                    </div>
+                    <div v-else class="mux-video">
                         <mux-player
                             primary-color="#ffffff"
                             stream-type="on-demand"

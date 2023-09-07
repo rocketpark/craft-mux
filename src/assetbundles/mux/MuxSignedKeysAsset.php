@@ -18,7 +18,7 @@ use craft\web\assets\vue\VueAsset;
  * @package   Mux
  * @since     1.0.0
  */
-class MuxSettingsAsset extends AssetBundle
+class MuxSignedKeysAsset extends AssetBundle
 {
     // Public Methods
     // =========================================================================
@@ -31,7 +31,7 @@ class MuxSettingsAsset extends AssetBundle
         $this->sourcePath = '@rocketpark/mux/web/dist';
 
         $this->js = [
-            'js/mux-settings.js'
+            'js/mux-signed-keys.js'
         ];
 
         $this->depends = [

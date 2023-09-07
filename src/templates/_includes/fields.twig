@@ -9,10 +9,33 @@
 {{ titleFieldHtml }}
 
 <div>
-    <mux-player
-        primary-color="#ffffff"
-        stream-type="on-demand"
-        metadata-video-id="{{ muxAsset.asset_id}}"
-        playback-id="{{ muxAsset.playback_ids[0].id }}"
-        metadata-video-title="{{ muxAsset.title }}"></mux-player>
+   
+    {% if muxAsset.securePlayback %}
+        {% set tokens = muxAsset.securePlaybackTokens %}
+        {% if tokens|length >= 1 %}       
+            {% set keyID = tokens[0]['key_id'] %} 
+            {% set videoToken = muxAsset.getSecurePlaybackJWT(keyID) %}
+            {% set thumbToken = muxAsset.getSecurePlaybackJWT(keyID, 't') %}
+            {% set storyboardToken = muxAsset.getSecurePlaybackJWT(keyID, 's') %}
+            <mux-player
+                primary-color="#ffffff"
+                stream-type="on-demand"
+                metadata-video-id="{{ muxAsset.asset_id}}"
+                playback-id="{{ muxAsset.playback_ids[0].id }}"
+                metadata-video-title="{{ muxAsset.title }}"
+                playback-token="{{ videoToken }}"
+                thumbnail-token="{{ thumbToken }}",
+                storyboard-token="{{ storyboardToken }}"
+            ></mux-player>
+        {% else %}
+            <h3>Must create at leaset Signed Keys to playback this video and view thumbnails.</h3>
+        {% endif %}
+    {% else %}
+        <mux-player
+            primary-color="#ffffff"
+            stream-type="on-demand"
+            metadata-video-id="{{ muxAsset.asset_id}}"
+            playback-id="{{ muxAsset.playback_ids[0].id }}"
+            metadata-video-title="{{ muxAsset.title }}"></mux-player>
+    {% endif %}
 </div>

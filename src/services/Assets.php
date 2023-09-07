@@ -2,16 +2,17 @@
 
 namespace rocketpark\mux\services;
 
-
 use Craft;
 use craft\db\Query;
 use craft\elements\GlobalSet;
+use craft\errors\ElementNotFoundException;
 use craft\helpers\Db;
 use craft\helpers\StringHelper;
 use craft\helpers\UrlHelper;
 use craft\helpers\App;
 use craft\helpers\ArrayHelper;
 use craft\helpers\ElementHelper;
+use DomainException;
 use Exception as GlobalException;
 use Throwable;
 use yii\base\Component;
@@ -27,15 +28,14 @@ use MuxPhp\Models\ListAssetsResponse;
 use MuxPhp\Models\Upload;
 use Psr\Log\LogLevel;
 use rocketpark\mux\elements\MuxAsset as MuxAssetElement;
-//use rocketpark\mux\models\Asset as MuxAsset;
 use rocketpark\mux\models\MuxAsset as MuxAsset;
 use rocketpark\mux\records\Assets as MuxAssetsRecord;
 use rocketpark\mux\events\MuxAssetSyncEvent;
-use rocketpark\mux\jobs\UpdateMuxAssetElement;
 use yii\base\Exception;
 use yii\base\InvalidArgumentException as BaseInvalidArgumentException;
 use yii\base\InvalidConfigException;
 use function json_encode;
+
 
 /**                             
  * @property-read Assets $assets
@@ -48,6 +48,53 @@ class Assets extends Component
 {
 
     public const EVENT_BEFORE_SYNCHRONIZE_MUX_ASSET = 'beforeSynchronizeMuxAsset';
+
+    /**
+     * Default MuxAsset Attributes
+     * @var string[]
+     */
+    private $defaultAttributes = [
+        'title' => "",
+        'asset_id' => "",
+        'created_at' => "",
+        'asset_status' => "",
+        'duration' => "",
+        'max_stored_resolution' => "",
+        'max_stored_frame_rate' => "",
+        'aspect_ratio' => "",
+        'playback_ids' => [],
+        'tracks' => [],
+        'errors' => "",
+        'per_title_encode' => null,
+        'upload_id' => "",
+        'is_live' => "",
+        'passthrough' => "",
+        'live_stream_id' => "",
+        'master' => [],
+        'master_access' => "",
+        'mp4_support' => "",
+        'source_asset_id' => "",
+        'normalize_audio' => "",
+        'static_renditions' => [],
+        'recording_times' => [],
+        'non_standard_input_reasons' => [],
+        'test' => "",
+    ];
+
+    /**
+     * Hydrate Asset
+     * @param array $params 
+     * @param Asset|MuxAssetElement $asset 
+     * @return Asset|MuxAssetElement 
+     */
+    private function hydrateAsset(array $params, Asset|MuxAssetElement $asset): Asset|MuxAssetElement 
+    {
+        foreach ($params as $key => $value) {
+            $asset->$key = $value; 
+        }
+      
+        return $asset;
+    }
 
     /**
      * Creates MUX API Configuration
@@ -72,36 +119,39 @@ class Assets extends Component
     public function buildAssetFromPost(): MuxAsset
     {
         $request = Craft::$app->getRequest();
-        $params = $request->getParam('asset');
-       
-        $asset = new MuxAsset();
-        $asset->id = isset($params['id']) ? $params['id'] : null; 
-        $asset->asset_id = $params['asset_id'];
-        $asset->created_at = $params['created_at'];
-        $asset->asset_status = isset($params['asset_status']) ? $params['asset_status'] : "";
-        $asset->duration = isset($params['duration']) ? $params['duration'] :  "";
-        $asset->max_stored_resolution = isset($params['max_stored_resolution']) ? $params['max_stored_resolution'] : "";
-        $asset->max_stored_frame_rate = isset($params['max_stored_frame_rate']) ? $params['max_stored_frame_rate'] : "";
-        $asset->aspect_ratio = isset($params['aspect_ratio']) ? $params['aspect_ratio'] : "";
-        $asset->playback_ids = isset($params['playback_ids']) ? $params['playback_ids'] : [];
-        $asset->tracks = isset($params['tracks']) ? $params['tracks'] : [];
-        $asset->errors = isset($params['errors']) ? $params['errors'] : "";
-        $asset->per_title_encode = isset($params['per_title_encode']) ? $params['per_title_encode'] : null;
-        $asset->upload_id = isset($params['upload_id']) ? $params['upload_id'] : "";
-        $asset->is_live = isset($params['is_live']) ? $params['is_live'] : "";
-        $asset->passthrough = isset($params['passthrough']) ? $params['passthrough'] : "";
-        $asset->live_stream_id = isset($params['live_stream_id']) ? $params['live_stream_id'] : "";
-        $asset->master = isset($params['master']) ? $params['master'] : [];
-        $asset->master_access = isset($params['master_access']) ? $params['master_access'] : "";
-        $asset->mp4_support = isset($params['mp4_support']) ? $params['mp4_support'] : "";
-        $asset->source_asset_id = isset($params['source_asset_id']) ? $params['source_asset_id'] : "";
-        $asset->normalize_audio = isset($params['normalize_audio']) ? $params['normalize_audio'] : "";
-        $asset->static_renditions = isset($params['static_renditions']) ? $params['static_renditions'] : [];
-        $asset->recording_times = isset($params['recording_times']) ? $params['recording_times'] : [];
-        $asset->non_standard_input_reasons = isset($params['non_standard_input_reasons']) ? $params['non_standard_input_reasons'] : [];
-        $asset->test = isset($params['test']) ? $params['test'] : "";
+        $requestParams = $request->getBodyParams();
 
-        return $asset;
+        $asset = new MuxAsset();
+
+        $params = array_merge($this->defaultAttributes, array_intersect_key($requestParams, $this->defaultAttributes));
+
+        // $asset->id = isset($params['id']) ? $params['id'] : null; 
+        // $asset->asset_id = $params['asset_id'];
+        // $asset->created_at = $params['created_at'];
+        // $asset->asset_status = isset($params['asset_status']) ? $params['asset_status'] : "";
+        // $asset->duration = isset($params['duration']) ? $params['duration'] :  "";
+        // $asset->max_stored_resolution = isset($params['max_stored_resolution']) ? $params['max_stored_resolution'] : "";
+        // $asset->max_stored_frame_rate = isset($params['max_stored_frame_rate']) ? $params['max_stored_frame_rate'] : "";
+        // $asset->aspect_ratio = isset($params['aspect_ratio']) ? $params['aspect_ratio'] : "";
+        // $asset->playback_ids = isset($params['playback_ids']) ? $params['playback_ids'] : [];
+        // $asset->tracks = isset($params['tracks']) ? $params['tracks'] : [];
+        // $asset->errors = isset($params['errors']) ? $params['errors'] : "";
+        // $asset->per_title_encode = isset($params['per_title_encode']) ? $params['per_title_encode'] : null;
+        // $asset->upload_id = isset($params['upload_id']) ? $params['upload_id'] : "";
+        // $asset->is_live = isset($params['is_live']) ? $params['is_live'] : "";
+        // $asset->passthrough = isset($params['passthrough']) ? $params['passthrough'] : "";
+        // $asset->live_stream_id = isset($params['live_stream_id']) ? $params['live_stream_id'] : "";
+        // $asset->master = isset($params['master']) ? $params['master'] : [];
+        // $asset->master_access = isset($params['master_access']) ? $params['master_access'] : "";
+        // $asset->mp4_support = isset($params['mp4_support']) ? $params['mp4_support'] : "";
+        // $asset->source_asset_id = isset($params['source_asset_id']) ? $params['source_asset_id'] : "";
+        // $asset->normalize_audio = isset($params['normalize_audio']) ? $params['normalize_audio'] : "";
+        // $asset->static_renditions = isset($params['static_renditions']) ? $params['static_renditions'] : [];
+        // $asset->recording_times = isset($params['recording_times']) ? $params['recording_times'] : [];
+        // $asset->non_standard_input_reasons = isset($params['non_standard_input_reasons']) ? $params['non_standard_input_reasons'] : [];
+        // $asset->test = isset($params['test']) ? $params['test'] : "";
+
+        return $this->hydrateAsset($params, $asset);
     }
 
     /**
@@ -112,41 +162,43 @@ class Assets extends Component
     public function buildAssetElementFromPost(): MuxAssetElement
     {
         $request = Craft::$app->getRequest();
-        $params = $request->getBodyParams();
+        $requestParams = $request->getBodyParams();
 
-        $asset = MuxAssetElement::findOne(['asset_id' => $params['asset_id']]);
+        $asset = MuxAssetElement::findOne(['asset_id' => $requestParams['asset_id']]);
 
         if(!$asset) {
             $asset = new MuxAssetElement();
         }
-        
-        $asset->title = $params['title'];
-        $asset->asset_id = $params['asset_id'];
-        $asset->created_at = $params['created_at'];
-        $asset->asset_status = isset($params['asset_status']) ? $params['asset_status'] : "";
-        $asset->duration = isset($params['duration']) ? $params['duration'] :  "";
-        $asset->max_stored_resolution = isset($params['max_stored_resolution']) ? $params['max_stored_resolution'] : "";
-        $asset->max_stored_frame_rate = isset($params['max_stored_frame_rate']) ? $params['max_stored_frame_rate'] : "";
-        $asset->aspect_ratio = isset($params['aspect_ratio']) ? $params['aspect_ratio'] : "";
-        $asset->playback_ids = isset($params['playback_ids']) ? $params['playback_ids'] : [];
-        $asset->tracks = isset($params['tracks']) ? $params['tracks'] : [];
-        $asset->errors = isset($params['errors']) ? $params['errors'] : "";
-        $asset->per_title_encode = isset($params['per_title_encode']) ? $params['per_title_encode'] : null;
-        $asset->upload_id = isset($params['upload_id']) ? $params['upload_id'] : "";
-        $asset->is_live = isset($params['is_live']) ? $params['is_live'] : "";
-        $asset->passthrough = isset($params['passthrough']) ? ($params['passthrough'] == $params['asset_id'] ? $params['title'] : $params['passthrough']) : $params['title'];
-        $asset->live_stream_id = isset($params['live_stream_id']) ? $params['live_stream_id'] : "";
-        $asset->master = isset($params['master']) ? $params['master'] : [];
-        $asset->master_access = isset($params['master_access']) ? $params['master_access'] : "";
-        $asset->mp4_support = isset($params['mp4_support']) ? $params['mp4_support'] : "";
-        $asset->source_asset_id = isset($params['source_asset_id']) ? $params['source_asset_id'] : "";
-        $asset->normalize_audio = isset($params['normalize_audio']) ? $params['normalize_audio'] : "";
-        $asset->static_renditions = isset($params['static_renditions']) ? $params['static_renditions'] : [];
-        $asset->recording_times = isset($params['recording_times']) ? $params['recording_times'] : [];
-        $asset->non_standard_input_reasons = isset($params['non_standard_input_reasons']) ? $params['non_standard_input_reasons'] : [];
-        $asset->test = isset($params['test']) ? $params['test'] : "";
 
-        return $asset;
+        $params = array_merge($this->defaultAttributes, array_intersect_key($requestParams, $this->defaultAttributes));
+        
+        // $asset->title = $params['title'];
+        // $asset->asset_id = $params['asset_id'];
+        // $asset->created_at = $params['created_at'];
+        // $asset->asset_status = isset($params['asset_status']) ? $params['asset_status'] : "";
+        // $asset->duration = isset($params['duration']) ? $params['duration'] :  "";
+        // $asset->max_stored_resolution = isset($params['max_stored_resolution']) ? $params['max_stored_resolution'] : "";
+        // $asset->max_stored_frame_rate = isset($params['max_stored_frame_rate']) ? $params['max_stored_frame_rate'] : "";
+        // $asset->aspect_ratio = isset($params['aspect_ratio']) ? $params['aspect_ratio'] : "";
+        // $asset->playback_ids = isset($params['playback_ids']) ? $params['playback_ids'] : [];
+        // $asset->tracks = isset($params['tracks']) ? $params['tracks'] : [];
+        // $asset->errors = isset($params['errors']) ? $params['errors'] : "";
+        // $asset->per_title_encode = isset($params['per_title_encode']) ? $params['per_title_encode'] : null;
+        // $asset->upload_id = isset($params['upload_id']) ? $params['upload_id'] : "";
+        // $asset->is_live = isset($params['is_live']) ? $params['is_live'] : "";
+        // $asset->passthrough = isset($params['passthrough']) ? ($params['passthrough'] == $params['asset_id'] ? $params['title'] : $params['passthrough']) : $params['title'];
+        // $asset->live_stream_id = isset($params['live_stream_id']) ? $params['live_stream_id'] : "";
+        // $asset->master = isset($params['master']) ? $params['master'] : [];
+        // $asset->master_access = isset($params['master_access']) ? $params['master_access'] : "";
+        // $asset->mp4_support = isset($params['mp4_support']) ? $params['mp4_support'] : "";
+        // $asset->source_asset_id = isset($params['source_asset_id']) ? $params['source_asset_id'] : "";
+        // $asset->normalize_audio = isset($params['normalize_audio']) ? $params['normalize_audio'] : "";
+        // $asset->static_renditions = isset($params['static_renditions']) ? $params['static_renditions'] : [];
+        // $asset->recording_times = isset($params['recording_times']) ? $params['recording_times'] : [];
+        // $asset->non_standard_input_reasons = isset($params['non_standard_input_reasons']) ? $params['non_standard_input_reasons'] : [];
+        // $asset->test = isset($params['test']) ? $params['test'] : "";
+
+        return $this->hydrateAsset($params, $asset);
     }
 
 
@@ -154,11 +206,10 @@ class Assets extends Component
      * Saves a mux asset.
      *
      * @param MuxAssetElement $element
-     * @param bool $runValidation
      * @return bool
      * @throws Throwable
      */
-    public function saveAsset(MuxAssetElement $element)
+    public function saveAsset(MuxAssetElement $element): bool
     {
         if (!Craft::$app->getElements()->saveElement($element)) {
             return true;
@@ -188,7 +239,6 @@ class Assets extends Component
         }
     }
 
-    
 
     /**
      * Pull Paginated MUX Assets
@@ -226,13 +276,15 @@ class Assets extends Component
      */
     public static function createMuxAsset(mixed $data): AssetResponse
     {
+
         $config = Mux::$plugin->assets->muxConf();
         $apiInstance = new MuxPhp\Api\AssetsApi(
             new Client(),
             $config
         );
 
-        $create_asset_request = json_decode('{"input":[{"url":' . $data['url'] . '}],"playback_policy":["public"]}', true);
+        $policy = Mux::$plugin->assets->getPlaybackPolicy();
+        $create_asset_request = json_decode(sprintf('{"input":[{"url":"%s"}],"playback_policy":["%s"]}', $data['url'], $policy), true);
 
         try {
             $result = $apiInstance->createAsset($create_asset_request);
@@ -260,7 +312,9 @@ class Assets extends Component
             $config
         );
 
-        $createAssetRequest = new MuxPhp\Models\CreateAssetRequest(["playback_policy" => [MuxPhp\Models\PlaybackPolicy::_PUBLIC]]);
+        $policy = Mux::$plugin->assets->getPlaybackPolicy();
+
+        $createAssetRequest = new MuxPhp\Models\CreateAssetRequest(["playback_policy" => [$policy]]);
         $createUploadRequest = new MuxPhp\Models\CreateUploadRequest(["timeout" => 3600, "new_asset_settings" => $createAssetRequest, "cors_origin" => UrlHelper::siteUrl()]);
 
         $upload = $apiInstance->createDirectUpload($createUploadRequest);
@@ -433,10 +487,10 @@ class Assets extends Component
      * Delete MUX Asset Track by ID
      * @param null|string $id 
      * @param null|string $track_id 
-     * @return MuxAsset
+     * @return Boolean
      * @throws Exception 
      */
-    public function deleteMuxAssetTrackById(?string $id, ?string $track_id)
+    public function deleteMuxAssetTrackById(?string $id, ?string $track_id): bool
     {
         $config = Mux::$plugin->assets->muxConf();
         $apiInstance = new MuxPhp\Api\AssetsApi(
@@ -461,7 +515,7 @@ class Assets extends Component
      * @param array $muxAssetArray 
      * @return bool
      */
-    public function updateAssetElementWithMuxAssetById(?string $id)
+    public function updateAssetElementWithMuxAssetById(?string $id): bool
     {
 
         $muxAsset =  $this->getMuxAsset($id);
@@ -478,14 +532,16 @@ class Assets extends Component
 
         foreach($elements as $element) {
             foreach ($muxAsset as $key => $value) {
-                if($key == 'id') {
-                    $element->asset_id = $value;
-                    continue;
-                } else if($key == 'status') {
-                    $element->asset_status = $value;
-                    continue;
+                if(array_key_exists($key, $this->defaultAttributes) || $key === 'status') {
+                    if($key == 'id') {
+                        $element->asset_id = $value;
+                        continue;
+                    } else if($key == 'status') {
+                        $element->asset_status = $value;
+                        continue;
+                    }
+                    $element[$key] = $value;
                 }
-                $element[$key] = $value;
             }
 
             try {    
@@ -505,7 +561,7 @@ class Assets extends Component
      * @param array $muxAssetArray 
      * @return bool
      */
-    public function updateAssetElementWithMuxAsset(?array $muxAssetArray)
+    public function updateAssetElementWithMuxAsset(?array $muxAssetArray): bool
     {
 
         $muxAsset =  $muxAssetArray;
@@ -522,18 +578,20 @@ class Assets extends Component
 
         foreach($elements as $element) {
             foreach ($muxAsset as $key => $value) {
-                if($key == 'id') {
-                    $element->asset_id = $value;
-                    continue;
-                } else if($key == 'status') {
-                    $element->asset_status = $value;
-                    continue;
-                } else if($key == 'passthrough') {
-                    if($element->title != $value) {
-                        $element->title = $value;
+                if(array_key_exists($key, $this->defaultAttributes) || $key === 'status') {
+                    if($key == 'id') {
+                        $element->asset_id = $value;
+                        continue;
+                    } else if($key == 'status') {
+                        $element->asset_status = $value;
+                        continue;
+                    } else if($key == 'passthrough') {
+                        if($element->title != $value) {
+                            $element->title = $value;
+                        }
                     }
+                    $element[$key] = $value;
                 }
-                $element[$key] = $value;
             }
 
             try {    
@@ -548,7 +606,14 @@ class Assets extends Component
         
     }
 
-    public function createOrUpdateMuxAsset(Asset $asset) 
+    /**
+     * @param Asset $asset
+     * @return bool
+     * @throws Exception
+     * @throws Throwable
+     * @throws \craft\errors\ElementNotFoundException
+     */
+    public function createOrUpdateMuxAsset(Asset $asset): bool
     {
         
         $attributes = [
@@ -646,7 +711,18 @@ class Assets extends Component
         return true;
     }
 
-
+    /**
+     * Sync All Mux Assets
+     * @return void 
+     * @throws ApiException 
+     * @throws InvalidArgumentException 
+     * @throws BaseInvalidArgumentException 
+     * @throws GlobalException 
+     * @throws InvalidConfigException 
+     * @throws Exception 
+     * @throws Throwable 
+     * @throws ElementNotFoundException 
+     */
     public function syncAllMuxAssets() :void
     {
         $limit = 50;
@@ -702,4 +778,18 @@ class Assets extends Component
             Craft::$app->elements->deleteElement($element);
         }
     }
+
+    /**
+     * Get Playback Policy
+     * @return string 
+     */
+    public function getPlaybackPolicy(): string
+    {
+        $settings = Mux::$settings;
+        return $settings->muxSecurePlayback
+            ? MuxPhp\Models\PlaybackPolicy::SIGNED 
+            : MuxPhp\Models\PlaybackPolicy::_PUBLIC;
+    }
+
+    
 }

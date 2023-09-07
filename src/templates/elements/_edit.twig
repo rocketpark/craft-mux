@@ -82,7 +82,9 @@
                         asset_id: muxAsset.asset_id,
                         playback_ids: muxAsset.playback_ids,
                         title: muxAsset.title,
-                        tracks: muxAsset.tracks
+                        tracks: muxAsset.tracks,
+                        secure: muxAsset.securePlayback,
+                        tokens: muxAsset.securePlaybackTokens
                     } %}
                     <asset-detail :mux-asset="{{ asset|json_encode }}">
                         <template v-slot:page-title>

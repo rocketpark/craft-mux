@@ -3,15 +3,19 @@
 namespace rocketpark\mux;
 
 use Craft;
+use GuzzleHttp\Client;
+use Monolog\Formatter\LineFormatter;
+use MuxPhp;
+use Psr\Log\LogLevel;
 use craft\base\Model;
 use craft\base\Plugin;
 use craft\events\DefineBehaviorsEvent;
 use craft\events\ElementEvent;
 use craft\events\RegisterComponentTypesEvent;
+use craft\events\RegisterGqlQueriesEvent;
 use craft\events\RegisterGqlTypesEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
-use craft\events\RegisterGqlQueriesEvent;
 use craft\helpers\UrlHelper;
 use craft\log\MonologTarget;
 use craft\services\Elements;
@@ -20,21 +24,18 @@ use craft\services\Gql;
 use craft\services\UserPermissions;
 use craft\web\UrlManager;
 use craft\web\twig\variables\CraftVariable;
-use Monolog\Formatter\LineFormatter;
-use Psr\Log\LogLevel;
 use rocketpark\mux\elements\MuxAsset as MuxAssetElement;
 use rocketpark\mux\fields\MuxAsset as MuxAssetField;
+use rocketpark\mux\gql\interfaces\elements\MuxAsset as MuxAssetInterface;
+use rocketpark\mux\gql\queries\MuxAsset as MuxAssetGqlQuery;
 use rocketpark\mux\models\MuxAsset;
 use rocketpark\mux\models\Settings;
 use rocketpark\mux\services\Assets;
 use rocketpark\mux\services\PlaybackRestrictions;
 use rocketpark\mux\services\SettingsService;
+use rocketpark\mux\services\SignedKeys;
 use rocketpark\mux\variables\MuxAssetBehavior;
-use rocketpark\mux\gql\interfaces\elements\MuxAsset as MuxAssetInterface;
-use rocketpark\mux\gql\queries\MuxAsset as MuxAssetGqlQuery;
 use yii\base\Event;
-use GuzzleHttp\Client;
-use MuxPhp;
 use yii\log\Logger;
 
 /**
@@ -46,6 +47,7 @@ use yii\log\Logger;
  * @copyright Rocket Park
  * @license https://craftcms.github.io/license/ Craft License
  * @property-read PlaybackRestrictions $playbackRestrictions
+ * @property-read SignedKeys $signedKeys
  */
 class Mux extends Plugin
 {
@@ -62,7 +64,7 @@ class Mux extends Plugin
     /**
      * @var string
      */
-    public string $schemaVersion = '1.0.0';
+    public string $schemaVersion = '1.0.1';
 
     /**
      * @var bool
@@ -81,7 +83,8 @@ class Mux extends Plugin
             'components' => [
                 'assets' => Assets::class,
                 'settings' => SettingsService::class,
-                'playbackRestrictions' => PlaybackRestrictions::class
+                'playbackRestrictions' => PlaybackRestrictions::class,
+                'signedKeys' => SignedKeys::class
             ],
         ];
     }
@@ -306,6 +309,13 @@ class Mux extends Plugin
             ];
         }
 
+        if ($currentUser->can('mux:settings') && $editableSettings) {
+            $subNavs['signedKeys'] = [
+                'label' => 'Signed Keys',
+                'url' => 'mux/signed-keys',
+            ];
+        }
+
         if (empty($subNavs)) {
             return null;
         }
@@ -348,6 +358,7 @@ class Mux extends Plugin
                 //$event->rules['mux/dashboard'] = 'mux/assets/dashboard';
                 $event->rules['mux/settings'] = 'mux/settings/plugin-settings';
                 $event->rules['mux/restrictions'] = ['template' => 'mux/settings/restrictions'];
+                $event->rules['mux/signed-keys'] = ['template' => 'mux/settings/signedKeys'];
                 $event->rules['mux/assets'] = ['template' => 'mux/elements/_index.twig'];
                 $event->rules['mux/assets/<elementId:\d+>'] =  'elements/edit';//['template' => 'mux/elements/_edit.twig'];
         });

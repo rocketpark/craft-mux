@@ -16,19 +16,22 @@ class Settings extends Model
     /**
      * @var string The public-facing name of the plugin
      */
-    public string $pluginName = 'Mux';
+    public string $pluginName = 'MUX';
 
     /**
-     * @var bool Mux's TokenID for Authentication
+     * @var string Mux's TokenID for Authentication
      */
     public string $muxTokenId = '';
 
     /**
-     * @var bool Mux's TokenSecret for Authentication
+     * @var string Mux's TokenSecret for Authentication
      */
     public string $muxTokenSecret = '';
 
-
+    /**
+     * @var int The MUX Asset has secure playback
+     */
+    public bool $muxSecurePlayback = false;
 
     /**
      * @inheritdoc
@@ -37,9 +40,11 @@ class Settings extends Model
     {
         return [
             ['pluginName', 'string'],
-            ['pluginName', 'default', 'value' => 'Mux'],
+            ['pluginName', 'default', 'value' => 'MUX'],
             ['muxTokenId', 'string'],
-            ['muxTokenSecret', 'string']
+            ['muxTokenSecret', 'string'],
+            ['muxSecurePlayback', 'boolean'],
+            ['muxSecurePlayback', 'default', 'value' => false],
         ];
     }
 
