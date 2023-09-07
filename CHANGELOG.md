@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.1.1 - September 7, 2023
+### Fixed
+- Fixed Migrations
+
 ## 1.1.0 - September 7, 2023
 ### Added
 - Signed Keys setting interface
