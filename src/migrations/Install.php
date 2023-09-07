@@ -62,6 +62,16 @@ class Install extends Migration
             );
         }
 
+        if (!$this->db->tableExists('{{%mux_signed_keys}}')) {
+            // create the mux_singed_keys table
+            $this->createTable('{{%mux_signed_keys}}', [
+                'id' => $this->primaryKey(),
+                'key_id' => $this->char(255)->notNull(),
+                'private_key' => $this->text()->notNull(),
+                'created_at' => $this->string()->notNull()
+            ]);
+        }
+
         return true;
     }
 
@@ -71,6 +81,7 @@ class Install extends Migration
     public function safeDown(): bool
     {
         $this->dropTableIfExists('{{%mux_assets}}');
+        $this->dropTableIfExists('{{%mux_signed_keys}}');
 
         return true;
     }

@@ -33,8 +33,7 @@ class m230905_145824_addSignedKeysTable extends Migration
      */
     public function safeDown(): bool
     {
-        //echo "m230905_145824_addSignedKeysTable cannot be reverted.\n";
-        $this->dropTableIfExists('{{%mux_signed_keys}}');
+        echo "m230905_145824_addSignedKeysTable cannot be reverted.\n";
 
         return true;
     }
