@@ -1,4 +1,56 @@
-# Release Notes for Mux
+# MUX Changelog
 
-## 1.0.0
+All notable changes to this project will be documented in this file.
+
+## 1.1.0 - September 7, 2023
+### Added
+- Signed Keys setting interface
+- Secure Playback
+- JWT token for secure playback from Signed Keys
+
+## 1.0.11 - June 26, 2023
+### Fixed
+- Fix controller action create, inproper variable type default
+
+## 1.0.10 - June 24, 2023
+### Fixes
+- Recompiled assets for mux element-edit
+- Various fixes…
+
+## 1.0.9 - June 24, 2023
+### Fixed
+- Track output was expecting a variable however it wasn’t included in sync.
+
+## 1.0.8 - June 24, 2023
+### Fixed
+- Fixed a type error for non_standard_input_reasons element variable
+- Updated readme to include sync instructions
+- Updated version to 1.0.8
+
+## 1.0.7 - June 24, 2023
+- Updated composer version
+
+## 1.0.6 - June 24, 2023
+### Added
+- Added sync support & webhook delete, create, integration.
+### Fixed
+- Fixed GraphQL Sub Types for PlaybackIds & Tracks
+
+## 1.0.4 - May 24, 2023
+### Added
+- When Mux returns a status of video.asset.updated included updateAssetElementWithMuxAsset to update the asset element. 
+### Fixed
+- Fixed a bug where an update loop would occur from the Element After Save event by preventing update if passthrough param is already set and has not changed.
+
+## 1.0.3 - May 24, 2023
+### Added
+- Added Vite as a compliler for the mux-dashboard.js app.  Webpack was causing issues to code once compiled for production, not allowing UpChunk to full work.
+
+## 1.0.2 - May 23, 2023
+### Added
+- Updated webhook code record all endpoints to MUX log
+- Updated MUX table column status to asset_status since the element variable status is reserved for the parent element. No migration needed since plugin is not fully in use.
+- Updated Readme with webhook info
+
+## 1.0.0 - May 19, 2023
 - Initial release
