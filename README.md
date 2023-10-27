@@ -4,7 +4,7 @@ MUX is a Craft CMS plugin used to
 
 ## Requirements
 
-This plugin requires Craft CMS 4.0.0 or later.
+This plugin requires Craft CMS 4.5.0 or later.
 
 ## Installation
 

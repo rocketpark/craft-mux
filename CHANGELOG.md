@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.1.5 - October 27, 2023
+### Added
+- Added a copytext input for the webhook url in the settings page
+- Added a element index action to sync selected assets from mux if they don't have an asset status of "ready"
+### Fixed
+- Fixed video upload by removing looped check for mux asset status through the mux api causing php to timeout
+### Updated
+- Update Javascript packages and recompiled assets
+
 ## 1.1.1 - September 7, 2023
 ### Fixed
 - Fixed Migrations

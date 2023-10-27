@@ -56,6 +56,7 @@
             Secure playback requires you use a signed key in your playback url. 
             <a href="https://docs.mux.com/guides/video/secure-video-playback#6-include-the-json-web-token-jwt-in-the-media-url" target="_blank">View Documentation</a>
         {% endset %}
+
         {{ forms.lightswitchField({
             id: 'muxSecurePlayback',
             name: 'muxSecurePlayback',
@@ -65,6 +66,23 @@
             value: settings.muxSecurePlayback,
             on: settings.muxSecurePlayback,
         }) }}
+<hr>
+
+    {% set webhookinfo %}
+        Mux uses webhooks to let your application know when things happen asynchronously, outside of an API request cycle.
+        <a href="https://docs.mux.com/guides/system/listen-for-webhooks" target="_blank">View Documentation</a>
+    {% endset %}
+
+    {% set copywebhook =  forms.copytext({
+        id:'muxWebhookUrl',
+        name: 'muxWebhookUrl',
+        value:siteUrl ~ 'actions/mux/webhooks/mux-webhooks'
+    }) %}
+
+     {{ forms.field({
+        label: 'Webhook <div class="info">%s</div>'|format(webhookinfo),
+        name: 'muxWebhookUrl-Field',
+    }, copywebhook) }}
 
     {% endnamespace %}
 

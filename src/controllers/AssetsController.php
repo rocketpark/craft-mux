@@ -396,6 +396,36 @@ class AssetsController extends Controller
 
     }
 
+    /**
+     * Sync Asset By Id
+     * @requestParams $params['assetId']
+     * @return void|Response
+     */
+    public function actionSyncAssetById(): response
+    {
+        $this->requirePostRequest();
+        $request = Craft::$app->getRequest();
+        $params = $request->getBodyParams();
+
+        if ($request->getAcceptsJson()) {
+            
+            if (!Mux::$plugin->assets->syncAssetById($params['assetId'])) {
+                Craft::$app->getSession()->setNotice('Couldn\'t sync asset.');
+                $this->setFailFlash(Craft::t('mux', 'Couldn\'t sync asset.', [
+                    'type' => GlobalSet::displayName(),
+                ]));
+            }
+
+            $this->setSuccessFlash(Craft::t('mux', 'Assets updated from MUX!', [
+                'type' => GlobalSet::displayName(),
+            ]));
+
+            return $this->asJson([
+                'success' => true
+            ]);
+        }
+    }
+
 
     // Private Methods
     // =========================================================================

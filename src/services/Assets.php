@@ -125,32 +125,6 @@ class Assets extends Component
 
         $params = array_merge($this->defaultAttributes, array_intersect_key($requestParams, $this->defaultAttributes));
 
-        // $asset->id = isset($params['id']) ? $params['id'] : null; 
-        // $asset->asset_id = $params['asset_id'];
-        // $asset->created_at = $params['created_at'];
-        // $asset->asset_status = isset($params['asset_status']) ? $params['asset_status'] : "";
-        // $asset->duration = isset($params['duration']) ? $params['duration'] :  "";
-        // $asset->max_stored_resolution = isset($params['max_stored_resolution']) ? $params['max_stored_resolution'] : "";
-        // $asset->max_stored_frame_rate = isset($params['max_stored_frame_rate']) ? $params['max_stored_frame_rate'] : "";
-        // $asset->aspect_ratio = isset($params['aspect_ratio']) ? $params['aspect_ratio'] : "";
-        // $asset->playback_ids = isset($params['playback_ids']) ? $params['playback_ids'] : [];
-        // $asset->tracks = isset($params['tracks']) ? $params['tracks'] : [];
-        // $asset->errors = isset($params['errors']) ? $params['errors'] : "";
-        // $asset->per_title_encode = isset($params['per_title_encode']) ? $params['per_title_encode'] : null;
-        // $asset->upload_id = isset($params['upload_id']) ? $params['upload_id'] : "";
-        // $asset->is_live = isset($params['is_live']) ? $params['is_live'] : "";
-        // $asset->passthrough = isset($params['passthrough']) ? $params['passthrough'] : "";
-        // $asset->live_stream_id = isset($params['live_stream_id']) ? $params['live_stream_id'] : "";
-        // $asset->master = isset($params['master']) ? $params['master'] : [];
-        // $asset->master_access = isset($params['master_access']) ? $params['master_access'] : "";
-        // $asset->mp4_support = isset($params['mp4_support']) ? $params['mp4_support'] : "";
-        // $asset->source_asset_id = isset($params['source_asset_id']) ? $params['source_asset_id'] : "";
-        // $asset->normalize_audio = isset($params['normalize_audio']) ? $params['normalize_audio'] : "";
-        // $asset->static_renditions = isset($params['static_renditions']) ? $params['static_renditions'] : [];
-        // $asset->recording_times = isset($params['recording_times']) ? $params['recording_times'] : [];
-        // $asset->non_standard_input_reasons = isset($params['non_standard_input_reasons']) ? $params['non_standard_input_reasons'] : [];
-        // $asset->test = isset($params['test']) ? $params['test'] : "";
-
         return $this->hydrateAsset($params, $asset);
     }
 
@@ -172,32 +146,6 @@ class Assets extends Component
 
         $params = array_merge($this->defaultAttributes, array_intersect_key($requestParams, $this->defaultAttributes));
         
-        // $asset->title = $params['title'];
-        // $asset->asset_id = $params['asset_id'];
-        // $asset->created_at = $params['created_at'];
-        // $asset->asset_status = isset($params['asset_status']) ? $params['asset_status'] : "";
-        // $asset->duration = isset($params['duration']) ? $params['duration'] :  "";
-        // $asset->max_stored_resolution = isset($params['max_stored_resolution']) ? $params['max_stored_resolution'] : "";
-        // $asset->max_stored_frame_rate = isset($params['max_stored_frame_rate']) ? $params['max_stored_frame_rate'] : "";
-        // $asset->aspect_ratio = isset($params['aspect_ratio']) ? $params['aspect_ratio'] : "";
-        // $asset->playback_ids = isset($params['playback_ids']) ? $params['playback_ids'] : [];
-        // $asset->tracks = isset($params['tracks']) ? $params['tracks'] : [];
-        // $asset->errors = isset($params['errors']) ? $params['errors'] : "";
-        // $asset->per_title_encode = isset($params['per_title_encode']) ? $params['per_title_encode'] : null;
-        // $asset->upload_id = isset($params['upload_id']) ? $params['upload_id'] : "";
-        // $asset->is_live = isset($params['is_live']) ? $params['is_live'] : "";
-        // $asset->passthrough = isset($params['passthrough']) ? ($params['passthrough'] == $params['asset_id'] ? $params['title'] : $params['passthrough']) : $params['title'];
-        // $asset->live_stream_id = isset($params['live_stream_id']) ? $params['live_stream_id'] : "";
-        // $asset->master = isset($params['master']) ? $params['master'] : [];
-        // $asset->master_access = isset($params['master_access']) ? $params['master_access'] : "";
-        // $asset->mp4_support = isset($params['mp4_support']) ? $params['mp4_support'] : "";
-        // $asset->source_asset_id = isset($params['source_asset_id']) ? $params['source_asset_id'] : "";
-        // $asset->normalize_audio = isset($params['normalize_audio']) ? $params['normalize_audio'] : "";
-        // $asset->static_renditions = isset($params['static_renditions']) ? $params['static_renditions'] : [];
-        // $asset->recording_times = isset($params['recording_times']) ? $params['recording_times'] : [];
-        // $asset->non_standard_input_reasons = isset($params['non_standard_input_reasons']) ? $params['non_standard_input_reasons'] : [];
-        // $asset->test = isset($params['test']) ? $params['test'] : "";
-
         return $this->hydrateAsset($params, $asset);
     }
 
@@ -260,11 +208,6 @@ class Assets extends Component
         return $apiInstance->listAssets($limit, $page);
     }
 
-    // public function useAssets(?int $limit = 20, ?int $page = 1)
-    // {
-    //     $records = MuxAssetsRecord::find()->limit($limit)->offset($limit * ($page - 1))->all();
-
-    // }
 
     /**
      * Create MUX Asset
@@ -384,6 +327,8 @@ class Assets extends Component
 
         try {
             $result = $apiInstance->getAsset($id);
+            return $result->getData();
+            /*
             if ($result->getData()->getStatus() != 'ready') {
                 //print("    waiting for asset to become ready...\n");
                 while (true) {
@@ -401,9 +346,9 @@ class Assets extends Component
                         break;
                     }
                 }
-            }
+            }*/
             //Mux::info("Getting Mux Asset from MUX (mux\services\assets\getMuxAssetById): " . $id, 'mux');
-            return $result->getData();
+            
         } catch (\Exception $e) {
             throw new Exception("Exception when calling AssetsApi->getAsset: {$e->getMessage()} ");
             return false;
@@ -727,6 +672,7 @@ class Assets extends Component
     {
         $limit = 50;
         $page = 1;
+        $user = Craft::$app->user->getIdentity();
 
         $config = Mux::$plugin->assets->muxConf();
         // API Client Initialization
@@ -760,6 +706,34 @@ class Assets extends Component
             $page++;
         } while (!empty($assets) && count($assets) >= $limit);
     }
+
+    /**
+     * Sync Mux Asset By ID
+     * @param string $id 
+     * @return bool
+     * @throws ApiException 
+     * @throws InvalidArgumentException 
+     * @throws BaseInvalidArgumentException 
+     * @throws GlobalException 
+     * @throws InvalidConfigException 
+     * @throws Exception 
+     * @throws Throwable 
+     * @throws ElementNotFoundException 
+     */
+    public function syncAssetById(string $id): bool
+    {
+        $config = Mux::$plugin->assets->muxConf();
+        // API Client Initialization
+        $apiInstance = new MuxPhp\Api\AssetsApi(
+            new Client(),
+            $config
+        );
+
+        $asset = $apiInstance->getAsset($id)->getData();
+
+        return $this->createOrUpdateMuxAsset($asset);
+    }
+
 
     /**
      * Delete all orphaned Mux Asset Elements

@@ -51,6 +51,7 @@ use yii\log\Logger;
  */
 class Mux extends Plugin
 {
+
     /**
      * @var Retour
      */
@@ -108,22 +109,23 @@ class Mux extends Plugin
         Event::on(
             Elements::class,
             Elements::EVENT_REGISTER_ELEMENT_TYPES,
-            function(RegisterComponentTypesEvent $event) {
+            function (RegisterComponentTypesEvent $event) {
                 $event->types[] = MuxAssetElement::class;
             }
         );
 
         Event::on(
-            Fields::class, 
-            Fields::EVENT_REGISTER_FIELD_TYPES, 
+            Fields::class,
+            Fields::EVENT_REGISTER_FIELD_TYPES,
             function (RegisterComponentTypesEvent $event) {
-            $event->types[] = MuxAssetField::class;
-        });
+                $event->types[] = MuxAssetField::class;
+            }
+        );
 
         Event::on(
             CraftVariable::class,
             CraftVariable::EVENT_DEFINE_BEHAVIORS,
-            function(DefineBehaviorsEvent $e) {
+            function (DefineBehaviorsEvent $e) {
                 $e->sender->attachBehaviors([
                     MuxAssetBehavior::class,
                 ]);
@@ -133,7 +135,7 @@ class Mux extends Plugin
         Event::on(
             Gql::class,
             Gql::EVENT_REGISTER_GQL_QUERIES,
-            function(RegisterGqlQueriesEvent $event) {
+            function (RegisterGqlQueriesEvent $event) {
                 $event->queries = array_merge(
                     $event->queries,
                     MuxAssetGqlQuery::getQueries()
@@ -144,44 +146,45 @@ class Mux extends Plugin
         Event::on(
             Gql::class,
             Gql::EVENT_REGISTER_GQL_TYPES,
-            function(RegisterGqlTypesEvent $event) {
+            function (RegisterGqlTypesEvent $event) {
                 $event->types[] = MuxAssetInterface::class;
             }
         );
 
         Craft::$app->elements->on(
-            Elements::EVENT_AFTER_SAVE_ELEMENT, 
-            function(ElementEvent $e) {
-            // Update the asset passthrough attribute (which holds the title) on Mux.
-            if ($e->element instanceof MuxAssetElement) {
-                $element = $e->element;
-                $attributes = $element->getAttributes();
-                
-                $muxAsset = Mux::$plugin->assets->getMuxAsset($attributes['asset_id']);
-        
-                $asset = new MuxAsset();
-                
-                // Prevent an update loop from webhook.
-                if(array_key_exists('passthrough', $muxAsset)) {
-                    if($muxAsset['passthrough'] != $attributes['title']) {
+            Elements::EVENT_AFTER_SAVE_ELEMENT,
+            function (ElementEvent $e) {
+                // Update the asset passthrough attribute (which holds the title) on Mux.
+                if ($e->element instanceof MuxAssetElement) {
+                    $element = $e->element;
+                    $attributes = $element->getAttributes();
+
+                    $muxAsset = Mux::$plugin->assets->getMuxAsset($attributes['asset_id']);
+
+                    $asset = new MuxAsset();
+
+                    // Prevent an update loop from webhook.
+                    if (array_key_exists('passthrough', $muxAsset)) {
+                        if ($muxAsset['passthrough'] != $attributes['title']) {
+                            $asset->asset_id = $attributes['asset_id'];
+                            $asset->passthrough = $attributes['title'];
+
+                            Mux::$plugin->assets->updateMuxAsset($asset);
+                        }
+                    } else {
                         $asset->asset_id = $attributes['asset_id'];
-                        $asset->passthrough = $attributes['title']; 
+                        $asset->passthrough = $attributes['title'];
 
                         Mux::$plugin->assets->updateMuxAsset($asset);
                     }
-                } else {
-                    $asset->asset_id = $attributes['asset_id'];
-                    $asset->passthrough = $attributes['title']; 
-
-                    Mux::$plugin->assets->updateMuxAsset($asset);
                 }
             }
-        });
+        );
 
 
         Craft::$app->elements->on(
-            Elements::EVENT_BEFORE_DELETE_ELEMENT, 
-            function(ElementEvent $e) {
+            Elements::EVENT_BEFORE_DELETE_ELEMENT,
+            function (ElementEvent $e) {
                 if ($e->element instanceof MuxAssetElement) {
                     $element = $e->element;
                     $attributes = $element->getAttributes();
@@ -189,7 +192,7 @@ class Mux extends Plugin
                         If (trashed == true) the element is being hard deleted (removed FOREVER see:https://media.giphy.com/media/hEwkspP1OllJK/giphy.gif)
                           then we remove it from MUX unless it has already been removed from MUX. 
                     */
-                    if($attributes['trashed'] == 'true') {
+                    if ($attributes['trashed'] == 'true') {
                         $config = Mux::$plugin->assets->muxConf();
                         $apiInstance = new MuxPhp\Api\AssetsApi(
                             new Client(),
@@ -197,22 +200,22 @@ class Mux extends Plugin
                         );
 
                         try {
-                            $response = $apiInstance->getAsset($attributes['asset_id']);                        
-                            if($response) {
-                                if(!Mux::$plugin->assets->deleteAssetById($attributes['asset_id'])) {
+                            $response = $apiInstance->getAsset($attributes['asset_id']);
+                            if ($response) {
+                                if (!Mux::$plugin->assets->deleteAssetById($attributes['asset_id'])) {
                                     return false;
                                 }
                             }
-                        } catch(\MuxPhp\ApiException $e) {
+                        } catch (\MuxPhp\ApiException $e) {
                             //$this->error($e->getCode());
                             $this->error($e->getMessage());
                             $this->info("Attempting to hard delete a trashed asset element and it's MUX counterpart. However, the asset cannot be found in MUX as it has already been deleted. Therefore, only the MuxAssetElement was deleted.");
                             return true;
                         }
-                        
                     }
                 }
-        });
+            }
+        );
 
         $this->_registerLogTarget();
 
@@ -226,7 +229,7 @@ class Mux extends Plugin
     {
         Craft::info($message, 'mux');
     }
-    
+
     /**
      * Logs an error message to our custom log target.
      */
@@ -334,25 +337,26 @@ class Mux extends Plugin
     private function _registerPermissions(): void
     {
         Event::on(
-            UserPermissions::class, 
-            UserPermissions::EVENT_REGISTER_PERMISSIONS, 
+            UserPermissions::class,
+            UserPermissions::EVENT_REGISTER_PERMISSIONS,
             function (RegisterUserPermissionsEvent $event) {
-            $event->permissions[] = [
-                'heading' => Craft::t('mux', 'Mux'),
-                'permissions' => [
-                    'mux-createAssets' => ['label' => Craft::t('mux', 'Create assets')],
-                    'mux-deleteAssets' => ['label' => Craft::t('mux', 'Delete assets')],
-                    'mux-editAssets' => ['label' => Craft::t('mux', 'Manage all Assets'), 'info' => Craft::t('mux', 'This user will be able to manage all Mux assets.')]
-                ]
-            ];
-        });
+                $event->permissions[] = [
+                    'heading' => Craft::t('mux', 'Mux'),
+                    'permissions' => [
+                        'mux-createAssets' => ['label' => Craft::t('mux', 'Create assets')],
+                        'mux-deleteAssets' => ['label' => Craft::t('mux', 'Delete assets')],
+                        'mux-editAssets' => ['label' => Craft::t('mux', 'Manage all Assets'), 'info' => Craft::t('mux', 'This user will be able to manage all Mux assets.')]
+                    ]
+                ];
+            }
+        );
     }
 
     protected function _registerCpRoutes(): void
     {
         Event::on(
-            UrlManager::class, 
-            UrlManager::EVENT_REGISTER_CP_URL_RULES, 
+            UrlManager::class,
+            UrlManager::EVENT_REGISTER_CP_URL_RULES,
             function (RegisterUrlRulesEvent $event) {
                 $event->rules['mux'] = ['template' => 'mux/elements/_index.twig'];
                 //$event->rules['mux/dashboard'] = 'mux/assets/dashboard';
@@ -360,8 +364,9 @@ class Mux extends Plugin
                 $event->rules['mux/restrictions'] = ['template' => 'mux/settings/restrictions'];
                 $event->rules['mux/signed-keys'] = ['template' => 'mux/settings/signedKeys'];
                 $event->rules['mux/assets'] = ['template' => 'mux/elements/_index.twig'];
-                $event->rules['mux/assets/<elementId:\d+>'] =  'elements/edit';//['template' => 'mux/elements/_edit.twig'];
-        });
+                $event->rules['mux/assets/<elementId:\d+>'] =  'elements/edit'; //['template' => 'mux/elements/_edit.twig'];
+            }
+        );
     }
 
     /**
@@ -386,6 +391,4 @@ class Mux extends Plugin
             ],
         ];
     }
-
-
 }

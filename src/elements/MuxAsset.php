@@ -18,6 +18,7 @@ use Exception as GlobalException;
 use phpDocumentor\Reflection\Types\Boolean;
 use rocketpark\mux\Mux;
 use rocketpark\mux\elements\db\MuxAssetQuery;
+use rocketpark\mux\elements\actions\SyncAssets;
 use rocketpark\mux\fieldlayoutelements\MuxAssetFieldContentTab;
 use rocketpark\mux\fieldlayoutelements\MuxAssetFieldTracksTab;
 use rocketpark\mux\records\SignedKeys;
@@ -309,7 +310,9 @@ class MuxAsset extends Element
     protected static function defineActions(string $source): array
     {
         // List any bulk element actions here
-        return [];
+        $actions = [];
+        $actions[] = SyncAssets::class;
+        return $actions;
     }
 
     /**
@@ -395,6 +398,21 @@ class MuxAsset extends Element
         }
 
         return parent::tableAttributeHtml($attribute);
+    }
+    
+    /**
+     * @inheritdoc
+     */
+    protected function htmlAttributes(string $context): array
+    {
+        $attributes = [
+            'data' => [
+                'mux-asset-id' => $this->asset_id,
+                'mux-asset-status' => $this->asset_status,
+            ],
+        ];
+
+        return $attributes;
     }
 
     /**
