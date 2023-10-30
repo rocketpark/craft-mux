@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.1.6 - October 30, 2023
+### Fixed
+- Fixed asset upload element title assignment from filename
+
 ## 1.1.5 - October 27, 2023
 ### Added
 - Added a copytext input for the webhook url in the settings page

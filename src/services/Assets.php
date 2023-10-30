@@ -502,6 +502,33 @@ class Assets extends Component
     }
 
     /**
+     * Has Changes
+     * @param array $muxAsset
+     * @param array $elements
+     * @return bool
+     */
+    public function hasChanges(array $muxAsset, array $elements): bool
+    {
+        foreach ($elements as $element) {
+            foreach ($muxAsset as $key => $value) {
+                if (array_key_exists($key, $this->defaultAttributes) || $key === 'status') {
+                    if ($key === 'status' && $element->asset_status !== $value) {
+                        return true;
+                    }
+                    if ($key === 'id' && $element->asset_id !== $value) {
+                        return true;
+                    }
+                    if ($key === 'passthrough' && $element->passthrough !== $value) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Update Asset Element With Mux Asset
      * @param array $muxAssetArray 
      * @return bool
@@ -519,6 +546,11 @@ class Assets extends Component
 
         if(!$elements) {
             return false;
+        }
+
+        // If no changes needed don't resave just return everything is good.
+        if(!$this->hasChanges($muxAsset, $elements)) {
+            return true;
         }
 
         foreach($elements as $element) {
@@ -539,15 +571,12 @@ class Assets extends Component
                 }
             }
 
-            try {    
-                $this->saveAsset($element);
-                return true;
-                
-            } catch (\Exception $e) {
-                throw new Exception("Exception when calling updating element: {$e->getMessage()}");
+            if(!$this->saveAsset($element)) {
                 return false;
             }
         }
+
+        return true;
         
     }
 
@@ -766,4 +795,7 @@ class Assets extends Component
     }
 
     
+
+
+
 }

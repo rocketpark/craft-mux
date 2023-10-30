@@ -1,6 +1,6 @@
 {
     "name": "rocket-park/craft-mux",
-    "version": "1.1.5",
+    "version": "1.1.6",
     "description": "Connection to the Mux video API to upload and use Mux video assets.",
     "type": "craft-plugin",
     "license": "proprietary",

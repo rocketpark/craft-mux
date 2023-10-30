@@ -63,32 +63,32 @@ class WebhooksController extends Controller
             case 'video.asset.ready':
                 // We need to make sure the status is set to ready.
                 Mux::$plugin->assets->updateAssetElementWithMuxAsset($params['data']);
-                Mux::info(json_encode($params), 'mux');
+                //Mux::info(json_encode($params), 'mux');
                 break;
             case 'video.asset.updated':
                 Mux::$plugin->assets->updateAssetElementWithMuxAsset($params['data']);
-                Mux::info(json_encode($params), 'mux');
+                //Mux::info(json_encode($params), 'mux');
                 break;
             case 'video.asset.deleted':
                 if(MuxAsset::findOne(['asset_id' => $params['data']['id']]) !== null) {
                     Mux::$plugin->assets->deleteAsset($params['data']['id']);
                 }
-                Mux::info(json_encode($params), 'mux');
+                //Mux::info(json_encode($params), 'mux');
                 break;
             case 'video.asset.errored':
-                Mux::error(json_encode($params), 'mux');
+                //Mux::error(json_encode($params), 'mux');
                 break;
             case 'video.asset.track.created':
-                Mux::info(json_encode($params), 'mux');
+                //Mux::info(json_encode($params), 'mux');
                 break;
             case 'video.asset.track.ready':
-                Mux::info(json_encode($params), 'mux');
+                //Mux::info(json_encode($params), 'mux');
                 break;
             case 'video.asset.track.errored':
-                Mux::error(json_encode($params), 'mux');
+                //Mux::error(json_encode($params), 'mux');
                 break;
             case 'video.asset.track.deleted':
-                Mux::info(json_encode($params), 'mux');
+                //Mux::info(json_encode($params), 'mux');
                 break;
             case 'video.upload.asset_created':
                 $el = MuxAsset::findOne(['asset_id' => $params['data']['asset_id']]);
@@ -96,19 +96,19 @@ class WebhooksController extends Controller
                     $asset = $apiInstance->getAsset($params['data']['asset_id']);
                     Mux::$plugin->assets->createOrUpdateMuxAsset($asset->getData());
                 }
-                Mux::info(json_encode($params), 'mux');
+                //Mux::info(json_encode($params), 'mux');
                 break;
             case 'video.upload.cancelled':
-                Mux::error(json_encode($params), 'mux');
+                //Mux::info(json_encode($params), 'mux');
                 break;
             case 'video.upload.created':
-                Mux::info(json_encode($params), 'mux');
+                //Mux::info(json_encode($params), 'mux');
                 break;
             case 'video.upload.errored':
-                Mux::error(json_encode($params), 'mux');
+                //Mux::error(json_encode($params), 'mux');
                 break;
             case 'video.asset.warning':
-                Mux::info(json_encode($params), 'mux');
+                //Mux::info(json_encode($params), 'mux');
                 break;
         }
 
