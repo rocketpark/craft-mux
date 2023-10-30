@@ -697,6 +697,8 @@ class MuxAsset extends Element
      */
     public function __set($name, $value)
     {
+        parent::__set($name, $value);
+        /*
         if ($name === 'passthrough') {
             if (isset($this->asset_id) && $value == $this->asset_id) {
                 $this->passthrough = $this->title;
@@ -705,6 +707,6 @@ class MuxAsset extends Element
             }
         } else {
             parent::__set($name, $value); // default behavior 
-        }
+        }*/
     }
 }

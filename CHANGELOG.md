@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## 1.1.6 - October 30, 2023
+## 1.1.7 - October 30, 2023
 ### Fixed
 - Fixed asset upload element title assignment from filename
 

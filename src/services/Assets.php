@@ -655,7 +655,7 @@ class Assets extends Component
         if ($muxAssetElement === null) {
             /** @var MuxAssetElement $muxAssetElement */
             $muxAssetElement = new muxAssetElement();
-            $muxAssetElement->title = !empty($asset['passthrough']) ? $asset['passthrough'] : $asset['id'];
+            $muxAssetElement->title = $asset['passthrough'];
         } else {
             $muxAssetElement->title = $asset['passthrough'];
         }
