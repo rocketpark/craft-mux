@@ -21,6 +21,9 @@ class MuxAsset extends Model
     public $duration;
     public $max_stored_resolution;
     public $max_stored_frame_rate;
+    public $resolution_tier;
+    public $max_resolution_tier;
+    public $encoding_tier;
     public $aspect_ratio;
     public $playback_ids;
     public $tracks;

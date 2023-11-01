@@ -34,6 +34,11 @@ class Settings extends Model
     public bool $muxSecurePlayback = false;
 
     /**
+     * @var string The MUX Asset resolution teir
+     */
+    public string $maxResolutionTier = '';
+
+    /**
      * @inheritdoc
      */
     public function rules(): array
@@ -45,6 +50,8 @@ class Settings extends Model
             ['muxTokenSecret', 'string'],
             ['muxSecurePlayback', 'boolean'],
             ['muxSecurePlayback', 'default', 'value' => false],
+            ['maxResolutionTier', 'string'],
+            ['maxResolutionTier', 'default', 'value' => '1080p'],
         ];
     }
 

@@ -51,6 +51,21 @@
             errors: settings.getErrors("muxTokenSecret"),
         }) }}
 
+        {{ forms.radioGroupField({
+            label: "Max Resolution Tier"|t("mux"),
+            id: 'maxResolutionTier',
+            name: 'maxResolutionTier',
+            options: [
+                { label: '2160p (4k)', value: '2160p'},
+                { label: '1440p (2k)', value: '1440p'},
+                { label: '1080p', value: '1080p', selected: true },
+                { label: '720p', value: '720p' }
+            ],
+            value: settings.maxResolutionTier,
+            toggle: true,
+            tip: 'Max resolution tier can be used to control the maximum `resolution_tier` your asset is encoded, stored, and streamed at. Defaults to `1080p`.'|t('mux'),
+        }) }}
+
 <hr>
         {% set instructions %}
             Secure playback requires you use a signed key in your playback url. 

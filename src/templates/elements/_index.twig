@@ -5,9 +5,10 @@
     { label: "MUX"|t('mux'), url: url('/mux') },
     { label: "Assets"|t('mux'), url: url('/mux/assets') }
 ] %}
-{% set elementType = 'rocketpark\\mux\\elements\\MuxAsset' %}
+{% set elementType = "rocketpark\\mux\\elements\\MuxAsset" %}
 {% set canHaveDrafts = false %}
 {% set selectedSubnavItem = 'assets' %}   
+{# {% set defaultSource = 'allassets' %} #}
 
 {# {% block body %}
     {{ parent() }}

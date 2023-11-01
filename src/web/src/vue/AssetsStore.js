@@ -74,6 +74,14 @@ export function useAssets() {
         });
 }
 
+/**
+ * Update Selected Asset
+ * After useAssets is called if there is a slected asset
+ *  updated it with newly updated assets
+ */
+export function updatedSelectedAsset() {
+    state.selected = state.selected !== null ? state.assets.find((asset) => { return asset.id === state.selected.id; }) : null;
+}
 
 /**
  * Use Asset By Id
@@ -95,22 +103,22 @@ export function useAssetById(id) {
 
 
 /**
- * Update Selected Asset
- * After useAssets is called if there is a slected asset
- *  updated it with newly updated assets
- */
-export function updatedSelectedAsset() {
-    state.selected = state.selected !== null ? state.assets.find((asset) => { return asset.id === state.selected.id; }) : null;
-}
-
-
-/**
  * Get MUX Upload URL
  * @returns Promise
  */
-export const getUploadUrl = () => {
+export const getUploadUrl = (file) => {
+
+    const body = { passthrough: file.name };
+    body[window.Craft.csrfTokenName] = window.Craft.csrfTokenValue;
     return new Promise((resolve, reject) => {
-        fetch('/actions/mux/assets/upload-asset').then((res) => {
+        fetch('/actions/mux/assets/upload-asset', {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+        }).then((res) => {
             if (!res.ok) {
                 throw new Error(`HTTP error ${res.status}`);
             }
@@ -347,8 +355,8 @@ export const uploadFiles = async(files) => {
 
         for (const file of files) {
             uploadState.uploadingFile = file;
-            const upload_url = await getUploadUrl();
-            const promise = uploadFile(file, upload_url);
+            const uploadUrl = await getUploadUrl(file);
+            const promise = uploadFile(file, uploadUrl);
             uploadPromises.push(promise);
             await promise;
         }

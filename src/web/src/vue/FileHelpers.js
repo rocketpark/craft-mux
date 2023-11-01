@@ -1,4 +1,4 @@
-const accept_extensions = 'mp4,webm,mov,m4v';
+const accept_extensions = 'mp4,webm,mov,m4v,mkv';
 const max_file_size = 50000 * 1024 * 1024; // 52GB
 const multiple_files = true;
 

@@ -43,7 +43,7 @@ class AssetsController extends Controller
     {
         $this->requirePermission('mux-viewAssets');
 
-        return $this->renderTemplate('mux/dashboard/index.twig', []);
+        return $this->renderTemplate('mux/elements/_index', []);
     }
 
 
@@ -201,9 +201,15 @@ class AssetsController extends Controller
      * Upload Mux Asset
      * @return mixed
      */
-    public static function actionUploadAsset()
+    public function actionUploadAsset()
     {
-        return MUX::$plugin->assets->uploadMuxAsset();
+        $this->requirePostRequest();
+
+        $request = Craft::$app->getRequest();
+        $passthrough = $request->getBodyParam('passthrough');
+        if ($request->getAcceptsJson()) {
+            return MUX::$plugin->assets->uploadMuxAsset($passthrough);
+        };
     }
 
 

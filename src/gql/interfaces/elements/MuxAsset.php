@@ -154,6 +154,18 @@ class MuxAsset extends Element
                 'type' => Type::string(),
                 'description' => 'Max stored frame rate of the object'
             ],
+            'resolution_tier' => [
+                'type' => Type::string(),
+                'description' => 'Resolution tier of the object'
+            ],
+            'max_resolution_tier' => [
+                'type' => Type::string(),
+                'description' => 'Max resolution tier of the object'
+            ],
+            'encoding_tier' => [
+                'type' => Type::string(),
+                'description' => 'Encoding tier of the object'
+            ],
             'aspect_ratio' => [
                 'type' => Type::string(),
                 'description' => 'Aspect ratio of the object'

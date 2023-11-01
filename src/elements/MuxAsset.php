@@ -42,7 +42,7 @@ class MuxAsset extends Element
      */
     public static function displayName(): string
     {
-        return Craft::t('mux', 'MUX asset');
+        return Craft::t('mux', 'MuxAsset');
     }
 
     /**
@@ -50,7 +50,7 @@ class MuxAsset extends Element
      */
     public static function lowerDisplayName(): string
     {
-        return Craft::t('mux', 'MUX asset');
+        return Craft::t('mux', 'MuxAsset');
     }
 
     /**
@@ -58,7 +58,7 @@ class MuxAsset extends Element
      */
     public static function pluralDisplayName(): string
     {
-        return Craft::t('mux', 'MUX Assets');
+        return Craft::t('mux', 'MuxAssets');
     }
 
     /**
@@ -169,6 +169,9 @@ class MuxAsset extends Element
     public ?string $duration = '';
     public ?string $max_stored_resolution = '';
     public ?string $max_stored_frame_rate = '';
+    public ?string $resolution_tier = '';
+    public ?string $max_resolution_tier = '';
+    public ?string $encoding_tier = '';
     public ?string $aspect_ratio = '';
     public ?array  $playback_ids = [];
     public ?array  $tracks = [];
@@ -576,6 +579,9 @@ class MuxAsset extends Element
                 'duration' => $this->duration,
                 'max_stored_resolution' => $this->max_stored_resolution,
                 'max_stored_frame_rate' => $this->max_stored_frame_rate,
+                'resolution_tier' => $this->resolution_tier,
+                'max_resolution_tier' => $this->max_resolution_tier,
+                'encoding_tier' => $this->encoding_tier,
                 'aspect_ratio' => $this->aspect_ratio,
                 'playback_ids' => $this->playback_ids,
                 'tracks' => $this->tracks,
@@ -603,6 +609,9 @@ class MuxAsset extends Element
                 'duration' => $this->duration,
                 'max_stored_resolution' => $this->max_stored_resolution,
                 'max_stored_frame_rate' => $this->max_stored_frame_rate,
+                'resolution_tier' => $this->resolution_tier,
+                'max_resolution_tier' => $this->max_resolution_tier,
+                'encoding_tier' => $this->encoding_tier,
                 'aspect_ratio' => $this->aspect_ratio,
                 'playback_ids' => $this->playback_ids,
                 'tracks' => $this->tracks,

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.2.0 - October 31, 2023
+### Added
+- Added new asset model params, resolution_tier, max_resolution_tier, and ecoding_tier
+- Added radio group setting to change max_resolution_tier
+- Added default automated encoding for English Closed Caption tracks
+### Updated
+- Updated muxinc/mux-php version to 3.12.0 
+
 ## 1.1.7 - October 30, 2023
 ### Fixed
 - Fixed asset upload element title assignment from filename

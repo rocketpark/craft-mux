@@ -61,6 +61,9 @@ class Assets extends Component
         'duration' => "",
         'max_stored_resolution' => "",
         'max_stored_frame_rate' => "",
+        'resolution_tier' => "",
+        'max_resolution_tier' => "",
+        'encoding_tier' => "",
         'aspect_ratio' => "",
         'playback_ids' => [],
         'tracks' => [],
@@ -219,7 +222,7 @@ class Assets extends Component
      */
     public static function createMuxAsset(mixed $data): AssetResponse
     {
-
+        $settings = Mux::$settings;
         $config = Mux::$plugin->assets->muxConf();
         $apiInstance = new MuxPhp\Api\AssetsApi(
             new Client(),
@@ -227,7 +230,7 @@ class Assets extends Component
         );
 
         $policy = Mux::$plugin->assets->getPlaybackPolicy();
-        $create_asset_request = json_decode(sprintf('{"input":[{"url":"%s"}],"playback_policy":["%s"]}', $data['url'], $policy), true);
+        $create_asset_request = json_decode(sprintf('{"input":[{"url":"%s","generated_subtitles": [{"language_code": "en","name": "English CC"}]}],"playback_policy":["%s"],"max_resolution_teir":"%s"}', $data['url'], $policy, App::parseEnv($settings->maxResolutionTier)), true);
 
         try {
             $result = $apiInstance->createAsset($create_asset_request);
@@ -241,14 +244,15 @@ class Assets extends Component
 
     /**
      * Upload Asset to MUX
+     * @param null|string $passthrough
      * @return string|false 
      * @throws Exception 
      * @throws ApiException 
      * @throws InvalidArgumentException 
      */
-    public static function uploadMuxAsset()
+    public static function uploadMuxAsset(?string $passthrough)
     {
-
+        $settings = Mux::$settings;
         $config = Mux::$plugin->assets->muxConf();
         $apiInstance = new MuxPhp\Api\DirectUploadsApi(
             new Client(),
@@ -256,10 +260,12 @@ class Assets extends Component
         );
 
         $policy = Mux::$plugin->assets->getPlaybackPolicy();
-
-        $createAssetRequest = new MuxPhp\Models\CreateAssetRequest(["playback_policy" => [$policy]]);
+        
+        $subtitles = new MuxPhp\Models\AssetGeneratedSubtitleSettings(["language_code" => "en", "name" => "English CC"]);
+        $inputSettings = new MuxPhp\Models\InputSettings(["generated_subtitles" => $subtitles]);
+        $createAssetRequest = new MuxPhp\Models\CreateAssetRequest(["input" => $inputSettings, "playback_policy" => [$policy], "max_resolution_tier" => $settings->maxResolutionTier, "passthrough" => $passthrough]);
         $createUploadRequest = new MuxPhp\Models\CreateUploadRequest(["timeout" => 3600, "new_asset_settings" => $createAssetRequest, "cors_origin" => UrlHelper::siteUrl()]);
-
+        
         $upload = $apiInstance->createDirectUpload($createUploadRequest);
 
         return json_encode($upload->getData());
@@ -598,6 +604,9 @@ class Assets extends Component
             "duration" => $asset->getDuration(),
             "max_stored_resolution" => $asset->getMaxStoredResolution(),
             "max_stored_frame_rate" => $asset->getMaxStoredFrameRate(),
+            "resolution_tier" => $asset->getResolutionTier(),
+            "max_resolution_tier" => $asset->getMaxResolutionTier(),
+            "encoding_tier" => $asset->getEncodingTier(),
             "aspect_ratio" => $asset->getAspectRatio(),
             "playback_ids" => !empty($asset->getPlaybackIds()) ? array_map(function ($playbackId) {
                 return [
@@ -793,9 +802,5 @@ class Assets extends Component
             ? MuxPhp\Models\PlaybackPolicy::SIGNED 
             : MuxPhp\Models\PlaybackPolicy::_PUBLIC;
     }
-
-    
-
-
 
 }

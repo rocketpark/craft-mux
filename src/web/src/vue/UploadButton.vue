@@ -25,7 +25,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useDropZone } from '@vueuse/core';
-import { uploadState, uploadFiles, useAssets } from './AssetsStore';
+import { uploadFiles, useAssets } from './AssetsStore';
 import { preprocessFiles } from './FileHelpers.js';
 
 const props = defineProps({
