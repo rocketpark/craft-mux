@@ -20,12 +20,15 @@
             <mux-player
                 accent-color="#cf3f40"
                 stream-type="on-demand"
-                metadata-video-id="{{ muxAsset.asset_id}}"
+                metadata-video-id="{{ muxAsset.asset_id }}"
+                metadata-video-title="{{ muxAsset.title }} (CraftCMS Entry)"
                 playback-id="{{ muxAsset.playback_ids[0].id }}"
-                metadata-video-title="{{ muxAsset.title }}"
                 playback-token="{{ videoToken }}"
                 thumbnail-token="{{ thumbToken }}",
                 storyboard-token="{{ storyboardToken }}"
+                disable-cookies="true"
+                default-hidden-captions="true"
+                title="{{ muxAsset.title }}"
             ></mux-player>
         {% else %}
             <h3>Must create at leaset Signed Keys to playback this video and view thumbnails.</h3>
@@ -34,8 +37,11 @@
         <mux-player
             accent-color="#cf3f40"
             stream-type="on-demand"
-            metadata-video-id="{{ muxAsset.asset_id}}"
+            metadata-video-id="{{ muxAsset.asset_id }}"
+            metadata-video-title="{{ muxAsset.title }} (CraftCMS Entry)"
             playback-id="{{ muxAsset.playback_ids[0].id }}"
-            metadata-video-title="{{ muxAsset.title }}"></mux-player>
+            disable-cookies="true"
+            default-hidden-captions="true"
+            title="{{ muxAsset.title }}"></mux-player>
     {% endif %}
 </div>

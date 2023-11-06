@@ -262,8 +262,8 @@ class Assets extends Component
         $policy = Mux::$plugin->assets->getPlaybackPolicy();
         
         $subtitles = new MuxPhp\Models\AssetGeneratedSubtitleSettings(["language_code" => "en", "name" => "English CC"]);
-        $inputSettings = new MuxPhp\Models\InputSettings(["generated_subtitles" => $subtitles]);
-        $createAssetRequest = new MuxPhp\Models\CreateAssetRequest(["input" => $inputSettings, "playback_policy" => [$policy], "max_resolution_tier" => $settings->maxResolutionTier, "passthrough" => $passthrough]);
+        $inputSettings = new MuxPhp\Models\InputSettings(["generated_subtitles" => [$subtitles]]);
+        $createAssetRequest = new MuxPhp\Models\CreateAssetRequest(["input" => [$inputSettings], "playback_policy" => [$policy], "max_resolution_tier" => $settings->maxResolutionTier, "passthrough" => $passthrough]);
         $createUploadRequest = new MuxPhp\Models\CreateUploadRequest(["timeout" => 3600, "new_asset_settings" => $createAssetRequest, "cors_origin" => UrlHelper::siteUrl()]);
         
         $upload = $apiInstance->createDirectUpload($createUploadRequest);

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.2.3 - November 6, 2023
+### Updated
+- Updated the php mux api framework to 3.12.1 to fix auto generated closed captions using direct upload.
+- Updated MUX entry player to not use cookies for MUX data so as not to skew player data.
+### Fixed
+- Fixed direct upload api to use array for CreateAssetRequest model "input" param. 
+
 ## 1.2.0 - October 31, 2023
 ### Added
 - Added new asset model params, resolution_tier, max_resolution_tier, and ecoding_tier
