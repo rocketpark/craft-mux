@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.2.4 - November 7, 2023
+### Added
+- Added a new plugin variable `craft.signedKeys` to return all the generated signed key for secure playback.
+This will help with efficiency instead of grabbing the key on every video iteration. 
+
 ## 1.2.3 - November 6, 2023
 ### Updated
 - Updated the php mux api framework to 3.12.1 to fix auto generated closed captions using direct upload.

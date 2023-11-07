@@ -238,6 +238,21 @@ class MuxAsset extends Element
     }
 
     /**
+     * Signed Keys
+     * @return array 
+     * @throws InvalidConfigException 
+     * @throws NotSupportedException 
+     * @throws Exception 
+     * @throws InvalidArgumentException 
+     * @throws GlobalException 
+     */
+    public function signedKeys(): array
+    {
+        $query = SignedKeys::find()->all();
+        return array_map(fn($record) => new SignedKey($record->getAttributes()), $query);
+    }
+
+    /**
      * Get Secure Playback JWT
      * @param null|string $tokenKeyId 
      * @param null|string $mediaType v = video, t = thumbnail, g = gif, s = storyboard

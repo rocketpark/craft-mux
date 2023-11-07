@@ -4,6 +4,7 @@ namespace rocketpark\mux\records;
 
 use Craft;
 use craft\db\ActiveRecord;
+use rocketpark\mux\models\SignedKey;
 
 /**
  * Signed Keys record
