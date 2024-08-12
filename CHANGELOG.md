@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.0.1 - August 12, 2024
+### Updated
+ - Updated the Mux PHP SDK to 3.18.0
+ - Update mux to work in Craft 5
+### Added
+ - Added animated gif thumbnail support
+
 ## 1.2.4 - November 7, 2023
 ### Added
 - Added a new plugin variable `craft.signedKeys` to return all the generated signed key for secure playback.
