@@ -5,6 +5,7 @@ namespace rocketpark\mux\elements\db;
 use Craft;
 use craft\elements\db\ElementQuery;
 use craft\helpers\Db;
+use yii\db\Expression;
 
 /**
  * Mux Asset query
@@ -120,6 +121,41 @@ class MuxAssetQuery extends ElementQuery
 
         if($this->upload_id){
             $this->subQuery->andWhere(Db::parseParam('mux_assets.upload_id', $this->upload_id));
+        }
+
+        if($this->passthrough){
+            $this->subQuery->andWhere(Db::parseParam('mux_assets.passthrough', $this->passthrough));
+        }
+
+        if($this->playback_ids){
+            $jsonCondition = new Expression('JSON_CONTAINS(mux_assets.playback_ids, :playback_ids)');
+            $this->subQuery->andWhere($jsonCondition, [':playback_ids' => json_encode($this->playback_ids)]);
+        }
+
+        if($this->tracks){
+            $jsonCondition = new Expression('JSON_CONTAINS(mux_assets.tracks, :tracks)');
+            $this->subQuery->andWhere($jsonCondition, [':tracks' => json_encode($this->tracks)]);
+        }
+
+        // if($this->tracks){
+        //     $jsonCondition = new Expression(
+        //         "JSON_CONTAINS_PATH(mux_assets.tracks, 'all', '$.tracks[*]') :tracks"
+        //     );
+        //     $this->subQuery->andWhere($jsonCondition, [':tracks' => json_encode($this->tracks, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT)]);
+        // }
+
+        // if ($this->tracks) {
+        //     $jsonPath = '$.tracks[*]';
+        //     $jsonCondition = new Expression("JSON_SEARCH(mux_assets.tracks, 'all', :jsonPath, :tracks) IS NOT NULL");
+        //     $this->subQuery->andWhere($jsonCondition, [
+        //         ':jsonPath' => $jsonPath,
+        //         ':tracks' => json_encode($this->tracks, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT)
+        //     ]);
+        // }
+
+        if($this->duration){
+            // Query the duration as a number
+            $this->subQuery->andWhere(Db::parseParam('mux_assets.duration', $this->duration));
         }
 
         return parent::beforePrepare();

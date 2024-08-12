@@ -41,7 +41,7 @@ class MuxDashboardAsset extends AssetBundle
 
         $this->depends = [
             CpAsset::class,
-            // VueAsset::class,
+            //VueAsset::class,
         ];
 
         parent::init();

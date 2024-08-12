@@ -1,5 +1,6 @@
 {% extends "_layouts/cp" %}
 {% import "_includes/forms" as forms %}
+{% do view.registerAssetBundle("rocketpark\\mux\\assetbundles\\mux\\MuxDashboardAsset") %}
 
 {% requirePermission "mux:assets-edit" %}
 {% set selectedSubnavItem = 'list' %}    
@@ -17,6 +18,7 @@
 ] %}
 
 {% block body %}
+
     {{ tag ('a', {
         id: 'global-skip-link',
         text: 'Skip to content'|t('app'),
@@ -209,6 +211,5 @@
     </div><!-- #global-container -->
 
     {% include '_layouts/components/notifications' %}
-{% endblock %}
 
-{% do view.registerAssetBundle("rocketpark\\mux\\assetbundles\\mux\\MuxDashboardAsset") %}
+{% endblock %}

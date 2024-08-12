@@ -99,10 +99,12 @@ class MuxAsset extends BaseRelationField
     /**
      * @inheritdoc
      */
-    protected function inputHtml(mixed $value, ?ElementInterface $element = null): string
-    {
-        return parent::inputHtml($value, $element);
-    }
+    // protected function inputHtml(mixed $value, ?ElementInterface $element = null): string
+    // {
+    //     $value = $this->_all($value, $element);
+    //     $variables = $this->inputTemplateVariables($value, $element);
+    //     return Craft::$app->getView()->renderTemplate($variables);
+    // }
 
     public function getSourceOptions(): array
     {

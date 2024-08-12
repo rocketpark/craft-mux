@@ -1,4 +1,5 @@
 {% extends '_layouts/elementindex' %}
+{% do view.registerAssetBundle("rocketpark\\mux\\assetbundles\\mux\\MuxDashboardAsset") %}
 {% set title = 'Mux Assets'|t('mux') %}
 {% requirePermission "mux:assets" %}
 {% set crumbs = [
@@ -15,13 +16,13 @@
 {% endblock %} #}
 
 {% block content %}
+
     {{ parent() }}
     <drop-zone-overlay></drop-zone-overlay>
+
 {% endblock %}
 
 {% block actionButton %}
     {{ parent() }}
     <upload-button view="element-index"></upload-button>
 {% endblock %}
-
-{% do view.registerAssetBundle("rocketpark\\mux\\assetbundles\\mux\\MuxDashboardAsset") %}

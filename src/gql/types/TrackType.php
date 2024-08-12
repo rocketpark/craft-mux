@@ -76,7 +76,7 @@ class TrackType extends ObjectType
             'name' => Type::string(),
             'closed_captions' => Type::string(),
             'duration' => [
-                'type' => Type::int(),
+                'type' => Type::float(),
                 'description' => 'The duration of the track in seconds'
             ],
             'max_width' => [

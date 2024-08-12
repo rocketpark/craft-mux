@@ -1,47 +1,60 @@
 <template>
     <div>
-        <file-input v-if="assets.length == 0"
+        <file-input
+            v-if="assets.length == 0"
             accept-extensions=".mp4,.mov"
             :multiple="false"
             :max-file-size="700 * 1024 * 1024"
             @validated="onFileValidated"
-            @changed="onFileSelect">
-            <template v-slot:files>
-                <progress-bar :value="progress"></progress-bar>
+            @changed="onFileSelect"
+        >
+            <template #files>
+                <progress-bar :value="progress" />
             </template>
         </file-input>
 
-        <div class=""
-            v-if="assets.length > 0">
-            <file :file="asset"
+        <div
+            v-if="assets.length > 0"
+            class=""
+        >
+            <file
                 v-for="asset in assets"
                 :key="asset.id"
-                @mux-asset-deleted="onDeletedAsset"></file>
+                :file="asset"
+                @mux-asset-deleted="onDeletedAsset"
+            />
         </div>
 
-        <input type="hidden"
+        <input
+            type="hidden"
             :name="name"
-            :value="assets.length > 0 ? JSON.stringify(assets[0]) : ''" />
+            :value="assets.length > 0 ? JSON.stringify(assets[0]) : ''"
+        >
     </div>
 </template>
 <script>
-import { ref, onMounted } from 'vue';
-import "@mux/mux-player";
-import * as UpChunk from '@mux/upchunk';
+import { inject, ref, onMounted } from 'vue';
+import '@mux/mux-player';
 import FileInput from './FileInput.vue';
 import File from './File.vue';
 import ProgressBar from './ProgressBar.vue';
+import * as UpChunk from '@mux/upchunk';
 
 export default {
+    components: {
+        FileInput,
+        File,
+        ProgressBar,
+    },
     props: {
         name: {
             type: String,
-            default: ""
+            default: '',
         },
         value: {
             type: Object,
-            default: null
-        }
+            default: null,
+        },
     },
     setup(props, { emit }) {
 
@@ -53,126 +66,126 @@ export default {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
                 reader.onload = (e) => {
-                    let et = e.target;
+                    const et = e.target;
                     resolve(et.result);
-                }
+                };
             });
             return url;
-        }
+        };
 
         const onFileValidated = (valid) => {
-            //console.log(valid);
-        }
+            // console.log(valid);
+        };
 
         const getUploadUrl = () => {
             return new Promise((resolve, reject) => {
-                fetch('/actions/mux/assets/upload-asset').then(res => {
+                fetch('/actions/mux/assets/upload-asset').then((res) => {
                     if (!res.ok) {
-                        throw new Error("HTTP error " + res.status);
+                        throw new Error(`HTTP error ${res.status}`);
                     }
                     return res.json();
-                }).then(json => {
+                }).then((json) => {
                     resolve(json);
-                }).catch(function () {
+                }).catch(() => {
                     reject();
                 });
             });
-        }
+        };
 
         const getUploadById = (id) => {
             return new Promise((resolve, reject) => {
-                let body = { id: id };
+                const body = { id };
                 body[window.Craft.csrfTokenName] = window.Craft.csrfTokenValue;
 
                 fetch('/actions/mux/assets/get-upload-by-id', {
                     method: 'POST',
                     headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(body)
-                }).then(res => {
+                    body: JSON.stringify(body),
+                }).then((res) => {
                     if (!res.ok) {
-                        throw new Error("HTTP error " + res.status);
+                        throw new Error(`HTTP error ${res.status}`);
                     }
                     return res.json();
-                }).then(json => {
+                }).then((json) => {
                     resolve(json);
                 }).catch((err) => {
                     console.log(err);
                 });
             });
-        }
+        };
 
         const getAssetById = (id) => {
             return new Promise((resolve, reject) => {
-                let body = { id: id };
+                const body = { id };
                 body[window.Craft.csrfTokenName] = window.Craft.csrfTokenValue;
 
                 fetch('/actions/mux/assets/get-asset-by-id', {
                     method: 'POST',
                     headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(body)
-                }).then(res => {
+                    body: JSON.stringify(body),
+                }).then((res) => {
                     if (!res.ok) {
-                        throw new Error("HTTP error " + res.status);
+                        throw new Error(`HTTP error ${res.status}`);
                     }
                     return res.json();
-                }).then(json => {
+                }).then((json) => {
                     resolve(json);
                 }).catch((err) => {
                     console.log(err);
                 });
             });
-        }
+        };
 
         const onFileSelect = (files) => {
-            let file = files[0];
+            const file = files[0];
 
-            getUploadUrl().then(res => {
+            getUploadUrl().then((res) => {
                 const upload = UpChunk.createUpload({
                     endpoint: res.url,
-                    file: file,
+                    file,
                     chunkSize: 30720, // Uploads the file in ~30 MB chunks
                 });
 
                 // subscribe to events
-                upload.on('error', err => {
+                upload.on('error', (err) => {
                     console.error('💥 🙀', err.detail);
                 });
 
-                upload.on('progress', prog => {
+                upload.on('progress', (prog) => {
                     progress.value = prog.detail;
                 });
 
                 upload.on('success', (data) => {
-                    getUploadById(res.id).then(data => {
-                        getAssetById(data.asset_id).then(data => {
+                    getUploadById(res.id).then((data) => {
+                        getAssetById(data.asset_id).then((data) => {
                             assets.value = [data];
                             progress.value = 0;
                         });
                     });
-                    //console.log("Wrap it up, we're done here. 👋");
+                    // console.log("Wrap it up, we're done here. 👋");
                 });
             });
-        }
+        };
 
         /**
          * onDeleteAsset
          *  When video is deleted from mux set field value to empty;
-         * @param {*} evt 
+         * @param {*} evt
          */
         const onDeletedAsset = (evt) => {
             assets.value = [];
-        }
+        };
 
         // Set saved asset data
         onMounted(() => {
-            console.log("MUX FIELD INITIAL VALUE");
-            console.log(props.value);
+            // console.log('MUX FIELD INITIAL VALUE');
+            // console.log(props.value);
             if (props.value !== null && props.value !== '') {
                 assets.value = [props.value];
             }
@@ -183,14 +196,9 @@ export default {
             onFileSelect,
             onDeletedAsset,
             assets,
-            progress
-        }
+            progress,
+        };
     },
-    components: {
-        FileInput,
-        File,
-        ProgressBar
-    }
-}
+};
 
 </script>

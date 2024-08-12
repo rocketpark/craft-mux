@@ -49,6 +49,7 @@
                 <div class="">
                     <div v-if="asset.playbackSecure" class="mux-video">
                         <mux-player
+                            style="aspect-ratio: 16/9;"
                             primary-color="#ffffff"
                             stream-type="on-demand"
                             :metadata-video-id="asset.asset_id"
@@ -60,6 +61,7 @@
                     </div>
                     <div v-else class="mux-video">
                         <mux-player
+                            style="aspect-ratio: 16/9;"
                             primary-color="#ffffff"
                             stream-type="on-demand"
                             :metadata-video-id="asset.asset_id"

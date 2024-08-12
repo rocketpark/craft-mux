@@ -3,10 +3,6 @@ import path from 'path';
 import VuePlugin from '@vitejs/plugin-vue';
 import EslintPlugin from 'vite-plugin-eslint';
 
-// Rollup Plugins
-import { nodeResolve } from '@rollup/plugin-node-resolve';
-
-
 export default ({ command }) => {
     return {
         build: {
@@ -37,26 +33,17 @@ export default ({ command }) => {
 
             // Keep JS looking good with eslint
             // https://github.com/gxmari007/vite-plugin-eslint
-            EslintPlugin({
-                cache: false,
-                fix: true,
-                include: './src/web/src/**/*.{js,vue}',
-                exclude: '',
-            }),
+            // EslintPlugin({
+            //     cache: false,
+            //     fix: true,
+            //     include: './src/web/src/**/*.{js,vue}',
+            //     exclude: '',
+            //     config: './.eslintrc.js',
+            // }),
 
             // Vue 3 support
             // https://github.com/vitejs/vite/tree/main/packages/plugin-vue
-            VuePlugin({
-                isProduction: true,
-            }),
-
-        // Ensure Vite can find the modules it needs
-        // https://github.com/rollup/plugins/tree/master/packages/node-resolve
-        // nodeResolve({
-        //     moduleDirectories: [
-        //         path.resolve('./node_modules'),
-        //     ],
-        // }),
+            VuePlugin(),
         ],
 
         resolve: {

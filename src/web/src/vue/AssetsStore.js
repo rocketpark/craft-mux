@@ -1,4 +1,6 @@
-import { reactive, toRefs, toRaw } from 'vue';
+import {
+    reactive, inject, toRefs, toRaw,
+} from 'vue';
 import axios from 'axios';
 import * as UpChunk from '@mux/upchunk';
 
@@ -52,6 +54,15 @@ function updateAssetsCount() {
         });
 }
 
+/**
+ * Update Selected Asset
+ * After useAssets is called if there is a slected asset
+ *  updated it with newly updated assets
+ */
+export function updatedSelectedAsset() {
+    state.selected = state.selected !== null ? state.assets.find((asset) => { return asset.id === state.selected.id; }) : null;
+}
+
 
 /**
  * Use Assets
@@ -72,15 +83,6 @@ export function useAssets() {
         .catch((error) => {
             console.log(error);
         });
-}
-
-/**
- * Update Selected Asset
- * After useAssets is called if there is a slected asset
- *  updated it with newly updated assets
- */
-export function updatedSelectedAsset() {
-    state.selected = state.selected !== null ? state.assets.find((asset) => { return asset.id === state.selected.id; }) : null;
 }
 
 /**

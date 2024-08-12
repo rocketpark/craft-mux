@@ -32,7 +32,7 @@ const props = defineProps({
     left: 0px;
     bottom: 0px;
     right: 0px;
-    padding-top: 124px;
+    padding-top: 100px;
     background-color: rgba(96, 125, 159, .10);
     z-index: 20;
     backdrop-filter: blur(4px);

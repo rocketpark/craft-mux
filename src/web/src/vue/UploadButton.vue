@@ -18,7 +18,7 @@
         aria-label="Upload video(s)"
         @click.stop.prevent="openFileSelectWindow"
     >
-        Upload files
+        Upload video(s)
     </button>
 </template>
 

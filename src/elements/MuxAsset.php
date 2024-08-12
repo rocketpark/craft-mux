@@ -36,6 +36,14 @@ use yii\web\Response;
  */
 class MuxAsset extends Element
 {
+    public const TABLE = '{{%mux_assets}}';
+    public const TABLE_STD = 'mux_assets';
+
+
+    public static function tableName(): string
+    {
+        return self::TABLE;
+    }
 
     /**
      * @inheritdoc
@@ -96,14 +104,6 @@ class MuxAsset extends Element
     /**
      * @inheritdoc
      */
-    public static function hasContent(): bool
-    {
-        return true;
-    }
-
-    /**
-     * @inheritdoc
-     */
     public static function hasTitles(): bool
     {
         return true;
@@ -115,6 +115,14 @@ class MuxAsset extends Element
     public static function hasUris(): bool
     {
         return false;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public static function hasThumbs(): bool
+    {
+        return true;
     }
 
     /**
@@ -307,7 +315,7 @@ class MuxAsset extends Element
      * @param int $size 
      * @return string|null 
      */
-    public function getThumbUrl(int $size): ?string
+    public function getThumbUrl(int $size, bool $animated = false): ?string
     {
         $options = [
             'width' => $size,
@@ -315,11 +323,30 @@ class MuxAsset extends Element
             'fit_mode' => 'smartcrop',
         ];
 
-        if ($jwt = $this->getSecurePlaybackJWT(null,'t', $options)) {
+        $mediaType = $animated ? 'g' : 't';
+
+        if ($jwt = $this->getSecurePlaybackJWT(null, $mediaType , $options)) {
             $options = [ 'token' => $jwt ];
         }
 
-        return UrlHelper::urlWithParams("https://image.mux.com/{$this->playback_ids[0]['id']}/thumbnail.webp", $options);
+        if ($animated) {
+            return UrlHelper::urlWithParams("https://image.mux.com/{$this->playback_ids[0]['id']}/animated.gif?width=".$size."&fps=5", $options);
+        } else {
+            return UrlHelper::urlWithParams("https://image.mux.com/{$this->playback_ids[0]['id']}/thumbnail.webp", $options);
+        }
+    }
+
+    public function getThumbHtml(int $size): ?string
+    {
+        $height = round($size * 9 / 16);
+        $url = $this->getThumbUrl($size);
+        $animated = $this->getThumbUrl($size, true);
+        
+        $baseImg = $url ? Html::img($url, ['width' => $size, 'height' => $height, 'class' => 'mux-base-thumb']) : null;
+        $animImg = $animated ? Html::img($animated, ['width' => $size, 'height' => $height, 'class' => 'mux-animated-thumb']) : null;
+        $div = Html::tag('figure', $baseImg . $animImg, ['class' => 'mux-thumb-figure']);
+
+        return $div;
     }
 
     /**
@@ -404,18 +431,44 @@ class MuxAsset extends Element
     /**
      * @inheritdoc
      */
-    protected function tableAttributeHtml(string $attribute): string
+    protected function attributeHtml(string $attribute): string
     {
         switch ($attribute) {
             case 'duration':
-                return gmdate("H:i:s", $this->duration);
+                $duration = $this->duration;
+                $hours = floor($duration / 3600);
+                $minutes = floor(($duration % 3600) / 60);
+                $seconds = $duration % 60;
+
+                if ($hours > 0) {
+                    return sprintf("%02d:%02d:%02d", $hours, $minutes, $seconds);
+                } elseif ($minutes > 0) {
+                    return sprintf("%02d:%02d", $minutes, $seconds);
+                } else {
+                    return sprintf("%02d", $seconds);
+                }
+            case 'asset_status':
+                $statusLabels = [
+                    'ready' => ['teal', 'Ready'],
+                    'processing' => ['purple', 'Pending'],
+                    'error' => ['red', 'Error'],
+                    'deleting' => ['orange', 'Deleting'],
+                    'deleted' => ['gray', 'Deleted'],
+                ];
+
+                $status = strtolower($this->asset_status);
+
+                if (isset($statusLabels[$status])) {
+                    [$color, $text] = $statusLabels[$status];
+                    return "<span class=\"status-label $color\"><span class=\"status $color\"></span><span class=\"status-label-text\">$text</span></span>";
+                }
             case 'securePlayback':
                 return $this->securePlayback 
                 ? '<svg style="fill:currentColor;height:16px; width:auto;" xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 448 512"><!--! Font Awesome Pro 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. --><path d="M224 64c44.2 0 80 35.8 80 80v48H144V144c0-44.2 35.8-80 80-80zM80 144v48H64c-35.3 0-64 28.7-64 64V448c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V256c0-35.3-28.7-64-64-64H368V144C368 64.5 303.5 0 224 0S80 64.5 80 144zM256 320v64c0 17.7-14.3 32-32 32s-32-14.3-32-32V320c0-17.7 14.3-32 32-32s32 14.3 32 32z"/></svg>' 
                 : '<svg style="fill:currentColor;height:16px; width:auto;" xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 576 512"><!--! Font Awesome Pro 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. --><path d="M432 48c-44.2 0-80 35.8-80 80v64h32c35.3 0 64 28.7 64 64V448c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V256c0-35.3 28.7-64 64-64H304V128C304 57.3 361.3 0 432 0s128 57.3 128 128v72c0 13.3-10.7 24-24 24s-24-10.7-24-24V128c0-44.2-35.8-80-80-80zM384 240H64c-8.8 0-16 7.2-16 16V448c0 8.8 7.2 16 16 16H384c8.8 0 16-7.2 16-16V256c0-8.8-7.2-16-16-16zM256 376H192c-13.3 0-24-10.7-24-24s10.7-24 24-24h64c13.3 0 24 10.7 24 24s-10.7 24-24 24z"/></svg>';
         }
 
-        return parent::tableAttributeHtml($attribute);
+        return parent::attributeHtml($attribute);
     }
     
     /**
@@ -584,70 +637,43 @@ class MuxAsset extends Element
      */
     public function afterSave(bool $isNew): void
     {
-      
+        $data = [
+            'id' => $this->id,
+            'asset_id' => $this->asset_id,
+            'created_at' => $this->created_at,
+            'asset_status' => $this->asset_status,
+            'duration' => $this->duration,
+            'max_stored_resolution' => $this->max_stored_resolution,
+            'max_stored_frame_rate' => $this->max_stored_frame_rate,
+            'resolution_tier' => $this->resolution_tier,
+            'max_resolution_tier' => $this->max_resolution_tier,
+            'encoding_tier' => $this->encoding_tier,
+            'aspect_ratio' => $this->aspect_ratio,
+            'playback_ids' => $this->playback_ids,
+            'tracks' => $this->tracks,
+            'errors' => $this->errors,
+            'per_title_encode' => $this->per_title_encode,
+            'upload_id' => $this->upload_id,
+            'is_live' => $this->is_live,
+            'passthrough' => $this->passthrough,
+            'live_stream_id' => $this->live_stream_id,
+            'master' => $this->master,
+            'master_access' => $this->master_access,
+            'mp4_support' => $this->mp4_support,
+            'source_asset_id' => $this->source_asset_id,
+            'normalize_audio' => $this->normalize_audio,
+            'static_renditions' => $this->static_renditions,
+            'recording_times' => $this->recording_times,
+            'non_standard_input_reasons' => $this->non_standard_input_reasons,
+            'test' => $this->test,
+        ];
+
         if ($isNew) {
-            Db::insert('{{%mux_assets}}', [
-                'id' => $this->id,
-                'asset_id' => $this->asset_id,
-                'created_at' => $this->created_at,
-                'asset_status' => $this->asset_status,
-                'duration' => $this->duration,
-                'max_stored_resolution' => $this->max_stored_resolution,
-                'max_stored_frame_rate' => $this->max_stored_frame_rate,
-                'resolution_tier' => $this->resolution_tier,
-                'max_resolution_tier' => $this->max_resolution_tier,
-                'encoding_tier' => $this->encoding_tier,
-                'aspect_ratio' => $this->aspect_ratio,
-                'playback_ids' => $this->playback_ids,
-                'tracks' => $this->tracks,
-                'errors' => $this->errors,
-                'per_title_encode' => $this->per_title_encode,
-                'upload_id' => $this->upload_id,
-                'is_live' => $this->is_live,
-                'passthrough' => $this->passthrough,
-                'live_stream_id' => $this->live_stream_id,
-                'master' => $this->master,
-                'master_access' => $this->master_access,
-                'mp4_support' => $this->mp4_support,
-                'source_asset_id' => $this->source_asset_id,
-                'normalize_audio' => $this->normalize_audio,
-                'static_renditions' => $this->static_renditions,
-                'recording_times' => $this->recording_times,
-                'non_standard_input_reasons' => $this->non_standard_input_reasons,
-                'test' => $this->test,
-            ]);
+            Db::insert('{{%mux_assets}}', $data);
         } else {
-            Db::update('{{%mux_assets}}', [
-                'asset_id' => $this->asset_id,
-                'created_at' => $this->created_at,
-                'asset_status' => $this->asset_status,
-                'duration' => $this->duration,
-                'max_stored_resolution' => $this->max_stored_resolution,
-                'max_stored_frame_rate' => $this->max_stored_frame_rate,
-                'resolution_tier' => $this->resolution_tier,
-                'max_resolution_tier' => $this->max_resolution_tier,
-                'encoding_tier' => $this->encoding_tier,
-                'aspect_ratio' => $this->aspect_ratio,
-                'playback_ids' => $this->playback_ids,
-                'tracks' => $this->tracks,
-                'errors' => $this->errors,
-                'per_title_encode' => $this->per_title_encode,
-                'upload_id' => $this->upload_id,
-                'is_live' => $this->is_live,
-                'passthrough' => $this->passthrough,
-                'live_stream_id' => $this->live_stream_id,
-                'master' => $this->master,
-                'master_access' => $this->master_access,
-                'mp4_support' => $this->mp4_support,
-                'source_asset_id' => $this->source_asset_id,
-                'normalize_audio' => $this->normalize_audio,
-                'static_renditions' => $this->static_renditions,
-                'recording_times' => $this->recording_times,
-                'non_standard_input_reasons' => $this->non_standard_input_reasons,
-                'test' => $this->test,
-            ], ['id' => $this->id]);
+            Db::update('{{%mux_assets}}', $data, ['id' => $this->id]);
         }
-    
+
         parent::afterSave($isNew);
     }
 

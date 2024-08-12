@@ -18,6 +18,7 @@
             {% set thumbToken = muxAsset.getSecurePlaybackJWT(keyID, 't') %}
             {% set storyboardToken = muxAsset.getSecurePlaybackJWT(keyID, 's') %}
             <mux-player
+                style="aspect-ratio: 16/9;"
                 accent-color="#cf3f40"
                 stream-type="on-demand"
                 metadata-video-id="{{ muxAsset.asset_id }}"
@@ -35,6 +36,7 @@
         {% endif %}
     {% else %}
         <mux-player
+            style="aspect-ratio: 16/9;"
             accent-color="#cf3f40"
             stream-type="on-demand"
             metadata-video-id="{{ muxAsset.asset_id }}"

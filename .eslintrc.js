@@ -19,7 +19,6 @@ module.exports = {
         //
         // Best Practices
         //
-        
         // enforces return statements in callbacks of array's methods
         'array-callback-return': ['warn', { allowImplicit: true }],
 
@@ -199,7 +198,7 @@ module.exports = {
                 ObjectPattern: false,
                 VariableDeclaration: false,
                 NewExpression: false,
-            }
+            },
         }],
 
         // disallow padding inside computed properties
@@ -224,14 +223,14 @@ module.exports = {
             outerIIFEBody: 1,
             FunctionDeclaration: {
                 parameters: 1,
-                body: 1
+                body: 1,
             },
             FunctionExpression: {
                 parameters: 1,
-                body: 1
+                body: 1,
             },
             CallExpression: {
-                arguments: 1
+                arguments: 1,
             },
             ArrayExpression: 1,
             ObjectExpression: 1,
@@ -250,8 +249,8 @@ module.exports = {
             overrides: {
                 return: { after: true },
                 throw: { after: true },
-                case: { after: true }
-            }
+                case: { after: true },
+            },
         }],
 
         // disallow mixed 'LF' and 'CRLF' as linebreaks
@@ -328,7 +327,7 @@ module.exports = {
         'space-before-function-paren': ['warn', {
             anonymous: 'never',
             named: 'never',
-            asyncArrow: 'never'
+            asyncArrow: 'never',
         }],
 
         // require or disallow spaces inside parentheses
@@ -347,7 +346,7 @@ module.exports = {
                 exceptions: ['-', '+'],
                 markers: ['=', '!', ':', '::'], // space here to support sprockets directives and flow comment types
                 balanced: true,
-            }
+            },
         }],
 
         // Enforce spacing around colons of switch statements
@@ -362,8 +361,7 @@ module.exports = {
         //
         // Variables
         //
-
-        // disallow use of undeclared variables unless mentioned in a /*global */ block
+        // disallow use of undeclared variables unless mentioned in a global  block
         'no-undef': 'off',
 
         // disallow declaration of variables that are not used in the code
@@ -432,5 +430,4 @@ module.exports = {
             },
         },
     ],
-
 };

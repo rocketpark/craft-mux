@@ -26,7 +26,7 @@ class SettingsController extends Controller
     // Constants
     // =========================================================================
 
-    protected const DOCUMENTATION_URL = 'https://github.com/rocketpark/craft-mux/';
+    protected const DOCUMENTATION_URL = 'https://bitbucket.com/rocketpark/craft-mux/';
 
     // Protected Properties
     // =========================================================================
