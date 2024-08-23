@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.0.2 - August 23, 2024
+### Updated
+- Added encoding_tier, resolution_tier, and max_resolution_tier columns to install migration
+
 ## 2.0.1 - August 12, 2024
 ### Updated
  - Updated the Mux PHP SDK to 3.18.0
