@@ -30,6 +30,7 @@ class MuxDomainRestrictionsAsset extends AssetBundle
     {
         $this->sourcePath = '@rocketpark/mux/web/dist';
 
+        $this->jsOptions = ['type' => 'module'];
         $this->js = [
             'js/mux-domain-restrictions.js'
         ];

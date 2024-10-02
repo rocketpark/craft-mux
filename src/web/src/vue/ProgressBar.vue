@@ -1,8 +1,8 @@
 <template>
-    <div class="progressbar">
+    <div class="mux-progressbar">
         <div
             ref="bar"
-            class="progressbar-inner"
+            class="mux-progressbar-inner"
             :style="`--progressbar-width:${value}%;`"
         ></div>
     </div>
@@ -25,19 +25,4 @@ export default {
     },
 };
 </script>
-<style scoped>
-.progressbar {
-    position: relative;
-    margin-top: 16px;
-    left: 0px;
-    width: 100%;
-}
 
-.progressbar-inner {
-    --progressbar-width: 0;
-}
-
-.progressbar:not(.pending) .progressbar-inner {
-    width: var(--progressbar-width);
-}
-</style>

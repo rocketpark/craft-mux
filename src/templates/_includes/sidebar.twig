@@ -10,7 +10,20 @@
 
             <h5 class="heading">{{ "Status:"|t('mux') }} </h5>
             <div class="value">
-                <span>{{ muxAsset.asset_status }}</span>
+                {% set color = 'gray' %}
+                {% switch muxAsset.asset_status %}
+                    {% case 'ready' %}
+                        {% set color = 'teal' %}
+                    {% case 'processing' %}
+                        {% set color = 'purple' %}
+                    {% case 'error' %}
+                        {% set color = 'red' %}
+                    {% case 'deleting' %}
+                        {% set color = 'orange' %}
+                    {% case 'deleted' %}
+                        {% set color = 'gray' %}
+                {% endswitch %}
+                <span class="status-label {{ color }}"><span class="status {{ color }}"></span><span class="status-label-text">{{ muxAsset.asset_status }}</span></span>
             </div>
 
             {% if muxAsset.duration is defined and muxAsset.duration is not empty %} 

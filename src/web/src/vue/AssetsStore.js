@@ -1,7 +1,7 @@
 import {
     reactive, inject, toRefs, toRaw,
 } from 'vue';
-import axios from 'axios';
+//import axios from 'axios';
 import * as UpChunk from '@mux/upchunk';
 
 export const state = reactive({
@@ -44,13 +44,18 @@ export function setPageParams(params) {
  * Update the states total number of assets
  */
 function updateAssetsCount() {
-    axios.get(
-        '/actions/mux/assets/use-asset-elements-count',
-    ).then((response) => {
-        state.total = response.data;
-    })
+    fetch('/actions/mux/assets/use-asset-elements-count')
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then((data) => {
+            state.total = data;
+        })
         .catch((error) => {
-            console.log(error);
+            console.error('There was a problem with the updateAssetsCount fetch operation:', error);
         });
 }
 
@@ -71,17 +76,23 @@ export function updatedSelectedAsset() {
 export function useAssets() {
     state.loading = true;
 
-    return axios.get(
-        '/actions/mux/assets/use-asset-elements',
-        { params: state.params },
-    ).then((response) => {
-        state.assets = response.data;
-        updateAssetsCount();
-        updatedSelectedAsset();
-        state.loading = false;
-    })
+    const params = new URLSearchParams(state.params).toString();
+
+    fetch(`/actions/mux/assets/use-asset-elements?${params}`)
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then((data) => {
+            state.assets = data;
+            updateAssetsCount();
+            updatedSelectedAsset();
+            state.loading = false;
+        })
         .catch((error) => {
-            console.log(error);
+            console.error('There was a problem with the useAssets fetch operation:', error);
         });
 }
 
@@ -91,15 +102,21 @@ export function useAssets() {
  */
 export function useAssetById(id) {
     state.loading = true;
-    return axios.get(
-        '/actions/mux/assets/use-asset-element-by-id',
-        { params: { id } },
-    ).then((response) => {
-        state.asset = response.data;
-        state.loading = false;
-    })
+    const params = new URLSearchParams({ id }).toString();
+
+    fetch(`/actions/mux/assets/use-asset-element-by-id?${params}`)
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then((data) => {
+            state.asset = data;
+            state.loading = false;
+        })
         .catch((error) => {
-            console.log(error);
+            console.error('There was a problem with the fetch operation:', error);
         });
 }
 

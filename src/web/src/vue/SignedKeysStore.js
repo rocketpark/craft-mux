@@ -1,5 +1,4 @@
 import { reactive, toRefs, toRaw } from 'vue';
-import axios from 'axios';
 
 export const state = reactive({
     signedkeys: [],
@@ -22,16 +21,22 @@ export function addRestriction(restriction)
 export function useSignedKeysList() {
     state.loading = true;
 
-    return axios.get(
-        '/actions/mux/signing-keys/list-signed-keys',
-        { params: state.params },
-    ).then((response) => {
-        state.signedkeys = response.data;
-        state.loading = false;
-    })
+    const params = new URLSearchParams(state.params).toString();
+
+    fetch(`/actions/mux/signing-keys/list-signed-keys?${params}`)
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then((data) => {
+            state.signedkeys = data;
+            state.loading = false;
+        })
         .catch((error) => {
             state.loading = false;
-            console.log(error);
+            console.error('There was a problem with the fetch operation:', error);
         });
 }
 

@@ -1,0 +1,71 @@
+.mux-thumb-figure {
+    position: relative;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    border-radius: 5px;
+    aspect-ratio: 16 / 9;
+    min-width: 100px;
+    margin-right: 14px;
+}
+
+.notification-details .chip .mux-thumb-figure {
+    min-height: 42px;
+    max-height: 42px;
+    min-width: unset;
+    margin-top: 7px;
+    margin-bottom: 7px;
+    margin-left: 0px;
+    margin-right: 14px;
+}
+
+.tableview .mux-thumb-figure {
+    min-width: 100px;
+    max-width: 100px;
+}
+
+.thumbview .mux-thumb-figure {
+    min-width: 140px;
+    max-width: 140px;
+}
+
+.card-grid .mux-thumb-figure {
+    min-width: 200px;
+    max-width: 200px;
+}
+
+.chips.chips-small .chip .mux-thumb-figure {
+    min-height: 34px;
+    max-height: 34px;
+    min-width: unset;
+}
+
+.mux-thumb-figure > .mux-base-thumb {
+    display: block;
+    visibility: visible;
+    width: fit-content;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    aspect-ratio: 16 / 9;
+}
+
+.mux-thumb-figure > .mux-animated-thumb {
+    display: hidden;
+    visibility: hidden;
+    width: fit-content;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    aspect-ratio: 16 / 9;
+}
+
+.mux-thumb-figure:hover .mux-base-thumb {
+    visibility: hidden;
+    display: none;
+}
+
+.mux-thumb-figure:hover .mux-animated-thumb {
+    visibility: visible;
+    display: block;
+}

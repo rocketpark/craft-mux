@@ -461,6 +461,9 @@ class MuxAsset extends Element
                 if (isset($statusLabels[$status])) {
                     [$color, $text] = $statusLabels[$status];
                     return "<span class=\"status-label $color\"><span class=\"status $color\"></span><span class=\"status-label-text\">$text</span></span>";
+                } else {
+                    [$color, $text] = $statusLabels['processing'];
+                    return "<span class=\"status-label $color\"><span class=\"status $color\"></span><span class=\"status-label-text\">$text</span></span>";
                 }
             case 'securePlayback':
                 return $this->securePlayback 

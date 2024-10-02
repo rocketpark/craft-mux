@@ -18,27 +18,22 @@ use craft\web\assets\vue\VueAsset;
  * @package   Mux
  * @since     1.0.0
  */
-class MuxEditAsset extends AssetBundle
+class MuxAsset extends AssetBundle
 {
     // Public Methods
     // =========================================================================
-    public static $alreadyRegistered = false;
 
     /**
      * @inheritdoc
      */
     public function init(): void
     {
+        $this->sourcePath = '@rocketpark/mux/web/dist';
+
+        $this->css = [
+            'css/mux-cp.css',
+        ];
+
         parent::init();
-        
-        if (!self::$alreadyRegistered) {
-            self::$alreadyRegistered = true;
-            $this->sourcePath = '@rocketpark/mux/web/dist';
-
-            $this->js = [
-                'https://cdn.jsdelivr.net/npm/@mux/mux-player'
-            ];
-
-        }
     }
 }

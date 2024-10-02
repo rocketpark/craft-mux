@@ -1,10 +1,10 @@
-# MUX plugin for Craft CMS 4.x
+# MUX plugin for Craft CMS 5.x
 
-MUX is a Craft CMS plugin used to 
+MUX is a Craft CMS plugin used to upload and manage videos using the MUX API.
 
 ## Requirements
 
-This plugin requires Craft CMS 4.5.0 or later.
+This plugin requires Craft CMS 5.0.0 or later.
 
 ## Installation
 
@@ -20,7 +20,7 @@ To install MUX, follow these steps:
 
 3. Install the plugin via `./craft install/plugin mux` via the CLI, or in the Control Panel, go to Settings → Plugins and click the “Install” button for MUX.
 
-MUX works on Craft 4.x.
+MUX works on Craft 5.x.
 
 ## MUX configuration
 
@@ -47,5 +47,6 @@ Some things to do, and ideas for potential features:
 
 * **Organization of video** - Allow for folders or sections to organize videos.
 * **Webhook verification** - Verify the webhook is coming from MUX via their Webhook Signing Secret.
+* **Integration of MUX Data** - Allow for the integration of MUX data into the Craft CMS.
 
 Brought to you by [Rocket Park](https://rocketpark.com/)

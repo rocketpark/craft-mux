@@ -30,14 +30,14 @@ class MuxDashboardAsset extends AssetBundle
     {
         $this->sourcePath = '@rocketpark/mux/web/dist';
 
-        $this->js = [
-            'https://cdn.jsdelivr.net/npm/@mux/mux-player',
-            'js/mux-dashboard.js',
-        ];
+        // Load mux-player as a regular script
+        //$this->js[] = 'https://cdn.jsdelivr.net/npm/@mux/mux-player';
 
-        $this->css = [
-            'css/mux-dashboard.css',
+        // Load mux-dashboard.js as a module
+        $this->jsOptions = [
+            'type' => 'module'
         ];
+        $this->js[] = 'js/mux-dashboard.js';
 
         $this->depends = [
             CpAsset::class,

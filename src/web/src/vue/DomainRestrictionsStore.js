@@ -1,5 +1,5 @@
 import { reactive, toRefs, toRaw } from "vue";
-import axios from 'axios';
+//import axios from 'axios';
 
 export const state  = reactive({
     restrictions: [],
@@ -22,18 +22,24 @@ export function addRestriction(restriction)
 export function usePlaybackRestrictionsList() {
     state.loading = true;
 
-    return axios.get(
-        '/actions/mux/settings/use-playback-restrictions-list',
-        { params: state.params },
-    ).then((response) => {
-        if(response.data.success) {
-            state.restrictions = response.data.result.data;
-        }
-        state.loading = false;
-    })
+    const params = new URLSearchParams(state.params).toString();
+
+    fetch(`/actions/mux/settings/use-playback-restrictions-list?${params}`)
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then((data) => {
+            if (data.success) {
+                state.restrictions = data.result.data;
+            }
+            state.loading = false;
+        })
         .catch((error) => {
             state.loading = false;
-            console.log(error);
+            console.error('There was a problem with the usePlaybackRestrictionsList fetch operation:', error);
         });
 }
 

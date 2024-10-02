@@ -78,5 +78,4 @@ const unixTimestampToFormattedDate = (unixTimestamp) => {
     return formattedDateTime;
 };
 
-
 </script>

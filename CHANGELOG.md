@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.0.6 - October 1, 2024
+### Updated
+- Update Mux PHP SDK to 3.19.0
+- Update Javascript compilation to use Vite
+- Simplified asset bundles and remove unused code
+### Fixed
+- Fixed a bug where the asset element thumbnail was not displaying correctly
+
 ## 2.0.2 - August 23, 2024
 ### Updated
 - Added encoding_tier, resolution_tier, and max_resolution_tier columns to install migration

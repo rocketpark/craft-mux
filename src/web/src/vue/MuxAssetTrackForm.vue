@@ -71,7 +71,8 @@
 import { inject, ref, reactive } from 'vue';
 import { addAssetTrackById } from './AssetsStore';
 
-const emitter = inject('emitter');
+const emit = defineEmits(['mux-asset-track-added']);
+
 const props = defineProps({
     assetId: {
         type: [Number, String],
@@ -94,33 +95,10 @@ const onAddAssetTrack = function(evt) {
     addAssetTrackById(props.assetId, form)
         .then((res) => {
             loading.value = false;
-            emitter.emit('mux-asset-track-added');
+            emit('mux-asset-track-added');
         })
         .catch((err) => {
             loading.value = false;
         });
 };
 </script>
-<style scoped>
-.mux-asset-track-form {
-    flex: 1 1 auto;
-}
-.field-group {
-    display: flex;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: 24px;
-}
-
-
-.field-group .field {
-    margin: 0 !important;
-}
-
-.field-group > div:not(:last-child) {
-    flex: 1 1 auto;
-}
-.field-group > div:last-child {
-    flex: 1 0 auto;
-}
-</style>

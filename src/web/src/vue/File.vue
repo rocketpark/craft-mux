@@ -1,7 +1,7 @@
 <template>
     <div class="mux-field-main flex-grow">
         <div class="mux-field">
-            <figure class="">
+            <figure class="mux-player-figure">
                 <mux-player
                     :playback-id="file.playback_ids[0].id"
                     metadata-video-id="props.file.id"
@@ -129,78 +129,3 @@ export default {
     }
 }
 </script>
-<style scoped>
-.mux-field-main {
-    margin-top: 16px;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 14px;
-}
-
-.mux-field {
-    position: relative;
-    display: inline-flex;
-    flex-direction: row;
-    justify-content: flex-start;
-    align-items: flex-start;
-    gap: 14px;
-}
-
-.mux-field > button {
-    color: var(--ui-control-color);
-    z-index: 2;
-}
-
-button:hover {
-    color:rgba(96, 125, 159, .9);
-}
-
-figure {
-    position: relative;
-    max-width: 360px;
-    width: 360px;
-    z-index: 1;
-}
-
-.mux-asset-menu {
-    position: relative;
-}
-
-.mux-asset-menu > div {
-    right: 0;
-    top: 100%;
-    z-index: 50;
-}
-.mux-asset-menu > .menu {
-    display: block !important;
-}
-
-.mux-asset-menu > .menu li {
-    display: flex;
-    align-items: center;
-}
-
-.mux-asset-menu > button > svg {
-    color: currentColor;
-    height: 32px;
-    width: 32px;
-}
-
-.xcircleicon{
-    color: currentColor;
-    height: 20px;
-    width: 20px;
-}
-.pluscircleicon {
-    color: currentColor;
-    height: 20px;
-    width: 20px;
-}
-
-mux-player {
-    --controls-backdrop-color: rgb(0 0 0 / 60%);
-}
-</style>

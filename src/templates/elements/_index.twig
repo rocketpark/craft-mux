@@ -18,11 +18,23 @@
 {% block content %}
 
     {{ parent() }}
-    <drop-zone-overlay></drop-zone-overlay>
+
+    <div class="mux-dropzone-overlay">
+        <div class="mux-dropzone-overlay_progress">
+            <div class="mux-dropzone-overlay_label"></div>
+            <div class="mux-progressbar">
+                <div ref="bar"
+                     class="mux-progressbar-inner"
+                ></div>
+            </div>
+        </div>
+    </div>
 
 {% endblock %}
 
 {% block actionButton %}
     {{ parent() }}
-    <upload-button view="element-index"></upload-button>
+    <div id="mux-upload">
+        <upload-button view="element-index"></upload-button>
+    </div>
 {% endblock %}

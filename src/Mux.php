@@ -24,6 +24,7 @@ use craft\services\Gql;
 use craft\services\UserPermissions;
 use craft\web\UrlManager;
 use craft\web\twig\variables\CraftVariable;
+use rocketpark\mux\assetbundles\mux\MuxAsset as MuxAssetAsset;
 use rocketpark\mux\elements\MuxAsset as MuxAssetElement;
 use rocketpark\mux\fields\MuxAsset as MuxAssetField;
 use rocketpark\mux\gql\interfaces\elements\MuxAsset as MuxAssetInterface;
@@ -104,6 +105,11 @@ class Mux extends Plugin
 
         if (Craft::$app->getEdition() === Craft::Pro) {
             $this->_registerPermissions();
+        }
+
+        // Register the asset bundle for the Control Panel
+        if (Craft::$app->getRequest()->getIsCpRequest()) {
+            Craft::$app->view->registerAssetBundle(MuxAssetAsset::class);
         }
 
         Event::on(

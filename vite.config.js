@@ -9,10 +9,14 @@ export default ({ command }) => {
             outDir: 'src/web/dist',
             emptyOutDir: true,
             manifest: false,
-            sourcemap: true,
+            sourcemap: false,
             rollupOptions: {
                 input: {
+                    'mux-field': 'src/web/src/js/mux-field.js',
+                    'mux-domain-restrictions': 'src/web/src/js/mux-domain-restrictions.js',
+                    'mux-signed-keys': 'src/web/src/js/mux-signed-keys.js',
                     'mux-dashboard': 'src/web/src/js/mux-dashboard.js',
+                    'mux-cp': 'src/web/src/css/mux-cp.css',
                 },
                 output: {
                     entryFileNames: 'js/[name].js',

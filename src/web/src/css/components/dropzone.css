@@ -1,0 +1,89 @@
+/* DropZoneOverlay.vue */
+.mux-dropzone-overlay {
+    --bar-color: rgb(63, 77, 90);
+    --bar-light-color: rgb(207, 216, 227);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0px;
+    left: 0px;
+    bottom: 0px;
+    right: 0px;
+    padding-top: 100px;
+    background-color: rgba(96, 125, 159, .10);
+    z-index: 20;
+    backdrop-filter: blur(3px);
+    opacity:0;
+    pointer-events: none;
+    user-select: none;
+}
+
+.mux-dropzone-overlay.active-upload {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.mux-dropzone-overlay_progress {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    width: 50%;
+    text-align: center;
+}
+
+.mux-dropzone-overlay_label {
+    padding: 2px 8px;
+    background-color: rgba(255,255,255,.5);
+    border-radius: 20px;
+    text-align: center;
+}
+
+.active-dropzone {
+    pointer-events: auto;
+}
+
+.mux-dropzone-overlay--dragover {
+    opacity: 1;
+    pointer-events: auto;
+    border: 2px dashed var(--bar-light-color);
+}
+
+/* When not dragging */
+.mux-dropzone-overlay--dragover:not(.active-dropzone) {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Progressbar */
+.mux-progressbar {
+    position: relative;
+    margin-top: 16px;
+    left: 0px;
+    width: 100%;
+    height: 16px;
+    border: 2px solid var(--bar-color);
+    border-radius: 100px;
+    display: flex;
+    align-items: center;
+    padding: 0px 1px;
+}
+
+.mux-progressbar-inner {
+    --progressbar-width: 0;
+    height: 10px;
+    background: var(--bar-color);
+    border-radius: 99px;
+}
+
+.mux-progressbar:not(.pending) .mux-progressbar-inner {
+    width: var(--progressbar-width);
+}
+
+.mux-dropzone-overlay.mux-dropzone-overlay--dragover .mux-progressbar {
+    border: 2px dashed var(--bar-light-color);
+}

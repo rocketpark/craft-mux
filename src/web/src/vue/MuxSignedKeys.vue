@@ -69,7 +69,7 @@ const signedKeyModel = {
 };
 
 const btnClass = computed(() => {
-    return state.loading ? 'btn dashed w-full loading' : 'btn dashed w-full add icon';
+    return state.loading ? 'btn dashed mux-w-full loading' : 'btn dashed mux-w-full add icon';
 });
 
 useSignedKeysList();
@@ -82,9 +82,3 @@ const addRow = () => {
 };
 
 </script>
-<style scoped>
-    .w-full {
-        display: block;
-        width: 100%;
-    }
-</style>
