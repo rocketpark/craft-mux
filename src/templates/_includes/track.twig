@@ -24,7 +24,7 @@
             {% case "audio" %}
                 <span>
                     <svg class="icon" width="24" height="24" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
                     </svg>
                 </span> 
                 <span>{{ "Audio"|t('mux') }}</span> 
@@ -34,7 +34,7 @@
             {% case "video" %}
                 <span>
                     <svg class="icon" width="24" height="24" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                    <path stroke-linecap="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+                        <path stroke-linecap="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
                     </svg>
                 </span> 
                 <span>{{ "Video"|t('mux') }}</span> 
@@ -43,19 +43,21 @@
                 {% endif %}
         {% endswitch %}
     </div>
-    
-    {% if track.type == "text" %}    
-        <button 
-            class="error" 
-            id="mux-track-delete-{{ track.id }}" 
-            data-asset-id="{{ asset_id }}"
-            data-track-id="{{ track.id }}"
-            data-confirm-message="{{ confirmMessage }}">
-            <svg class="xcircleicon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div class="spinner hidden"></div>
-            <span class="sr-only">{{ "Delete Track"|t('mux') }} {{ track.name  }}</span>
-        </button>
+
+    {% if craft.app.user.checkPermission('mux:assets-edit') %}
+        {% if track.type == "text" %}
+            <button
+                class="error"
+                id="mux-track-delete-{{ track.id }}"
+                data-asset-id="{{ asset_id }}"
+                data-track-id="{{ track.id }}"
+                data-confirm-message="{{ confirmMessage }}">
+                <svg class="xcircleicon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div class="spinner hidden"></div>
+                <span class="sr-only">{{ "Delete Track"|t('mux') }} {{ track.name  }}</span>
+            </button>
+        {% endif %}
     {% endif %}
 </div>

@@ -21,6 +21,11 @@ class SyncAssets extends ElementAction
         return Craft::t('mux', 'Sync MUX Assets');
     }
 
+    public function getMessage(): ?string
+    {
+        return Craft::t('mux', 'All pending MUX assets have been synced');
+    }
+
     /**
      * @inheritdoc
      */

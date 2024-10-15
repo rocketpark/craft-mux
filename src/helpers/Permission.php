@@ -38,7 +38,7 @@ class Permission
         }
 
         if (!$currentUser->can($permission)) {
-            throw new ForbiddenHttpException("Your account doesn't have permission to assign access this resource.");
+            throw new ForbiddenHttpException("Your account doesn't have permission to complete this action.");
         }
     }
 

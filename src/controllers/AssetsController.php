@@ -41,7 +41,8 @@ class AssetsController extends Controller
      */
     public function actionIndex(): Response
     {
-        $this->requirePermission('mux-viewAssets');
+//        $this->requirePermission('mux:assets');
+//        PermissionHelper::controllerPermissionCheck('mux:assets');
 
         return $this->renderTemplate('mux/elements/_index', []);
     }
@@ -54,6 +55,8 @@ class AssetsController extends Controller
      */
     public function actionSave(): Response
     {
+        PermissionHelper::controllerPermissionCheck('mux:assets-edit');
+
         $this->requirePostRequest();
         $request = Craft::$app->getRequest();
         $asset = Mux::$plugin->assets->buildAssetFromPost();
@@ -89,6 +92,8 @@ class AssetsController extends Controller
      */
     public function actionCreate(): Response
     {
+        PermissionHelper::controllerPermissionCheck('mux:assets-create');
+
         $this->requirePostRequest();
 
         Mux::info('Creating Mux Asset Element (mux\controllers\actionCreate())', 'mux');
@@ -121,6 +126,9 @@ class AssetsController extends Controller
      */
     public function actionUpdate(): Response
     {
+
+        PermissionHelper::controllerPermissionCheck('mux:assets-edit');
+
         $this->requirePostRequest();
         $request = Craft::$app->getRequest();
         $params = $request->getBodyParams();
@@ -261,6 +269,8 @@ class AssetsController extends Controller
     public function actionDeleteAssetById()
     {
         $this->requirePostRequest();
+
+        PermissionHelper::controllerPermissionCheck('mux:assets-delete');
 
         $request = Craft::$app->getRequest();
         $body = $request->getRawBody();
@@ -453,51 +463,5 @@ class AssetsController extends Controller
         // Add all nested permissions according to top-level permissions set
 
         Craft::$app->getUserPermissions()->saveUserPermissions($currentUser->id, $permissions);
-    }
-
-
-    /**
-     * mux/assets action
-     */
-
-    public function actionDashboard(): Response
-    {
-        $variables = [];
-        PermissionHelper::controllerPermissionCheck('mux:dashboard');
-        $settings = Mux::$settings;
-        $pluginName = $settings->pluginName;
-        $templateTitle = Craft::t('mux', 'Dashboard');
-        $view = Craft::$app->getView();
-
-        // Asset bundle
-        try {
-            $view->registerAssetBundle(MuxDashboardAsset::class);
-        } catch (InvalidConfigException $e) {
-            Craft::error($e->getMessage(), __METHOD__);
-        }
-        $variables['baseAssetsUrl'] = Craft::$app->assetManager->getPublishedUrl(
-            '@rocketpark/mux/web/dist',
-            true
-        );
-
-        $variables['controllerHandle'] = 'dashboard';
-        $variables['pluginName'] = $pluginName;
-        $variables['title'] = $templateTitle;
-        $variables['crumbs'] = [
-            [
-                'label' => $pluginName,
-                'url' => UrlHelper::cpUrl('mux'),
-            ],
-            [
-                'label' => $templateTitle,
-                'url' => UrlHelper::cpUrl('mux/dashboard'),
-            ],
-        ];
-        $variables['docTitle'] = "{$pluginName} - {$templateTitle}";
-        $variables['selectedSubnavItem'] = 'dashboard';;
-        $variables['settings'] = $settings;
-
-        // Render the template
-        return $this->renderTemplate('mux/dashboard/index', $variables);
     }
 }

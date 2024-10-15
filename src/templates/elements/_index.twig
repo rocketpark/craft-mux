@@ -1,6 +1,7 @@
 {% extends '_layouts/elementindex' %}
 {% do view.registerAssetBundle("rocketpark\\mux\\assetbundles\\mux\\MuxDashboardAsset") %}
 {% set title = 'Mux Assets'|t('mux') %}
+{#{% requirePermission 'accessPlugin-mux' %}#}
 {% requirePermission "mux:assets" %}
 {% set crumbs = [
     { label: "MUX"|t('mux'), url: url('/mux') },
@@ -19,22 +20,27 @@
 
     {{ parent() }}
 
-    <div class="mux-dropzone-overlay">
-        <div class="mux-dropzone-overlay_progress">
-            <div class="mux-dropzone-overlay_label"></div>
-            <div class="mux-progressbar">
-                <div ref="bar"
-                     class="mux-progressbar-inner"
-                ></div>
+    {% if craft.app.user.checkPermission('mux:assets-create') %}
+        <div class="mux-dropzone-overlay">
+            <div class="mux-dropzone-overlay_progress">
+                <div class="mux-dropzone-overlay_label"></div>
+                <div class="mux-progressbar">
+                    <div ref="bar"
+                         class="mux-progressbar-inner"
+                    ></div>
+                </div>
             </div>
         </div>
-    </div>
+    {% endif %}
 
 {% endblock %}
 
 {% block actionButton %}
     {{ parent() }}
-    <div id="mux-upload">
-        <upload-button view="element-index"></upload-button>
-    </div>
+    {% if craft.app.user.checkPermission('mux:assets-create') %}
+        <div id="mux-upload">
+            <upload-button view="element-index"></upload-button>
+        </div>
+    {% endif %}
 {% endblock %}
+

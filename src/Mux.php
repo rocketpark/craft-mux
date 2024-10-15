@@ -291,13 +291,6 @@ class Mux extends Plugin
         $subNavs = [];
         $navItem = parent::getCpNavItem();
         $currentUser = Craft::$app->getUser()->getIdentity();
-        // Only show sub-navs the user has permission to view
-        // if ($currentUser->can('mux:dashboard') && $currentUser->can('mux:assets')) {
-        //     $subNavs['dashboard'] = [
-        //         'label' => 'Dashboard',
-        //         'url' => 'mux/dashboard',
-        //     ];
-        // }
 
         if ($currentUser->can('mux:assets')) {
             $subNavs['assets'] = [
@@ -306,26 +299,26 @@ class Mux extends Plugin
             ];
         }
 
-        $editableSettings = true;
-        $general = Craft::$app->getConfig()->getGeneral();
-        if (!$general->allowAdminChanges) {
-            $editableSettings = false;
-        }
-        if ($currentUser->can('mux:settings') && $editableSettings) {
+//        $editableSettings = true;
+//        $general = Craft::$app->getConfig()->getGeneral();
+//        if (!$general->allowAdminChanges) {
+//            $editableSettings = false;
+//        }
+        if ($currentUser->can('mux:settings')) {
             $subNavs['settings'] = [
                 'label' => 'Settings',
                 'url' => 'mux/settings',
             ];
         }
 
-        if ($currentUser->can('mux:settings') && $editableSettings) {
+        if ($currentUser->can('mux:settings')) {
             $subNavs['restrictions'] = [
                 'label' => 'Playback Restrictions',
                 'url' => 'mux/restrictions',
             ];
         }
 
-        if ($currentUser->can('mux:settings') && $editableSettings) {
+        if ($currentUser->can('mux:settings')) {
             $subNavs['signedKeys'] = [
                 'label' => 'Signed Keys',
                 'url' => 'mux/signed-keys',
@@ -347,6 +340,7 @@ class Mux extends Plugin
         return $navItem;
     }
 
+
     private function _registerPermissions(): void
     {
         Event::on(
@@ -355,11 +349,7 @@ class Mux extends Plugin
             function (RegisterUserPermissionsEvent $event) {
                 $event->permissions[] = [
                     'heading' => Craft::t('mux', 'Mux'),
-                    'permissions' => [
-                        'mux-createAssets' => ['label' => Craft::t('mux', 'Create assets')],
-                        'mux-deleteAssets' => ['label' => Craft::t('mux', 'Delete assets')],
-                        'mux-editAssets' => ['label' => Craft::t('mux', 'Manage all Assets'), 'info' => Craft::t('mux', 'This user will be able to manage all Mux assets.')]
-                    ]
+                    'permissions' => $this->customAdminCpPermissions(),
                 ];
             }
         );
@@ -372,7 +362,6 @@ class Mux extends Plugin
             UrlManager::EVENT_REGISTER_CP_URL_RULES,
             function (RegisterUrlRulesEvent $event) {
                 $event->rules['mux'] = ['template' => 'mux/elements/_index.twig'];
-                //$event->rules['mux/dashboard'] = 'mux/assets/dashboard';
                 $event->rules['mux/settings'] = 'mux/settings/plugin-settings';
                 $event->rules['mux/restrictions'] = ['template' => 'mux/settings/restrictions'];
                 $event->rules['mux/signed-keys'] = ['template' => 'mux/settings/signedKeys'];
@@ -391,13 +380,22 @@ class Mux extends Plugin
     {
         return [
             'mux:assets' => [
-                'label' => Craft::t('mux', 'Assets'),
-            ],
-            'mux:dashboard' => [
-                'label' => Craft::t('mux', 'Dashboard'),
-            ],
-            'mux:assets-edit' => [
-                'label' => Craft::t('mux', 'Edit Assets'),
+                'label' => Craft::t('mux', 'View Assets'),
+                'info' => Craft::t('mux', 'This user will be able to view Mux assets.'),
+                'nested' => [
+                    'mux:assets-create' => [
+                        'label' => Craft::t('mux', 'Create Assets'),
+                        'info' => Craft::t('mux', 'This user will be able edit create Mux asset by uploading.'),
+                    ],
+                    'mux:assets-edit' => [
+                        'label' => Craft::t('mux', 'Edit Assets'),
+                        'info' => Craft::t('mux', 'This user will be able edit/save an already created Asset.'),
+                    ],
+                    'mux:assets-delete' => [
+                        'label' => Craft::t('mux', 'Delete Assets'),
+                        'info' => Craft::t('mux', 'This user will be able to delete an already created Asset.'),
+                    ],
+                ]
             ],
             'mux:settings' => [
                 'label' => Craft::t('mux', 'Settings'),

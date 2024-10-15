@@ -6,16 +6,12 @@ use Craft;
 use craft\base\Element;
 use craft\elements\User;
 use craft\elements\db\ElementQueryInterface;
-use craft\fieldlayoutelements\TextField;
-use craft\fieldlayoutelements\TitleField;
 use craft\helpers\Db;
 use craft\helpers\Html;
 use craft\helpers\UrlHelper;
 use craft\models\FieldLayout;
 use craft\web\CpScreenResponseBehavior;
-use craft\web\View;
 use Exception as GlobalException;
-use phpDocumentor\Reflection\Types\Boolean;
 use rocketpark\mux\Mux;
 use rocketpark\mux\elements\db\MuxAssetQuery;
 use rocketpark\mux\elements\actions\SyncAssets;
@@ -140,6 +136,7 @@ class MuxAsset extends Element
     {
         return false;
     }
+
 
     /**
      * @inheritdoc
@@ -349,14 +346,18 @@ class MuxAsset extends Element
         return $div;
     }
 
+
     /**
      * @inheritdoc
      */
     protected static function defineActions(string $source): array
     {
-        // List any bulk element actions here
         $actions = [];
-        $actions[] = SyncAssets::class;
+
+        if (Craft::$app->getUser()->checkPermission('mux:assets-create')) {
+            $actions[] = SyncAssets::class;
+        }
+
         return $actions;
     }
 
@@ -534,11 +535,7 @@ class MuxAsset extends Element
      */
     public function canView(User $user): bool
     {
-        if (parent::canView($user)) {
-            return true;
-        }
-        // todo: implement user permissions
-        return $user->can('viewMuxAssets');
+        return $user->can('mux:assets');
     }
 
     /**
@@ -546,11 +543,7 @@ class MuxAsset extends Element
      */
     public function canSave(User $user): bool
     {
-        if (parent::canSave($user)) {
-            return true;
-        }
-        // todo: implement user permissions
-        return $user->can('saveMuxAssets');
+        return $user->can('mux:assets-edit');
     }
 
     /**
@@ -558,11 +551,20 @@ class MuxAsset extends Element
      */
     public function canDelete(User $user): bool
     {
-        if (parent::canSave($user)) {
-            return true;
-        }
-        // todo: implement user permissions
-        return $user->can('deleteMuxAssets');
+        return $user->can('mux:assets-delete');
+    }
+
+    public function canDeleteForSite(User $user): bool
+    {
+        return $user->can('mux:assets-delete');
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function canDuplicate(User $user): bool
+    {
+        return false;
     }
 
     /**

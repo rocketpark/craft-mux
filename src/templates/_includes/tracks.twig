@@ -3,14 +3,16 @@
 <div class="mux-edit-panel" id="mux-edit-panel" data-namespace="{{ craft.app.view.getNamespace }}" data-mux-asset-id="{{ muxAsset.asset_id }}">
     <div class="flex">
         <div class="flex-grow"></div>
-        <div class="">
-            {{ forms.button({
-                id: "mux-track-add",
-                name: "mux-track-add",
-                label: "Add Track"|t('mux'),
-                class: "submit mux-track-add"
-            })}}
-        </div>
+        {% if craft.app.user.checkPermission('mux:assets-edit') %}
+            <div class="">
+                {{ forms.button({
+                    id: "mux-track-add",
+                    name: "mux-track-add",
+                    label: "Add Track"|t('mux'),
+                    class: "submit mux-track-add"
+                })}}
+            </div>
+        {% endif %}
     </div>
 
     <div class="mux-asset-tracks" id="mux-asset-tracks">    
@@ -234,7 +236,7 @@
             }
         });
         
-        $cancelBtn.on('click', () => { 
+        $cancelBtn.on('click', () => {
             $slideout.close();
         });
 

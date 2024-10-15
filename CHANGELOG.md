@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.0.9 - October 15, 2024
+### Fixed
+- Fixed permission to work properly with Craft 5 
+
 ## 2.0.6 - October 1, 2024
 ### Updated
 - Update Mux PHP SDK to 3.19.0
