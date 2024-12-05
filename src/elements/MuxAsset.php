@@ -191,7 +191,7 @@ class MuxAsset extends Element
     public ?string $mp4_support = '';
     public ?string $source_asset_id = '';
     public ?string $normalize_audio = '';
-    public ?array  $static_renditions = [];
+    public ?array $static_renditions = null;
     public ?array  $recording_times = [];
     public ?array $non_standard_input_reasons = [];
     public ?bool $test = null;
@@ -681,6 +681,8 @@ class MuxAsset extends Element
 
         parent::afterSave($isNew);
     }
+
+
 
 
     /**

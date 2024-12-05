@@ -39,6 +39,11 @@ class Settings extends Model
     public string $maxResolutionTier = '';
 
     /**
+     * @var string Enable static MP4 renditions on your video assets for offline viewing and other use cases.
+     */
+    public string $mp4Support = '';
+
+    /**
      * @inheritdoc
      */
     public function rules(): array
@@ -52,6 +57,8 @@ class Settings extends Model
             ['muxSecurePlayback', 'default', 'value' => false],
             ['maxResolutionTier', 'string'],
             ['maxResolutionTier', 'default', 'value' => '1080p'],
+            ['mp4Support', 'string'],
+            ['mp4Support', 'default', 'value' => 'none'],
         ];
     }
 

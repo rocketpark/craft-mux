@@ -1,3 +1,4 @@
+{% set ns = craft.app.view.getNamespace is not empty ? craft.app.view.getNamespace ~ "-" : ''  %}
 <legend class="h6">{{ "MUX Asset Details"|t('mux') }}</legend>
 <fieldset style="margin-top:12px;">
     <div class="meta">
@@ -82,6 +83,71 @@
                 {% endfor %}
                 </ul>
             </div>
+
+            <h5 class="heading">{{ "MP4 Support"|t('mux') }} 
+                <span class="info">{{ "Turn on static MP4, M4A, or both."|t('mux') }}</span>
+            </h5>
+            <div class="value flex">
+                <div class="select">
+                    <select id="mux-mp4-support" name="mux-mp4-support">
+                        <option value="none" {% if muxAsset.mp4_support == 'none' %}selected{% endif %}>None</option>
+                        <option value="capped-1080p" {% if muxAsset.mp4_support == 'capped-1080p' %}selected{% endif %}>Capped 1080p</option>
+                        <option value="audio-only" {% if muxAsset.mp4_support == 'audio-only' %}selected{% endif %}>Audio Only</option>
+                        <option value="capped-1080p,audio-only" {% if muxAsset.mp4_support == 'capped-1080p,audio-only' %}selected{% endif %}>Capped 1080p,Audio Only</option>
+                    </select>
+                </div>
+            </div>
+
+            {% if muxAsset.static_renditions != null and (muxAsset.mp4_support != 'none' and muxAsset.mp4_support != null) %}
+                <h5 class="heading">{{ "MP4 Support Status"|t('mux') }}</h5>
+                <div class="value flex">
+                    {% set colors = {
+                        'ready': 'teal',
+                        'preparing': 'purple',
+                        'errored': 'red',
+                        'disabled': 'gray'
+                    } %}
+                    {% set status = muxAsset.static_renditions.status %}
+                    {% set color = colors[status] ?? 'gray' %}
+                    <span class="status-label {{ color }}"><span class="status {{ color }}"></span><span class="status-label-text">{{ status }}</span></span>
+                </div>
+            {% endif %}
+
         </div>
     </div>
 </fieldset>
+
+{% js at endBody %}
+{#<script>#}
+    $(function() {
+        const mp4SupportSelect = $("#{{ ns }}mux-mp4-support");
+        mp4SupportSelect.on('change', function(evt) {
+            const value = $(this).val();
+            let body = { assetId: "{{ muxAsset.asset_id }}", mp4Support: value };
+            body[Craft.csrfTokenName] = Craft.csrfTokenValue;
+
+            fetch('/actions/mux/assets/update-mp4-support', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            }).then(res => {
+                if (!res.ok) {
+                    throw new Error("HTTP error " + res.status);
+                }
+                return res.json();
+            }).then(json => {
+                if(json.success) {
+                    Craft.cp.displayNotice(Craft.t("mux", "MP4 Support updated."));
+                } else {
+                    Craft.cp.displayError(Craft.t("mux", "Failed to update MP4 Support."));
+                }
+            }).catch(err => {
+                Craft.cp.displayError(Craft.t("mux", "Failed to update MP4 Support."));
+            });
+        });
+    });
+{#</script>#}
+{% endjs %}

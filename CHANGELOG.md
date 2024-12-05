@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.0.12 - December 5, 2024
+### Added
+- Support for Mux MP4 Support
+- Job Queue for handling Mux Webhooks
+### Updated
+- mux-php to version 3.21.0
+- php-jwt to version 6.10.2
+
 ## 2.0.9 - October 15, 2024
 ### Fixed
 - Fixed permission to work properly with Craft 5 

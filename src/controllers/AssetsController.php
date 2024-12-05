@@ -55,31 +55,28 @@ class AssetsController extends Controller
      */
     public function actionSave(): Response
     {
+        // Check if user has permission to edit assets
         PermissionHelper::controllerPermissionCheck('mux:assets-edit');
 
+        // Ensure this is a POST request
         $this->requirePostRequest();
-        $request = Craft::$app->getRequest();
-        $asset = Mux::$plugin->assets->buildAssetFromPost();
 
-        if (Mux::$plugin->assets->saveAsset($asset)) {
-            if ($request->getAcceptsJson()) {
-                return $this->asJson([
-                    'success' => true,
-                    'errors' => $asset->getErrors(),
-                    'message' => Craft::t('mux', 'Asset saved.'),
-                ]);
-            }
-            Craft::$app->getSession()->setNotice(Craft::t('mux', 'Asset saved.'));   
-        } else {
-            Craft::$app->getSession()->setError(Craft::t('mux', 'Couldn’t save asset.'));
-            if ($request->getAcceptsJson()) {
-                return $this->asJson([
-                    'success' => false,
-                    'errors' => $asset->getErrors(),
-                    'message' => Craft::t('mux', 'Could not save MuxAssetElement.')
-                ]);
-            }
+        $request = Craft::$app->getRequest();
+        $session = Craft::$app->getSession();
+        $assetsService = Mux::$plugin->assets;
+
+        // Build asset from POST data
+        $asset = $assetsService->buildAssetFromPost();
+
+        // Try saving the asset
+        if ($assetsService->saveAsset($asset)) {
+            // Successful save
+            return $this->_handleSaveResponse(true, 'Asset saved.', $asset->getErrors(), $request);
         }
+
+        // Unsuccessful save
+        $session->setError(Craft::t('mux', 'Couldn’t save asset.'));
+        return $this->handleSaveResponse(false, 'Could not save MuxAssetElement.', $asset->getErrors(), $request);
     }
 
     /**
@@ -443,9 +440,64 @@ class AssetsController extends Controller
     }
 
 
+    /**
+     * Update MP4 Support
+     * @requestParams $params['assetId'], $params['mp4Support']
+     * @return void|Response
+     */
+    public function actionUpdateMp4Support(): response
+    {
+        $this->requirePostRequest();
+        $request = Craft::$app->getRequest();
+        $params = $request->getBodyParams();
+
+        if ($request->getAcceptsJson()) {
+            if (!Mux::$plugin->assets->updateMuxAssetMP4Support($params['assetId'], $params['mp4Support'])) {
+                Craft::$app->getSession()->setNotice('Couldn\'t update MUX asset mp4 support.');
+                $this->setFailFlash(Craft::t('mux', 'Couldn\'t update MUX asset mp4 support.', [
+                    'type' => GlobalSet::displayName(),
+                ]));
+            }
+
+            $this->setSuccessFlash(Craft::t('mux', 'Asset mp4 support updated.', [
+                'type' => GlobalSet::displayName(),
+            ]));
+
+            return $this->asJson([
+                'success' => true
+            ]);
+        }
+    }
+
+
     // Private Methods
     // =========================================================================
 
+    /**
+     * Handles the response after attempting to save an asset
+     *
+     * @param bool $success Whether the save was successful
+     * @param string $message The response message
+     * @param array $errors Any errors that occurred
+     * @param Request $request The current request
+     * @return Response
+     */
+    private function _handleSaveResponse(bool $success, string $message, array $errors, Request $request): Response
+    {
+        if ($request->getAcceptsJson()) {
+            return $this->asJson([
+                'success' => $success,
+                'errors' => $errors,
+                'message' => Craft::t('mux', $message),
+            ]);
+        }
+
+        if ($success) {
+            Craft::$app->getSession()->setNotice(Craft::t('mux', $message));
+        }
+
+        return $this->redirectToPostedUrl();
+    }
 
     private function _updateAssetPermission($asset): void
     {

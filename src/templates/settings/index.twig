@@ -66,9 +66,28 @@
             tip: 'Max resolution tier can be used to control the maximum `resolution_tier` your asset is encoded, stored, and streamed at. Defaults to `1080p`.'|t('mux'),
         }) }}
 
+        {% set mp4Instructions %}
+            {{ "Enable static MP4 renditions on your video assets for offline viewing and other use cases."|t('mux') }}
+            <a href="https://docs.mux.com/guides/enable-static-mp4-renditions" target="_blank">View Documentation</a>
+        {% endset %}
+
+        {{  forms.selectField({
+            label: 'Default MP4 Support <div class="info">%s</div>'|format(mp4Instructions),
+            id: 'mp4Support',
+            name: 'mp4Support',
+            options: [
+                { label: 'None', value: 'none' },
+                { label: 'Capped 1080p', value: 'capped-1080p' },
+                { label: 'Audio Only', value: 'audio-only' },
+                { label: 'Capped 1080p, Audio Only', value: 'capped-1080p,audio-only' }
+            ],
+            value: settings.mp4Support,
+            errors: settings.getErrors('mp4Support')
+        }) }}
+
 <hr>
         {% set instructions %}
-            Secure playback requires you use a signed key in your playback url. 
+            {{ "Secure playback requires you use a signed key in your playback url."|t('mux') }} 
             <a href="https://docs.mux.com/guides/video/secure-video-playback#6-include-the-json-web-token-jwt-in-the-media-url" target="_blank">View Documentation</a>
         {% endset %}
 

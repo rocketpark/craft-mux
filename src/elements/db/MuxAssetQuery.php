@@ -22,6 +22,14 @@ class MuxAssetQuery extends ElementQuery
     public $playback_ids = null;
     public $tracks = null;
     public $passthrough = null;
+    public $mp4_support = null;
+    public $created_at = null;
+    public $static_renditions = null;
+    public $errors = null;
+    public $max_stored_resolution = null;
+    public $max_stored_frame_rate = null;
+    public $resolution_tier = null;
+    public $max_resolution_tier = null;
 
     public function asset_id(mixed $value): self
     {
@@ -85,6 +93,73 @@ class MuxAssetQuery extends ElementQuery
         return $this;
     }
 
+    public function mp4_support(string|null $value): self
+    {
+        $this->mp4_support = $value;
+
+        return $this;
+    }
+
+    public function created_at(string|null $value): self
+    {
+        $this->created_at = $value;
+
+        return $this;
+    }
+
+    public function static_renditions(object|string|null $value): self
+    {
+        if (is_string($value)) {
+            // Attempt to decode the JSON string into an object
+            $decoded = json_decode($value);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $this->static_renditions = $decoded;
+            } else {
+                throw new \InvalidArgumentException('Invalid JSON string provided for static_renditions');
+            }
+        } elseif (is_object($value) || is_null($value)) {
+            $this->static_renditions = $value;
+        } else {
+            throw new \InvalidArgumentException('static_renditions must be an object, valid JSON string, or null');
+        }
+        return $this;
+    }
+
+    public function errors(string|null $value): self
+    {
+        $this->errors = $value;
+
+        return $this;
+    }
+
+    public function max_stored_resolution(string|null $value): self
+    {
+        $this->max_stored_resolution = $value;
+
+        return $this;
+    }
+
+    public function max_stored_frame_rate(string|null $value): self
+    {
+        $this->max_stored_frame_rate = $value;
+
+        return $this;
+    }
+
+    public function resolution_tier(string|null $value): self
+    {
+        $this->resolution_tier = $value;
+
+        return $this;
+    }
+
+    public function max_resolution_tier(string|null $value): self
+    {
+        $this->max_resolution_tier = $value;
+
+        return $this;
+    }
+
     protected function beforePrepare(): bool
     {
 
@@ -100,7 +175,15 @@ class MuxAssetQuery extends ElementQuery
             'mux_assets.upload_id',
             'mux_assets.playback_ids',
             'mux_assets.tracks',
-            'mux_assets.passthrough'
+            'mux_assets.passthrough',
+            'mux_assets.mp4_support',
+            'mux_assets.created_at',
+            'mux_assets.static_renditions',
+            'mux_assets.errors',
+            'mux_assets.max_stored_resolution',
+            'mux_assets.max_stored_frame_rate',
+            'mux_assets.resolution_tier',
+            'mux_assets.max_resolution_tier',
         ]);
 
         if ($this->aspect_ratio) {
@@ -135,6 +218,22 @@ class MuxAssetQuery extends ElementQuery
         if($this->tracks){
             $jsonCondition = new Expression('JSON_CONTAINS(mux_assets.tracks, :tracks)');
             $this->subQuery->andWhere($jsonCondition, [':tracks' => json_encode($this->tracks)]);
+        }
+
+        if($this->mp4_support){
+            $this->subQuery->andWhere(Db::parseParam('mux_assets.mp4_support', $this->mp4_support));
+        }
+
+        if($this->created_at){
+            // Convert `created_at` to a readable date, allowing comparisons against a date range or specific date.
+            $date = date('Y-m-d', $this->created_at); // Convert your timestamp to a date string (e.g., '2024-12-04')
+            // Use Db::parseDateParam for date-specific filtering
+            $this->subQuery->andWhere(Db::parseDateParam('FROM_UNIXTIME(mux_assets.created_at)', $date));
+        }
+
+        if($this->static_renditions){
+            $jsonCondition = new Expression('JSON_CONTAINS(mux_assets.static_renditions, :static_renditions)');
+            $this->subQuery->andWhere($jsonCondition, [':static_renditions' => json_encode($this->static_renditions)]);
         }
 
         // if($this->tracks){

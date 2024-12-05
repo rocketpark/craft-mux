@@ -33,7 +33,7 @@
                 title="{{ muxAsset.title }}"
             ></mux-player>
         {% else %}
-            <h3>Must create at leaset Signed Keys to playback this video and view thumbnails.</h3>
+            <h3>{{ "Must create Signed Keys to playback this video and view thumbnails."|t('mux') }}</h3>
         {% endif %}
     {% else %}
         <mux-player

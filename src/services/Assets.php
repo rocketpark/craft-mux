@@ -78,7 +78,7 @@ class Assets extends Component
         'mp4_support' => "",
         'source_asset_id' => "",
         'normalize_audio' => "",
-        'static_renditions' => [],
+        'static_renditions' => null,
         'recording_times' => [],
         'non_standard_input_reasons' => [],
         'test' => "",
@@ -263,8 +263,16 @@ class Assets extends Component
         
         $subtitles = new MuxPhp\Models\AssetGeneratedSubtitleSettings(["language_code" => "en", "name" => "English CC"]);
         $inputSettings = new MuxPhp\Models\InputSettings(["generated_subtitles" => [$subtitles]]);
-        $createAssetRequest = new MuxPhp\Models\CreateAssetRequest(["input" => [$inputSettings], "playback_policy" => [$policy], "max_resolution_tier" => $settings->maxResolutionTier, "passthrough" => $passthrough]);
+        // $mp4Support = new MuxPhp\Models\UpdateAssetMP4SupportRequest([$settings->mp4Support]);
+        $createAssetRequest = new MuxPhp\Models\CreateAssetRequest([
+            "input" => [$inputSettings],
+            "playback_policy" => [$policy],
+            "max_resolution_tier" => $settings->maxResolutionTier,
+            "mp4_support" => $settings->mp4Support,
+            "passthrough" => $passthrough
+        ]);
         $createUploadRequest = new MuxPhp\Models\CreateUploadRequest(["timeout" => 3600, "new_asset_settings" => $createAssetRequest, "cors_origin" => UrlHelper::siteUrl()]);
+
         
         $upload = $apiInstance->createDirectUpload($createUploadRequest);
 
@@ -517,16 +525,45 @@ class Assets extends Component
     {
         foreach ($elements as $element) {
             foreach ($muxAsset as $key => $value) {
-                if (array_key_exists($key, $this->defaultAttributes) || $key === 'status') {
-                    if ($key === 'status' && $element->asset_status !== $value) {
-                        return true;
-                    }
-                    if ($key === 'id' && $element->asset_id !== $value) {
-                        return true;
-                    }
-                    if ($key === 'passthrough' && $element->passthrough !== $value) {
-                        return true;
-                    }
+                // Skip if the key isn't relevant
+                if (!array_key_exists($key, $this->defaultAttributes) && $key !== 'status') {
+                    continue;
+                }
+    
+                switch ($key) {
+                    case 'status':
+                        if ($element->asset_status !== $value) {
+                            return true;
+                        }
+                        break;
+    
+                    case 'id':
+                        if ($element->asset_id !== $value) {
+                            return true;
+                        }
+                        break;
+    
+                    case 'passthrough':
+                        if ($element->passthrough !== $value) {
+                            return true;
+                        }
+                        break;
+    
+                    case 'mp4_support':
+                        if ($element->mp4_support !== $value) {
+                            return true;
+                        }
+                        break;
+    
+                    case 'static_renditions':
+                        // Normalize data before comparing
+                        $normalizedElement = $this->_normalizeData((array)$element->static_renditions);
+                        $normalizedValue = $this->_normalizeData((array)$value);
+    
+                        if ($normalizedElement !== $normalizedValue) {
+                            return true;
+                        }
+                        break;
                 }
             }
         }
@@ -573,6 +610,7 @@ class Assets extends Component
                             $element->title = $value;
                         }
                     }
+                    
                     $element[$key] = $value;
                 }
             }
@@ -695,6 +733,55 @@ class Assets extends Component
     }
 
     /**
+     * Update MUX Asset MP4 Support
+     * @param string $id
+     * @param bool $mp4Support
+     * @return bool
+     */
+    public function updateMuxAssetMP4Support(string|int $assetId, string $mp4Support): bool
+    {
+        // Validate inputs
+        if (empty($assetId) || empty($mp4Support)) {
+            Mux::error('Invalid input provided for assetId or mp4Support.'. __METHOD__, 'mux');
+            return false;
+        }
+
+        try {
+            // Initialize the API instance with configuration
+            $config = Mux::$plugin->assets->muxConf();
+            $apiInstance = new MuxPhp\Api\AssetsApi(new Client(), $config);
+
+            // Create the request payload
+            $updateAssetMp4SupportRequest = ['mp4_support' => $mp4Support];
+
+            // Call the API to update MP4 support
+            $result = $apiInstance->updateAssetMp4Support($assetId, $updateAssetMp4SupportRequest);
+            if (!$result) {
+                Mux::info("Failed to update MP4 support for asset ID: {$assetId}. ". __METHOD__, 'mux');
+                return false;
+            }
+
+            // Synchronize the asset
+            /*
+            if (!$this->syncAssetById($assetId)) {
+                Mux::info("MP4 support updated but failed to sync asset ID: {$assetId}. ". __METHOD__, 'mux');
+                return false;
+            }*/
+
+            Mux::info("MP4 support updated and asset synchronized successfully for asset ID: {$assetId}. ". __METHOD__, 'mux');
+            return true;
+        } catch (\MuxPhp\ApiException $apiException) {
+            // Handle specific API exceptions
+            Mux::error("Mux API Exception: {$apiException->getMessage()}: ". __METHOD__, 'mux');
+            return false;
+        } catch (\Exception $e) {
+            // Handle generic exceptions
+            Mux::error("Exception when calling updateAssetMp4Support: {$e->getMessage()}: ". __METHOD__, 'mux');
+            return false;
+        }
+    }
+
+    /**
      * Sync All Mux Assets
      * @return void 
      * @throws ApiException 
@@ -801,6 +888,21 @@ class Assets extends Component
         return $settings->muxSecurePlayback
             ? MuxPhp\Models\PlaybackPolicy::SIGNED 
             : MuxPhp\Models\PlaybackPolicy::_PUBLIC;
+    }
+
+    /**
+     * Normalize Data
+     * @param mixed $data 
+     * @return mixed 
+     */
+    private function _normalizeData($data) {
+        if (is_array($data)) {
+            ksort($data); // Sort the keys in alphabetical order
+            foreach ($data as $key => $value) {
+                $data[$key] = $this->_normalizeData($value); // Recursively sort nested arrays/objects
+            }
+        }
+        return $data;
     }
 
 }
