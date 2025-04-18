@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.0.20 - April 18, 2025
+### Added
+- Added a button to download text track files from Mux.
+- Added new MUX asset model params, meta, and ingest_type. MUX via meta param now includes a title for video viewable in the MUX dashboard.
+- Added new query params for tracks and meta column's JSON params.
+### Updated
+- Increased schema version 1.0.2
+- mux-php to version 5.0.1
+- php-jwt to version 6.11.1
+- front-end packages to latest versions
+
 ## 2.0.12 - December 5, 2024
 ### Added
 - Support for Mux MP4 Support
