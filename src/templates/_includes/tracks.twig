@@ -17,7 +17,7 @@
 
     <div class="mux-asset-tracks" id="mux-asset-tracks">    
         {% for track in muxAsset.tracks %}
-            {% include "mux/_includes/track" with { id: muxAsset.id, track: track, asset_id: muxAsset.asset_id } only %}
+            {% include "mux/_includes/track" with { muxAsset:muxAsset, id: muxAsset.id, track: track, asset_id: muxAsset.asset_id } only %}
         {% endfor %}
     </div>
 </div>

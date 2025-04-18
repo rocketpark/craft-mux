@@ -1,7 +1,4 @@
 <?php
-/**
- * @copyright Copyright (c) RocketPark 
- */
 
 namespace rocketpark\mux\fieldlayoutelements;
 

@@ -1,8 +1,4 @@
 <?php
-/**
- * @copyright Copyright (c) PutYourLightsOn
- */
-
 namespace rocketpark\mux\fieldlayoutelements;
 
 use Craft;
@@ -11,6 +7,7 @@ use craft\base\ElementInterface;
 use craft\fieldlayoutelements\BaseNativeField;
 use craft\fieldlayoutelements\TitleField;
 use craft\helpers\Template;
+use craft\helpers\UrlHelper;
 use craft\web\View;
 use rocketpark\mux\Mux;
 use rocketpark\mux\elements\MuxAsset;
@@ -46,15 +43,29 @@ class MuxAssetFieldLayoutElement extends BaseNativeField
         $titleField = new TitleField();
         $titleFieldHtml = Template::raw($titleField->formHtml($element));
 
-       
 
         $siteId = $element->siteId;
         $variables = [
             'editable' => !$static,
             'muxAsset' => $element,
             'titleFieldHtml' => $titleFieldHtml,
-            'siteId' => $siteId
+            'siteId' => $siteId,
+            'crumbs' => [
+                [
+                    'label' => Craft::t('mux', 'MUX'),
+                    'url' => UrlHelper::cpUrl('mux'),
+                ],
+                [
+                    'label' => Craft::t('mux', 'Assets'),
+                    'url' => UrlHelper::cpUrl('mux/assets'),
+                ],
+                [
+                    'label' => Craft::t('mux', 'Edit Mux Asset'),
+                    'url' => UrlHelper::cpUrl('mux/assets/' . $element->id),
+                ],
+            ]
         ];
+
 
         return Craft::$app->getView()->renderTemplate(
             'mux/_includes/fields',

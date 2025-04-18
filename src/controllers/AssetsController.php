@@ -132,9 +132,14 @@ class AssetsController extends Controller
 
         $element = MuxAssetElement::find()->id($params['id'])->one();
 
-        // Currently only upating these two properties
+        // Currently only updating these two properties
         $element->title = $params['title'];
         $element->passthrough = $params['passthrough'];
+        $meta = [
+            'title' => $params['title'],
+            'external_id' => $params['id'],
+        ];
+        $element->meta = $meta;
 
         if (!Craft::$app->getElements()->saveElement($element)) {
             return $this->asModelFailure(
@@ -146,7 +151,7 @@ class AssetsController extends Controller
     
         return $this->asModelSuccess(
             $element,
-            Craft::t('app', 'Element saved.'),
+            Craft::t('mux', 'Element saved.'),
             data: [
                 'id' => $element->id,
                 'title' => $element->title,

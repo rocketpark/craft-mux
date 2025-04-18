@@ -27,6 +27,11 @@
     line-height: 1;
 }
 
+.mux-track-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
 
 .xcircleicon{
     color: currentColor;

@@ -1,7 +1,4 @@
 <?php
-/**
- * @copyright Copyright (c) PutYourLightsOn
- */
 
 namespace rocketpark\mux\fieldlayoutelements;
 
