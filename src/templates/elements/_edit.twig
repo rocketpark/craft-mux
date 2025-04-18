@@ -3,7 +3,7 @@
 {% do view.registerAssetBundle("rocketpark\\mux\\assetbundles\\mux\\MuxDashboardAsset") %}
 
 {% requirePermission "mux:assets-edit" %}
-{% set selectedSubnavItem = 'list' %}    
+{% set selectedSubnavItem = 'list' %}
 
 {% set muxAsset = craft.mux.id(id).one() %}
 {% if muxAsset is null %}
@@ -12,13 +12,12 @@
 
 {% set title = muxAsset.title %}
 {% set crumbs = [
-    { label: "MUX"|t('mux'), url: cpUrl('mux') },
+    { label: "MUX"|t('mux'), url: cpUrl('mux/assets') },
     { label: "Assets"|t('mux'), url: cpUrl('mux/assets') },
     { label: title, url: cpUrl('mux/assets/' ~ id) }
 ] %}
 
 {% block body %}
-
     {{ tag ('a', {
         id: 'global-skip-link',
         text: 'Skip to content'|t('app'),
@@ -78,6 +77,19 @@
             </div>
 
             <div id="main-container">
+
+                {{ forms.hidden({
+                    id: "meta-title",
+                    name: "meta[title]",
+                    value: muxAsset.title
+                }) }}
+
+                {{ forms.hidden({
+                    id: "meta-external_id",
+                    name: "meta[external_id]",
+                    value: muxAsset.id
+                }) }}
+
                 <main {{ attr(mainAttributes) }}>
                     {% set asset = {
                         id: muxAsset.id,

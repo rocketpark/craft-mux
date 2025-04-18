@@ -66,7 +66,7 @@ class Mux extends Plugin
     /**
      * @var string
      */
-    public string $schemaVersion = '1.0.1';
+    public string $schemaVersion = '1.0.2';
 
     /**
      * @var bool
@@ -165,31 +165,19 @@ class Mux extends Plugin
                     $element = $e->element;
                     $attributes = $element->getAttributes();
 
-                    $muxAsset = Mux::$plugin->assets->getMuxAsset($attributes['asset_id']);
+                    //$muxAsset = Mux::$plugin->assets->getMuxAsset($attributes['asset_id']);
 
                     $asset = new MuxAsset();
 
                     $asset->asset_id = $attributes['asset_id'];
                     $asset->passthrough = $attributes['title'];
+                    $asset->meta['title'] = $attributes['title'];
+                    $asset->meta['external_id'] = $attributes['id'];
+                    $asset->meta['creator_id'] = $attributes['meta']['creator_id'] ?? '';
 
                     Mux::info("Updating Asset in MUX: ". $asset->asset_id, 'mux');
 
                     Mux::$plugin->assets->updateMuxAsset($asset);
-
-                    // Prevent an update loop from webhook.
-                    // if (array_key_exists('passthrough', $muxAsset)) {
-                    //     if ($muxAsset['passthrough'] != $attributes['title']) {
-                    //         $asset->asset_id = $attributes['asset_id'];
-                    //         $asset->passthrough = $attributes['title'];
-
-                    //         Mux::$plugin->assets->updateMuxAsset($asset);
-                    //     }
-                    // } else {
-                    //     $asset->asset_id = $attributes['asset_id'];
-                    //     $asset->passthrough = $attributes['title'];
-
-                    //     Mux::$plugin->assets->updateMuxAsset($asset);
-                    // }
                 }
             }
         );

@@ -1,3 +1,4 @@
+{% import "_includes/forms" as forms %}
 {% set ns = craft.app.view.getNamespace is not empty ? craft.app.view.getNamespace ~ "-" : ''  %}
 <legend class="h6">{{ "MUX Asset Details"|t('mux') }}</legend>
 <fieldset style="margin-top:12px;">
@@ -112,6 +113,17 @@
                     <span class="status-label {{ color }}"><span class="status {{ color }}"></span><span class="status-label-text">{{ status }}</span></span>
                 </div>
             {% endif %}
+
+            <h5 class="heading">
+                {{ "Meta"|t('mux') }}
+            </h5>
+            <div class="value flex">
+                <span class="info">
+                    <span class="h6">Title:</span> {{  muxAsset.meta['title'] ?? muxAsset.title }}<br>
+                    <span class="h6">External ID:</span> {{  muxAsset.meta['external_id'] ?? muxAsset.id }}<br>
+                    <span class="h6">Creator ID:</span> {{ muxAsset.meta['creator_id'] ?? '' }}
+                </span>
+            </div>
 
         </div>
     </div>

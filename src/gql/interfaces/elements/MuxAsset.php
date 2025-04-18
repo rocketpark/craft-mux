@@ -17,6 +17,7 @@ use rocketpark\mux\gql\types\elements\MuxAsset as MuxAssetElement;
 use rocketpark\mux\gql\resolvers\elements\MuxAsset as MuxAssetResolver;
 use rocketpark\mux\gql\types\PlaybackIdType;
 use rocketpark\mux\gql\types\TrackType;
+use rocketpark\mux\gql\types\MetaType;
 
 /**
  * Class MuxAssetGqlType
@@ -121,6 +122,24 @@ class MuxAsset extends Element
                 'updated_at' => [
                     'type' => Type::string(),
                     'description' => 'The last update time of the track'
+                ],
+            ]
+        ]);
+
+        $MetaType = new ObjectType([
+            'name' => 'Meta',
+            'fields' => [
+                'title' => [
+                    'type' => Type::string(),
+                    'description' => 'Title of the asset'
+                ],
+                'external_id' => [
+                    'type' => Type::string(),
+                    'description' => 'External ID of the asset'
+                ],
+                'creator_id' => [
+                    'type' => Type::string(),
+                    'description' => 'Creator ID of the asset'
                 ],
             ]
         ]);
@@ -237,6 +256,14 @@ class MuxAsset extends Element
             'test' => [
                 'type' => Type::string(),
                 'description' => 'test'
+            ],
+            'ingest_type' => [
+                'type' => Type::string(),
+                'description' => 'Ingest type'
+            ],
+            'meta' => [
+                'type' => MetaType::getType(),
+                'description' => 'Meta data of the object'
             ],
         ]), self::getName());
     }

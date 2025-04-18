@@ -30,6 +30,25 @@ class MuxAssetQuery extends ElementQuery
     public $max_stored_frame_rate = null;
     public $resolution_tier = null;
     public $max_resolution_tier = null;
+    public $ingest_type = null;
+    public $meta = null;
+    public mixed $trackMaxWidth = null;
+    public mixed $trackMaxHeight = null;
+    public mixed $trackMaxFrameRate = null;
+    public mixed $trackDuration = null;
+    public mixed $trackPrimary = null;
+    public mixed $trackMaxChannels = null;
+    public mixed $trackType = null;
+    public mixed $trackTextType = null;
+    public mixed $trackTextSource = null;
+    public mixed $trackStatus = null;
+    public mixed $trackName = null;
+    public mixed $trackLanguageCode = null;
+    public mixed $trackId = null;
+    public mixed $metaTitle = null;
+    public mixed $metaExternalId = null;
+    public mixed $metaCreatorId = null;
+
 
     public function asset_id(mixed $value): self
     {
@@ -106,6 +125,37 @@ class MuxAssetQuery extends ElementQuery
 
         return $this;
     }
+
+    public function ingest_type(string|null $value): self
+    {
+        $this->ingest_type = $value;
+
+        return $this;
+    }
+
+    public function meta(array|string|null $value): self
+    {
+        $this->meta = $value;
+
+        return $this;
+    }
+
+    public function trackMaxWidth(mixed $value): self { $this->trackMaxWidth = $value; return $this; }
+    public function trackMaxHeight(mixed $value): self { $this->trackMaxHeight = $value; return $this; }
+    public function trackMaxFrameRate(mixed $value): self { $this->trackMaxFrameRate = $value; return $this; }
+    public function trackDuration(mixed $value): self { $this->trackDuration = $value; return $this; }
+    public function trackPrimary(mixed $value): self { $this->trackPrimary = $value; return $this; }
+    public function trackMaxChannels(mixed $value): self { $this->trackMaxChannels = $value; return $this; }
+    public function trackType(mixed $value): self { $this->trackType = $value; return $this; }
+    public function trackTextType(mixed $value): self { $this->trackTextType = $value; return $this; }
+    public function trackTextSource(mixed $value): self { $this->trackTextSource = $value; return $this; }
+    public function trackStatus(mixed $value): self { $this->trackStatus = $value; return $this; }
+    public function trackName(mixed $value): self { $this->trackName = $value; return $this; }
+    public function trackLanguageCode(mixed $value): self { $this->trackLanguageCode = $value; return $this; }
+    public function trackId(mixed $value): self { $this->trackId = $value; return $this; }
+    public function metaTitle(mixed $value): self { $this->metaTitle = $value; return $this; }
+    public function metaExternalId(mixed $value): self { $this->metaExternalId = $value; return $this; }
+    public function metaCreatorId(mixed $value): self { $this->metaCreatorId = $value; return $this; }
 
     public function static_renditions(object|string|null $value): self
     {
@@ -184,6 +234,8 @@ class MuxAssetQuery extends ElementQuery
             'mux_assets.max_stored_frame_rate',
             'mux_assets.resolution_tier',
             'mux_assets.max_resolution_tier',
+            'mux_assets.ingest_type',
+            'mux_assets.meta',
         ]);
 
         if ($this->aspect_ratio) {
@@ -236,25 +288,110 @@ class MuxAssetQuery extends ElementQuery
             $this->subQuery->andWhere($jsonCondition, [':static_renditions' => json_encode($this->static_renditions)]);
         }
 
-        // if($this->tracks){
-        //     $jsonCondition = new Expression(
-        //         "JSON_CONTAINS_PATH(mux_assets.tracks, 'all', '$.tracks[*]') :tracks"
-        //     );
-        //     $this->subQuery->andWhere($jsonCondition, [':tracks' => json_encode($this->tracks, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT)]);
-        // }
-
-        // if ($this->tracks) {
-        //     $jsonPath = '$.tracks[*]';
-        //     $jsonCondition = new Expression("JSON_SEARCH(mux_assets.tracks, 'all', :jsonPath, :tracks) IS NOT NULL");
-        //     $this->subQuery->andWhere($jsonCondition, [
-        //         ':jsonPath' => $jsonPath,
-        //         ':tracks' => json_encode($this->tracks, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT)
-        //     ]);
-        // }
-
         if($this->duration){
             // Query the duration as a number
             $this->subQuery->andWhere(Db::parseParam('mux_assets.duration', $this->duration));
+        }
+
+        if($this->meta){
+            $jsonCondition = new Expression('JSON_CONTAINS(mux_assets.meta, :meta)');
+            $this->subQuery->andWhere($jsonCondition, [':meta' => json_encode($this->meta)]);
+        }
+
+        // Check if any track filtering is required
+        if (
+            $this->trackType || $this->trackTextType || $this->trackTextSource ||
+            $this->trackStatus || $this->trackName || $this->trackLanguageCode || $this->trackId ||
+            $this->trackMaxWidth || $this->trackMaxHeight || $this->trackMaxFrameRate ||
+            $this->trackDuration || $this->trackPrimary || $this->trackMaxChannels
+        ) {
+
+            $this->subQuery->leftJoin(
+                ['jt' => new Expression("JSON_TABLE(
+                    mux_assets.tracks,
+                    '$[*]' COLUMNS (
+                        type VARCHAR(100) PATH '$.type',
+                        text_type VARCHAR(100) PATH '$.text_type',
+                        text_source VARCHAR(100) PATH '$.text_source',
+                        status VARCHAR(100) PATH '$.status',
+                        name VARCHAR(255) PATH '$.name',
+                        language_code VARCHAR(50) PATH '$.language_code',
+                        id VARCHAR(100) PATH '$.id',
+                        max_width INT PATH '$.max_width',
+                        max_height INT PATH '$.max_height',
+                        max_frame_rate DOUBLE PATH '$.max_frame_rate',
+                        duration DOUBLE PATH '$.duration',
+                        `primary` BOOLEAN PATH '$.primary',
+                        max_channels INT PATH '$.max_channels'
+                    )
+                )")],
+                'TRUE'
+            );
+
+            // Apply WHERE conditions
+            if ($this->trackType !== null) {
+                $this->subQuery->andWhere(Db::parseParam('jt.type', $this->trackType));
+            }
+            if ($this->trackTextType !== null) {
+                $this->subQuery->andWhere(Db::parseParam('jt.text_type', $this->trackTextType));
+            }
+            if ($this->trackTextSource !== null) {
+                $this->subQuery->andWhere(Db::parseParam('jt.text_source', $this->trackTextSource));
+            }
+            if ($this->trackStatus !== null) {
+                $this->subQuery->andWhere(Db::parseParam('jt.status', $this->trackStatus));
+            }
+            if ($this->trackName !== null) {
+                $this->subQuery->andWhere(Db::parseParam('jt.name', $this->trackName));
+            }
+            if ($this->trackLanguageCode !== null) {
+                $this->subQuery->andWhere(Db::parseParam('jt.language_code', $this->trackLanguageCode));
+            }
+            if ($this->trackId !== null) {
+                $this->subQuery->andWhere(Db::parseParam('jt.id', $this->trackId));
+            }
+            if ($this->trackMaxWidth !== null) {
+                $this->subQuery->andWhere(Db::parseParam('jt.max_width', $this->trackMaxWidth));
+            }
+            if ($this->trackMaxHeight !== null) {
+                $this->subQuery->andWhere(Db::parseParam('jt.max_height', $this->trackMaxHeight));
+            }
+            if ($this->trackMaxFrameRate !== null) {
+                $this->subQuery->andWhere(Db::parseParam('jt.max_frame_rate', $this->trackMaxFrameRate));
+            }
+            if ($this->trackDuration !== null) {
+                $this->subQuery->andWhere(Db::parseParam('jt.duration', $this->trackDuration));
+            }
+            if ($this->trackPrimary !== null) {
+                $this->subQuery->andWhere(Db::parseParam('jt.primary', $this->trackPrimary));
+            }
+            if ($this->trackMaxChannels !== null) {
+                $this->subQuery->andWhere(Db::parseParam('jt.max_channels', $this->trackMaxChannels));
+            }
+        }
+
+        if($this->metaTitle || $this->metaExternalId || $this->metaCreatorId) {
+            $this->subQuery->leftJoin(
+                ['jm' => new Expression("JSON_TABLE(
+                    mux_assets.meta,
+                    '$' COLUMNS (
+                        `title` VARCHAR(255) PATH '$.title',
+                        external_id VARCHAR(100) PATH '$.external_id',
+                        creator_id VARCHAR(100) PATH '$.creator_id'
+                    )
+                )")],
+                'TRUE'
+            );
+
+            if ($this->metaTitle !== null) {
+                $this->subQuery->andWhere(Db::parseParam('jm.title', $this->metaTitle));
+            }
+            if ($this->metaExternalId !== null) {
+                $this->subQuery->andWhere(Db::parseParam('jm.external_id', $this->metaExternalId));
+            }
+            if ($this->metaCreatorId !== null) {
+                $this->subQuery->andWhere(Db::parseParam('jm.creator_id', $this->metaCreatorId));
+            }
         }
 
         return parent::beforePrepare();

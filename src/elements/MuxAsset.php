@@ -62,7 +62,7 @@ class MuxAsset extends Element
      */
     public static function pluralDisplayName(): string
     {
-        return Craft::t('mux', 'MuxAssets');
+        return Craft::t('mux', 'Assets');
     }
 
     /**
@@ -195,6 +195,8 @@ class MuxAsset extends Element
     public ?array  $recording_times = [];
     public ?array $non_standard_input_reasons = [];
     public ?bool $test = null;
+    public ?string $ingest_type = '';
+    public ?array $meta = [];
 
     /**
      * Get Playback Id
@@ -428,7 +430,7 @@ class MuxAsset extends Element
             'dateUpdated' => ['label' => Craft::t('app', 'Date Updated')],
         ];
     }
-    
+
     /**
      * @inheritdoc
      */
@@ -474,6 +476,23 @@ class MuxAsset extends Element
 
         return parent::attributeHtml($attribute);
     }
+    public function getCardBodyHtml(): ?string
+    {
+        $duration = $this->duration;
+        $hours = floor($duration / 3600);
+        $minutes = floor(($duration % 3600) / 60);
+        $seconds = $duration % 60;
+        $durationOutput = '';
+
+        if ($hours > 0) {
+            $durationOutput = sprintf("%02d:%02d:%02d", $hours, $minutes, $seconds);
+        } elseif ($minutes > 0) {
+            $durationOutput = sprintf("%02d:%02d", $minutes, $seconds);
+        } else {
+            $durationOutput = sprintf("%02d", $seconds) . " sec";
+        }
+        return Html::tag('p', Html::encode($durationOutput), ['class' => 'mux-duration']);
+    }
     
     /**
      * @inheritdoc
@@ -511,7 +530,8 @@ class MuxAsset extends Element
     protected function defineRules(): array
     {
         return array_merge(parent::defineRules(), [
-            // ...
+            [['meta'], 'default', 'value' => []],
+            [['meta'], 'safe'],
         ]);
     }
 
@@ -592,9 +612,13 @@ class MuxAsset extends Element
         /** @var Response|CpScreenResponseBehavior $response */
         $response->crumbs([
             [
-                'label' => self::pluralDisplayName(),
+                'label' => Craft::t('app', 'MUX'),
                 'url' => UrlHelper::cpUrl('mux/assets'),
             ],
+//            [
+//                'label' => self::pluralDisplayName(),
+//                'url' => UrlHelper::cpUrl('mux/assets'),
+//            ],
             [
                 'label' => $this->title,
                 'url' => "",
@@ -638,6 +662,18 @@ class MuxAsset extends Element
 
     /**
      * @inheritdoc
+     */
+//    public function beforeSave(bool $isNew): bool
+//    {
+//        //\yii\helpers\VarDumper::dump($this->meta, 5, true);exit;
+//        if (is_array($this->meta)) {
+//            $this->meta = $this->meta; // Serialize to JSON before saving
+//        }
+//        return parent::beforeSave($isNew);
+//    }
+
+    /**
+     * @inheritdoc
      * @since 3.7.0
      */
     public function afterSave(bool $isNew): void
@@ -671,6 +707,8 @@ class MuxAsset extends Element
             'recording_times' => $this->recording_times,
             'non_standard_input_reasons' => $this->non_standard_input_reasons,
             'test' => $this->test,
+            'ingest_type' => $this->ingest_type,
+            'meta' => $this->meta,
         ];
 
         if ($isNew) {
@@ -755,15 +793,5 @@ class MuxAsset extends Element
     public function __set($name, $value)
     {
         parent::__set($name, $value);
-        /*
-        if ($name === 'passthrough') {
-            if (isset($this->asset_id) && $value == $this->asset_id) {
-                $this->passthrough = $this->title;
-            } else {
-                $this->passthrough = $value; 
-            }
-        } else {
-            parent::__set($name, $value); // default behavior 
-        }*/
     }
 }

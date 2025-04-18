@@ -75,6 +75,11 @@ class MuxAsset extends ElementArguments
                 'type' => Type::listOf(QueryArgument::getType()),
                 'description' => 'Narrows the query results based on the mux asset’ passthrough.',
             ],
+            'meta' => [
+                'name' => 'meta',
+                'type' => Type::listOf(QueryArgument::getType()),
+                'description' => 'Narrows the query results based on the mux asset’ meta.',
+            ],
         ]);
     }
 

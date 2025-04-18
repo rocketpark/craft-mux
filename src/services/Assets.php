@@ -23,6 +23,7 @@ use MuxPhp;
 use MuxPhp\ApiException;
 use MuxPhp\Configuration;
 use MuxPhp\Models\Asset;
+use MuxPhp\Models\AssetMetadata;
 use MuxPhp\Models\AssetResponse;
 use MuxPhp\Models\ListAssetsResponse;
 use MuxPhp\Models\Upload;
@@ -48,6 +49,7 @@ class Assets extends Component
 {
 
     public const EVENT_BEFORE_SYNCHRONIZE_MUX_ASSET = 'beforeSynchronizeMuxAsset';
+    private const META_KEY = 'meta';
 
     /**
      * Default MuxAsset Attributes
@@ -82,6 +84,8 @@ class Assets extends Component
         'recording_times' => [],
         'non_standard_input_reasons' => [],
         'test' => "",
+        'ingest_type' => "",
+        'meta' => [],
     ];
 
     /**
@@ -93,9 +97,13 @@ class Assets extends Component
     private function hydrateAsset(array $params, Asset|MuxAssetElement $asset): Asset|MuxAssetElement 
     {
         foreach ($params as $key => $value) {
-            $asset->$key = $value; 
+            if ($key === self::META_KEY) {
+                $asset->$key = $this->createMetaData($params['title'] ?? '', $params['id'] ?? '', '');
+            } else {
+                $asset->$key = $value;
+            }
         }
-      
+
         return $asset;
     }
 
@@ -269,7 +277,12 @@ class Assets extends Component
             "playback_policy" => [$policy],
             "max_resolution_tier" => $settings->maxResolutionTier,
             "mp4_support" => $settings->mp4Support,
-            "passthrough" => $passthrough
+            "passthrough" => $passthrough,
+            "meta" => new MuxPhp\Models\AssetMetadata([
+                "title" => $passthrough,
+                "external_id" => '',
+                "creator_id" => '',
+            ])
         ]);
         $createUploadRequest = new MuxPhp\Models\CreateUploadRequest(["timeout" => 3600, "new_asset_settings" => $createAssetRequest, "cors_origin" => UrlHelper::siteUrl()]);
 
@@ -291,8 +304,14 @@ class Assets extends Component
             new Client(),
             $config
         );
-
-        $update_asset_request = ['passthrough' => $asset->passthrough];
+        $update_asset_request = [
+            'passthrough' => $asset->passthrough,
+            'meta' => [
+                'title' => $asset->meta['title'],
+                'external_id' => (string) $asset->meta['external_id'],
+                'creator_id' => (string) $asset->meta['creator_id'],
+            ]
+        ];
 
         try {
             $result = $apiInstance->updateAsset($asset->asset_id, $update_asset_request);
@@ -564,6 +583,16 @@ class Assets extends Component
                             return true;
                         }
                         break;
+
+                    case 'meta':
+                        // Normalize data before comparing
+                        $normalizedElement = $this->_normalizeData((array)$element->meta);
+                        $normalizedValue = $this->_normalizeData((array)$value);
+
+                        if ($normalizedElement !== $normalizedValue) {
+                            return true;
+                        }
+                        break;
                 }
             }
         }
@@ -682,7 +711,13 @@ class Assets extends Component
             "static_renditions" => $asset->getStaticRenditions(),
             "recording_times" => $asset->getRecordingTimes(),
             "non_standard_input_reasons" => !empty($asset->getNonStandardInputReasons()) ? json_decode($asset->getNonStandardInputReasons(), true): [],
-            "test" => $asset->getTest()
+            "test" => $asset->getTest(),
+            "ingest_type" => $asset->getIngestType(),
+            "meta" => !empty($asset->getMeta()) ? [
+                    'title' => $asset->getMeta()->getTitle(),
+                    'external_id' => $asset->getMeta()->getExternalId(),
+                    'creator_id' => $asset->getMeta()->getCreatorId(),
+                ] : [],
         ];
 
         /** @var MuxAssetRecord $assetData */
@@ -703,8 +738,18 @@ class Assets extends Component
             /** @var MuxAssetElement $muxAssetElement */
             $muxAssetElement = new muxAssetElement();
             $muxAssetElement->title = $asset['passthrough'];
+            $muxAssetElement->meta = [
+                'title' => $asset['passthrough'],
+                'external_id' => $asset['id'],
+                'creator_id' => '',
+            ];
         } else {
             $muxAssetElement->title = $asset['passthrough'];
+            $muxAssetElement->meta = [
+                'title' => $asset['passthrough'],
+                'external_id' => $asset['id'],
+                'creator_id' => '',
+            ];
         }
 
         // Set attributes on the element to emulate it having been loaded with JOINed data:
@@ -904,5 +949,22 @@ class Assets extends Component
         }
         return $data;
     }
+
+    /**
+     * Create Meta Data
+     * @param string $title
+     * @param string $externalId
+     * @param string $creatorId
+     * @return string
+     */
+    private function createMetaData(string $title, string $externalId, string $creatorId = ''): array
+    {
+        return [
+            'title' => $title,
+            'external_id' => $externalId,
+            'creator_id' => $creatorId,
+        ];
+    }
+
 
 }

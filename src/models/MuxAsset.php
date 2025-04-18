@@ -42,15 +42,14 @@ class MuxAsset extends Model
     public $recording_times;
     public $non_standard_input_reasons;
     public $test;
+    public $ingest_type;
+    public $meta;
 
     public function playbackId(): string
     {
         return $this->playback_ids[0]['id'];
     }
 
-    //    public function allLocales(): string {
-    //        return Craft::$app->i18n->getAllLocales();
-    //    }
 
     /**
      * @inheritdoc
@@ -58,9 +57,9 @@ class MuxAsset extends Model
     public function rules(): array
     {
         return [
-            [['playback_ids','tracks','master','static_rendition','recording_times','non_standard_input_reasons'], 'default', 'value' => '{}'],
-            [['playback_ids','tracks','master','static_rendition','recording_times','non_standard_input_reasons'], 'filter', 'filter' => 'json_decode'],
-            [['playback_ids','tracks','master','static_rendition','recording_times','non_standard_input_reasons'], 'safe'],
+            [['playback_ids','tracks','master','static_rendition','recording_times','non_standard_input_reasons', 'meta'], 'default', 'value' => '{}'],
+            [['playback_ids','tracks','master','static_rendition','recording_times','non_standard_input_reasons', 'meta'], 'filter', 'filter' => 'json_decode'],
+            [['playback_ids','tracks','master','static_rendition','recording_times','non_standard_input_reasons', 'meta'], 'safe'],
         ];
     }
 

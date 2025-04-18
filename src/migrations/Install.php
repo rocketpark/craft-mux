@@ -46,6 +46,8 @@ class Install extends Migration
                 'recording_times' => $this->json()->null(),
                 'non_standard_input_reasons' => $this->json()->null(),
                 'test' => $this->boolean()->null(),
+                'ingest_type' => $this->string()->null(),
+                'meta' => $this->json()->null(),
                 'dateCreated' => $this->dateTime()->notNull(),
                 'dateUpdated' => $this->dateTime()->notNull(),
                 'uid' => $this->uid()

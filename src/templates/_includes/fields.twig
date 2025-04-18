@@ -1,10 +1,36 @@
 {% import "_includes/forms" as forms %}
 {% set ns = craft.app.view.getNamespace is not empty ? craft.app.view.getNamespace ~ "-" : ''  %}
 
+{% set crumbs = [
+    { label: "Mux", url: cpUrl('mux') },
+    { label: "Assets", url: cpUrl('mux/assets') },
+    { label: muxAsset.title }
+] %}
+
+{{ hiddenInput('elementType', 'rocketpark\\mux\\elements\\MuxAsset') }}
+
 {{ forms.hidden({
     id:"asset_id",
     name:"asset_id",
     value: muxAsset.asset_id
+}) }}
+
+{{ forms.hidden({
+    id: "meta-title",
+    name: "meta[title]",
+    value: muxAsset.title
+}) }}
+
+{{ forms.hidden({
+    id: "meta-external_id",
+    name: "meta[external_id]",
+    value: muxAsset.id
+}) }}
+
+{{ forms.hidden({
+    id: "meta-creator_id",
+    name: "meta[creator_id]",
+    value: currentSite.name
 }) }}
 
 {{ titleFieldHtml }}
@@ -51,21 +77,25 @@
 </div>
 
 {% js at endBody %}
-$(function() {
-    $("#{{ ns }}mux-player-container-{{ muxAsset.id }}").find('mux-player').each(function() {
-        const player = $(this)[0];
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach((entry) => {
-                if (entry.target === player) {
-                    if (!entry.isIntersecting) {
-                        player.pause();
-                    }
-                }
-            });
-        }, {
-            threshold: 0.5  // 50% of the player should be visible to trigger the observer
+    $(function() {
+        $("#{{ ns }}title").on('input', function() {
+            $("#{{ ns }}meta-title").val($(this).val());
         });
-        observer.observe(player);
+
+        $("#{{ ns }}mux-player-container-{{ muxAsset.id }}").find('mux-player').each(function() {
+            const player = $(this)[0];
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.target === player) {
+                        if (!entry.isIntersecting) {
+                            player.pause();
+                        }
+                    }
+                });
+            }, {
+                threshold: 0.5  // 50% of the player should be visible to trigger the observer
+            });
+            observer.observe(player);
+        });
     });
-});
 {% endjs %}

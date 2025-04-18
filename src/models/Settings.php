@@ -43,6 +43,7 @@ class Settings extends Model
      */
     public string $mp4Support = '';
 
+
     /**
      * @inheritdoc
      */
@@ -58,7 +59,7 @@ class Settings extends Model
             ['maxResolutionTier', 'string'],
             ['maxResolutionTier', 'default', 'value' => '1080p'],
             ['mp4Support', 'string'],
-            ['mp4Support', 'default', 'value' => 'none'],
+            ['mp4Support', 'default', 'value' => 'none']
         ];
     }
 

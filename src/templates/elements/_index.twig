@@ -1,11 +1,10 @@
 {% extends '_layouts/elementindex' %}
 {% do view.registerAssetBundle("rocketpark\\mux\\assetbundles\\mux\\MuxDashboardAsset") %}
-{% set title = 'Mux Assets'|t('mux') %}
+{% set title = 'MUX Assets'|t('mux') %}
 {#{% requirePermission 'accessPlugin-mux' %}#}
 {% requirePermission "mux:assets" %}
 {% set crumbs = [
-    { label: "MUX"|t('mux'), url: url('/mux') },
-    { label: "Assets"|t('mux'), url: url('/mux/assets') }
+    { label: "MUX"|t('mux'), url: url('/mux/assets') },
 ] %}
 {% set elementType = "rocketpark\\mux\\elements\\MuxAsset" %}
 {% set canHaveDrafts = false %}
