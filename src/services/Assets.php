@@ -828,4 +828,25 @@ class Assets extends Component
    
     }
 
+    /**
+     * Get Mux Asset Element by ID
+     * @param string $id 
+     * @return MuxAssetElement|null 
+     */
+    public function restoreAssetById(string $asset_id): bool
+    {
+        $element = MuxAssetElement::find()
+            ->asset_id($asset_id)
+            ->trashed()
+            ->one();
+
+        if (!$element) {
+            return false;
+        }
+
+        Craft::$app->elements->restoreElement($element);
+
+        return true;
+    }
+
 }

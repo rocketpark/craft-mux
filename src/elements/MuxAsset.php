@@ -4,6 +4,7 @@ namespace rocketpark\mux\elements;
 
 use Craft;
 use craft\base\Element;
+use craft\elements\actions\Restore;
 use craft\elements\User;
 use craft\elements\db\ElementQueryInterface;
 use craft\fieldlayoutelements\TextField;
@@ -19,6 +20,7 @@ use phpDocumentor\Reflection\Types\Boolean;
 use rocketpark\mux\Mux;
 use rocketpark\mux\elements\db\MuxAssetQuery;
 use rocketpark\mux\elements\actions\SyncAssets;
+use rocketpark\mux\elements\actions\RestoreAssets;
 use rocketpark\mux\fieldlayoutelements\MuxAssetFieldContentTab;
 use rocketpark\mux\fieldlayoutelements\MuxAssetFieldTracksTab;
 use rocketpark\mux\records\SignedKeys;
@@ -330,6 +332,7 @@ class MuxAsset extends Element
         // List any bulk element actions here
         $actions = [];
         $actions[] = SyncAssets::class;
+        $actions[] = Restore::class;
         return $actions;
     }
 

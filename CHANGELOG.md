@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+### 1.2.8 - June 2, 2025
+### Added
+- Added Restore Element Action for Trashed items
+### Updated
+- Generate asset track subtitles to use job queue and limit 1 per second for MUX rate limit
+
 ### 1.2.6 - June 2, 2025
 ### Added
 - Added MUX api asset method generateAssetTrackSubtitles

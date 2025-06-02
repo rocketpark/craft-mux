@@ -11,6 +11,10 @@ use craft\helpers\Console;
 use rocketpark\mux\Mux;
 use yii\console\ExitCode;
 
+use Craft;
+use craft\helpers\Queue;
+use rocketpark\mux\jobs\GenerateMuxSubtitlesJob;
+
 use craft\db\Command;
 use craft\helpers\Db;
 use yii\db\Query;
@@ -35,10 +39,10 @@ class TracksController extends Controller
      */
     public function actionGenerateAudioTracksSubtitles(): int
     {
-        $rows = (new Query())
-        ->select(['id', 'asset_id', 'tracks'])
-        ->from('{{%mux_assets}}')
-        ->all();
+        $rows = (new \craft\db\Query())
+            ->select(['id', 'asset_id', 'tracks'])
+            ->from('{{%mux_assets}}')
+            ->all();
 
         $results = [];
 
@@ -76,10 +80,14 @@ class TracksController extends Controller
             return ExitCode::OK;
         }
 
-        foreach($results as $result) {
-            $this->_generateAudioTracksSubtitles($result['asset_id'], $result['audio_track_id']);
+        foreach ($results as $result) {
+            Craft::$app->queue->push(new GenerateMuxSubtitlesJob([
+                'assetId' => $result['asset_id'],
+                'trackId' => $result['audio_track_id'],
+            ]));
         }
 
+        $this->stdout(count($results) . ' subtitle jobs pushed to the queue.' . PHP_EOL, Console::FG_GREEN);
         return ExitCode::OK;
     }
 

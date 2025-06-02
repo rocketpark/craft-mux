@@ -433,6 +433,37 @@ class AssetsController extends Controller
     }
 
 
+    /**
+     * Restore Mux Asset By Id
+     * @requestParams $params['assetId']
+     * @return void|Response
+     */
+    public function actionRestoreAssetById(): Response
+    {
+        $this->requirePostRequest();
+        $request = Craft::$app->getRequest();
+        $params = $request->getBodyParams();
+
+        if ($request->getAcceptsJson()) {
+            
+            if (!Mux::$plugin->assets->restoreAssetById($params['assetId'])) {
+                Craft::$app->getSession()->setNotice('Couldn\'t restore asset.');
+                $this->setFailFlash(Craft::t('mux', 'Couldn\'t restore asset.', [
+                    'type' => GlobalSet::displayName(),
+                ]));
+            }
+
+            $this->setSuccessFlash(Craft::t('mux', 'Assets updated from MUX!', [
+                'type' => GlobalSet::displayName(),
+            ]));
+
+            return $this->asJson([
+                'success' => true
+            ]);
+        }
+    }
+
+
     // Private Methods
     // =========================================================================
 
