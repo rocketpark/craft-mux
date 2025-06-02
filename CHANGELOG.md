@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+### 1.2.6 - June 2, 2025
+### Added
+- Added MUX api asset method generateAssetTrackSubtitles
+### Updated
+- MUX PHP framework to version 5.0.1
+- php-jwt framework to version 6.11.1
+
 ## 1.2.4 - November 7, 2023
 ### Added
 - Added a new plugin variable `craft.signedKeys` to return all the generated signed key for secure playback.

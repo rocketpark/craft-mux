@@ -803,4 +803,29 @@ class Assets extends Component
             : MuxPhp\Models\PlaybackPolicy::_PUBLIC;
     }
 
+    /**
+     * Generate Asset Track Subtitles
+     * @param string $asset_id 
+     * @param string $track_id 
+     * @return mixed 
+     * @throws Exception 
+     */
+    public function generateAssetTrackSubtitles(string $asset_id, string $track_id): mixed
+    {
+        $config = Mux::$plugin->assets->muxConf();
+        $apiInstance = new MuxPhp\Api\AssetsApi(
+            new Client(),
+            $config
+        );
+
+        try {
+            $generate_track_subtitles_request = json_decode('{"generated_subtitles":[{"language_code":"en","name":"English (generated)","passthrough":"English (generated)"}]}',true);
+            $result = $apiInstance->generateAssetTrackSubtitles($asset_id, $track_id, $generate_track_subtitles_request);
+            return $result->getData();
+        } catch (Exception $e) {
+            echo 'Exception when calling AssetsApi->generateAssetTrackSubtitles: ', $e->getMessage(), PHP_EOL;
+        }
+   
+    }
+
 }
