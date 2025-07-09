@@ -271,14 +271,20 @@ class Assets extends Component
         
         $subtitles = new MuxPhp\Models\AssetGeneratedSubtitleSettings(["language_code" => "en", "name" => "English CC"]);
         $inputSettings = new MuxPhp\Models\InputSettings(["generated_subtitles" => [$subtitles]]);
-        $staticRenditions = new MuxPhp\Models\CreateStaticRenditionRequest(["resolution" => $settings->staticRenditions !== 'none' ? $settings->staticRenditions : '']);
+        $staticRenditions = [];
+
+        if ($settings->staticRenditions !== 'none') {
+            $staticRenditions[] = new MuxPhp\Models\CreateStaticRenditionRequest([
+                'resolution' => $settings->staticRenditions,
+            ]);
+        }
 
         $createAssetRequest = new MuxPhp\Models\CreateAssetRequest([
             "inputs" => [$inputSettings],
             "playback_policy" => [$policy],
             "max_resolution_tier" => $settings->maxResolutionTier,
             "mp4_support" => $settings->mp4Support, //-- DEPRECATED
-            "static_renditions" => [$staticRenditions],
+            "static_renditions" => $staticRenditions,
             "passthrough" => $passthrough,
             "meta" => new MuxPhp\Models\AssetMetadata([
                 "title" => $passthrough,

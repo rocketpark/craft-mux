@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.1.2 - July 9, 2025
+### Fixed
+- Fixed setting of static_renditions param when uploading mux asset
+
 ## 2.1.1 - July 8, 2025
 ### Updated
 - Settings will now warn when mp4_spport or static_rendition inputs are being updated when the other is set
