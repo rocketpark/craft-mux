@@ -11,6 +11,7 @@ use Exception as GlobalException;
 use yii\web\Response;
 use yii\web\BadRequestHttpException;
 use yii\web\ForbiddenHttpException;
+use yii\web\Request;
 use yii\web\NotFoundHttpException;
 
 use yii\base\Exception;
@@ -365,7 +366,7 @@ class AssetsController extends Controller
      * @requestParams $params['id'], $params['track_id']
      * @return void|Response
      * */
-    public function actionDeleteAssetTrackById()
+    public function actionDeleteAssetTrackById(): Response
     {
         $this->requirePostRequest();
 
@@ -374,15 +375,20 @@ class AssetsController extends Controller
         $params = craft\helpers\Json::decode($body);
         
 
-        if(!isset($params['id']) || !isset($params['track_id'])) {
-            if($request->getAcceptsJson()) {
+        if (empty($params['id']) || empty($params['track_id'])) {
+            $errorMsg = Craft::t('mux', 'Invalid parameters provided.');
+            Craft::$app->getSession()->setError($errorMsg);
+
+            if ($request->getAcceptsJson()) {
                 return $this->asJson([
-                    'error' => 'Invalid parameters provided.'
+                    'success' => false,
+                    'error' => $errorMsg
                 ]);
-            } else {
-                Craft::$app->getSession()->setError('Invalid parameters provided.');
-                return;
             }
+            return $this->asJson([
+                'success' => false,
+                'error' => $errorMsg
+            ]);
         }
 
         if(MUX::$plugin->assets->deleteMuxAssetTrackById($params['id'], $params['track_id'])) {
@@ -412,6 +418,10 @@ class AssetsController extends Controller
             ]);
         };
 
+        return $this->asJson([
+            'success' => false
+        ]);
+
     }
 
     /**
@@ -419,7 +429,7 @@ class AssetsController extends Controller
      * @requestParams $params['assetId']
      * @return void|Response
      */
-    public function actionSyncAssetById(): response
+    public function actionSyncAssetById(): Response
     {
         $this->requirePostRequest();
         $request = Craft::$app->getRequest();
@@ -442,15 +452,20 @@ class AssetsController extends Controller
                 'success' => true
             ]);
         }
+
+        return $this->asJson([
+            'success' => false
+        ]);
     }
 
 
     /**
      * Update MP4 Support
      * @requestParams $params['assetId'], $params['mp4Support']
+     * @deprecated
      * @return void|Response
      */
-    public function actionUpdateMp4Support(): response
+    public function actionUpdateMp4Support(): Response
     {
         $this->requirePostRequest();
         $request = Craft::$app->getRequest();
@@ -472,8 +487,45 @@ class AssetsController extends Controller
                 'success' => true
             ]);
         }
+
+        return $this->asJson([
+            'success' => false
+        ]);
     }
 
+    /**
+     * Update MUX Asset Static Renditions
+     * @requestParams $params['assetId'], $params['staticRendition']
+     * @return void|Response
+     */
+    public function actionUpdateStaticRenditions(): Response
+    {
+        $this->requirePostRequest();
+        $request = Craft::$app->getRequest();
+        $params = $request->getBodyParams();
+
+        if ($request->getAcceptsJson()) {
+            if (!Mux::$plugin->assets->updateMuxAssetStaticRenditions($params['assetId'], $params['staticRendition'])) {
+                Craft::$app->getSession()->setNotice('Couldn\'t update MUX asset static rendition.');
+                $this->setFailFlash(Craft::t('mux', 'Couldn\'t update MUX asset static rendition.', [
+                    'type' => GlobalSet::displayName(),
+                ]));
+            }
+
+            $this->setSuccessFlash(Craft::t('mux', 'Asset static rendition updated.', [
+                'type' => GlobalSet::displayName(),
+            ]));
+
+            return $this->asJson([
+                'success' => true
+            ]);
+        }
+
+        return $this->asJson([
+            'success' => false
+        ]);
+
+    }
 
     // Private Methods
     // =========================================================================
@@ -506,9 +558,9 @@ class AssetsController extends Controller
 
     private function _updateAssetPermission($asset): void
     {
-        if (Craft::$app->getEdition() !== Craft::Pro) {
-            return;
-        }
+        // if (Craft::$app->getEdition() !== Craft::Pro) {
+        //     return;
+        // }
 
         $suffix = ':' . $asset->uid;
 

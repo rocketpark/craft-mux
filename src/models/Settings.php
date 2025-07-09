@@ -43,6 +43,11 @@ class Settings extends Model
      */
     public string $mp4Support = '';
 
+    /**
+     * @var string Enable static renditions on your video assets for offline viewing and other use cases.
+     */
+    public string $staticRenditions = '';
+
 
     /**
      * @inheritdoc
@@ -59,7 +64,9 @@ class Settings extends Model
             ['maxResolutionTier', 'string'],
             ['maxResolutionTier', 'default', 'value' => '1080p'],
             ['mp4Support', 'string'],
-            ['mp4Support', 'default', 'value' => 'none']
+            ['mp4Support', 'default', 'value' => 'none'],
+            ['staticRenditions', 'string'],
+            ['staticRenditions', 'default', 'value' => 'none']
         ];
     }
 

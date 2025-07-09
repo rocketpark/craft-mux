@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.1.0 - July 8, 2025
+### Added
+- Added ability to upload via Mux Asset input
+- Added translations file for en
+### Updated
+- Mux Asset input settings for upload functionality
+- Mux entry to allow for static rendition while depreciating mp4 support
+
 ## 2.0.20 - April 18, 2025
 ### Added
 - Added a button to download text track files from Mux.

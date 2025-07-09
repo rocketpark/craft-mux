@@ -80,7 +80,7 @@ class Assets extends Component
         'mp4_support' => "",
         'source_asset_id' => "",
         'normalize_audio' => "",
-        'static_renditions' => null,
+        'static_renditions' => [],
         'recording_times' => [],
         'non_standard_input_reasons' => [],
         'test' => "",
@@ -271,12 +271,15 @@ class Assets extends Component
         
         $subtitles = new MuxPhp\Models\AssetGeneratedSubtitleSettings(["language_code" => "en", "name" => "English CC"]);
         $inputSettings = new MuxPhp\Models\InputSettings(["generated_subtitles" => [$subtitles]]);
-        // $mp4Support = new MuxPhp\Models\UpdateAssetMP4SupportRequest([$settings->mp4Support]);
+
         $createAssetRequest = new MuxPhp\Models\CreateAssetRequest([
-            "input" => [$inputSettings],
+            "inputs" => [$inputSettings],
             "playback_policy" => [$policy],
             "max_resolution_tier" => $settings->maxResolutionTier,
             "mp4_support" => $settings->mp4Support,
+            "static_renditions" => $settings->staticRenditionsSupport !== 'none' ? [
+                "resolution" => $settings->staticRenditionsSupport
+            ] : null,
             "passthrough" => $passthrough,
             "meta" => new MuxPhp\Models\AssetMetadata([
                 "title" => $passthrough,
@@ -284,9 +287,9 @@ class Assets extends Component
                 "creator_id" => '',
             ])
         ]);
+
         $createUploadRequest = new MuxPhp\Models\CreateUploadRequest(["timeout" => 3600, "new_asset_settings" => $createAssetRequest, "cors_origin" => UrlHelper::siteUrl()]);
 
-        
         $upload = $apiInstance->createDirectUpload($createUploadRequest);
 
         return json_encode($upload->getData());
@@ -822,6 +825,49 @@ class Assets extends Component
         } catch (\Exception $e) {
             // Handle generic exceptions
             Mux::error("Exception when calling updateAssetMp4Support: {$e->getMessage()}: ". __METHOD__, 'mux');
+            return false;
+        }
+    }
+
+    /**
+     * Update MUX Asset Static Renditions
+     * @param string|int $assetId
+     * @param string $staticRendition
+     * @return bool
+     */
+    public function updateMuxAssetStaticRenditions(string|int $assetId, string $staticRendition): bool
+    {
+        // Validate inputs
+        if (empty($assetId) || empty($staticRendition)) {
+            Mux::error('Invalid input provided for assetId or staticRendition.'. __METHOD__, 'mux');
+            return false;
+        }
+
+        try {
+            // Initialize the API instance with configuration
+            $config = Mux::$plugin->assets->muxConf();
+            $apiInstance = new MuxPhp\Api\AssetsApi(new Client(), $config);
+
+            // Create the request payload
+            $staticRendition = new MuxPhp\Models\StaticRendition([
+                "resolution" => $staticRendition
+            ]);
+
+            // Call the API to create the static rendition
+            $result = $apiInstance->createAssetStaticRendition($assetId, $staticRendition);
+            if (!$result) {
+                Mux::info("Failed to create static rendition for asset ID: {$assetId}. ". __METHOD__, 'mux');
+                return false;
+            }
+
+            return true;
+        } catch (\MuxPhp\ApiException $apiException) {
+            // Handle specific API exceptions
+            Mux::error("Mux API Exception: {$apiException->getMessage()}: ". __METHOD__, 'mux');
+            return false;
+        } catch (\Exception $e) {
+            // Handle generic exceptions
+            Mux::error("Exception when calling updateMuxAssetStaticRenditions: {$e->getMessage()}: ". __METHOD__, 'mux');
             return false;
         }
     }

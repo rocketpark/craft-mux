@@ -85,21 +85,23 @@
                 </ul>
             </div>
 
-            <h5 class="heading">{{ "MP4 Support"|t('mux') }} 
-                <span class="info">{{ "Turn on static MP4, M4A, or both."|t('mux') }}</span>
-            </h5>
-            <div class="value flex">
-                <div class="select">
-                    <select id="mux-mp4-support" name="mux-mp4-support">
-                        <option value="none" {% if muxAsset.mp4_support == 'none' %}selected{% endif %}>None</option>
-                        <option value="capped-1080p" {% if muxAsset.mp4_support == 'capped-1080p' %}selected{% endif %}>Capped 1080p</option>
-                        <option value="audio-only" {% if muxAsset.mp4_support == 'audio-only' %}selected{% endif %}>Audio Only</option>
-                        <option value="capped-1080p,audio-only" {% if muxAsset.mp4_support == 'capped-1080p,audio-only' %}selected{% endif %}>Capped 1080p,Audio Only</option>
-                    </select>
+            {% if muxAsset.static_renditions == null and (muxAsset.mp4_support != 'none' and muxAsset.mp4_support != null) %}
+                <h5 class="heading">{{ "MP4 Support"|t('mux') }} 
+                    <span class="info">{{ "Turn on static MP4, M4A, or both. (DEPRECATED). Use Static Renditions instead."|t('mux') }}</span>
+                </h5>
+                <div class="value flex">
+                    <div class="select">
+                        <select id="mux-mp4-support" name="mux-mp4-support">
+                            <option value="none" {% if muxAsset.mp4_support == 'none' %}selected{% endif %}>None</option>
+                            <option value="capped-1080p" {% if muxAsset.mp4_support == 'capped-1080p' %}selected{% endif %}>Capped 1080p</option>
+                            <option value="audio-only" {% if muxAsset.mp4_support == 'audio-only' %}selected{% endif %}>Audio Only</option>
+                            <option value="capped-1080p,audio-only" {% if muxAsset.mp4_support == 'capped-1080p,audio-only' %}selected{% endif %}>Capped 1080p,Audio Only</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
+            {% endif %}
 
-            {% if muxAsset.static_renditions != null and (muxAsset.mp4_support != 'none' and muxAsset.mp4_support != null) %}
+            {% if muxAsset.static_renditions == null and (muxAsset.mp4_support != 'none' and muxAsset.mp4_support != null) %}
                 <h5 class="heading">{{ "MP4 Support Status"|t('mux') }}</h5>
                 <div class="value flex">
                     {% set colors = {
@@ -109,6 +111,48 @@
                         'disabled': 'gray'
                     } %}
                     {% set status = muxAsset.static_renditions.status %}
+                    {% set color = colors[status] ?? 'gray' %}
+                    <span class="status-label {{ color }}"><span class="status {{ color }}"></span><span class="status-label-text">{{ status }}</span></span>
+                </div>
+            {% endif %}
+
+            <h5 class="heading">{{ "Static Renditions"|t('mux') }} 
+                <span class="info">{{ "Turn on static renditions for offline viewing and other use cases."|t('mux') }}</span>
+            </h5>
+            <div class="value flex">
+                <div class="select">
+                    <select id="mux-static-renditions" name="mux-static-renditions">
+                        <option value="none" {% if muxAsset.static_renditions is empty or muxAsset.static_renditions == 'none' %}selected{% endif %}>None</option>
+                        <option value="highest" 
+                            {% if muxAsset.static_renditions is defined 
+                                and muxAsset.static_renditions.files is defined 
+                                and muxAsset.static_renditions.files|length > 0 
+                                and (muxAsset.static_renditions.files[0].resolution ?? '') == 'highest' 
+                            %}selected{% endif %}>
+                            Highest
+                        </option>
+                        <option value="audio-only" 
+                            {% if muxAsset.static_renditions is defined 
+                                and muxAsset.static_renditions.files is defined 
+                                and muxAsset.static_renditions.files|length > 0 
+                                and (muxAsset.static_renditions.files[0].resolution ?? '') == 'audio-only' 
+                            %}selected{% endif %}>
+                            Audio Only
+                        </option>
+                    </select>
+                </div>
+            </div>
+
+            {% if muxAsset.static_renditions != null and (muxAsset.static_renditions != 'none' and muxAsset.static_renditions != null and muxAsset.static_renditions.files is defined and muxAsset.static_renditions.files|length > 0) %}
+                <h5 class="heading">{{ "Static Renditions Status"|t('mux') }}</h5>
+                <div class="value flex">
+                    {% set colors = {
+                        'ready': 'teal',
+                        'preparing': 'purple',
+                        'errored': 'red',
+                        'disabled': 'gray'
+                    } %}
+                    {% set status = muxAsset.static_renditions.files[0].status %}
                     {% set color = colors[status] ?? 'gray' %}
                     <span class="status-label {{ color }}"><span class="status {{ color }}"></span><span class="status-label-text">{{ status }}</span></span>
                 </div>
@@ -133,12 +177,51 @@
 {#<script>#}
     $(function() {
         const mp4SupportSelect = $("#{{ ns }}mux-mp4-support");
+        const staticRenditionsSelect = $("#{{ ns }}mux-static-renditions");
         mp4SupportSelect.on('change', function(evt) {
             const value = $(this).val();
             let body = { assetId: "{{ muxAsset.asset_id }}", mp4Support: value };
             body[Craft.csrfTokenName] = Craft.csrfTokenValue;
 
             fetch('/actions/mux/assets/update-mp4-support', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            }).then(res => {
+                if (!res.ok) {
+                    throw new Error("HTTP error " + res.status);
+                }
+                return res.json();
+            }).then(json => {
+                if(json.success) {
+                    Craft.cp.displayNotice(Craft.t("mux", "MP4 Support updated."));
+                } else {
+                    Craft.cp.displayError(Craft.t("mux", "Failed to update MP4 Support."));
+                }
+            }).catch(err => {
+                Craft.cp.displayError(Craft.t("mux", "Failed to update MP4 Support."));
+            });
+        });
+
+        staticRenditionsSelect.on('change', function(evt) {
+            const value = $(this).val();
+            const mp4SupportValue = mp4SupportSelect.val();
+
+            // Only allow static renditions if mp4Support is 'none'
+            if (mp4SupportValue !== 'none') {
+                Craft.cp.displayError(Craft.t("mux", "Static renditions can only be set if MP4 Support is set to 'None'."));
+                // Optionally reset the select to 'none' or previous value
+                $(this).val('none');
+                return;
+            }
+
+            let body = { assetId: "{{ muxAsset.asset_id }}", staticRendition: value };
+            body[Craft.csrfTokenName] = Craft.csrfTokenValue;
+
+            fetch('/actions/mux/assets/update-static-renditions', {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',

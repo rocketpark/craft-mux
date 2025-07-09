@@ -4,7 +4,8 @@
 
 {% set id = id ?? "elementselect#{random()}" -%}
 {% set elements = elements ?? [] -%}
-{% set jsClass = jsClass ?? 'Craft.BaseElementSelectInput' -%}
+{# Craft.BaseElementSelectInput #}
+{% set jsClass = jsClass ?? 'RocketPark.Mux.MuxElementSelectInput' -%}
 {% set sources = sources ?? null -%}
 {% set condition = condition ?? null -%}
 {% set criteria = criteria ?? null -%}
@@ -74,6 +75,7 @@
         sourceElementId: null,
         disabledElementIds: disabledElementIds ?? null,
         viewMode: viewMode,
+        canUpload: canUpload,
         single: single,
         limit: limit,
         showSiteMenu: showSiteMenu ?? false,
@@ -85,6 +87,16 @@
     } %}
 
     {% js %}
-        new {{ jsClass }}({{ jsSettings|json_encode|raw }});
+        document.addEventListener('DOMContentLoaded', function() {
+            function initMuxElementSelectInput() {
+                if (window.RocketPark && window.RocketPark.Mux && window.RocketPark.Mux.MuxElementSelectInput) {
+                    new {{ jsClass }}({{ jsSettings|json_encode|raw }});
+                } else {
+                    setTimeout(initMuxElementSelectInput, 50);
+                }
+            }
+            initMuxElementSelectInput();
+        });
     {% endjs %}
+
 {% endif %}

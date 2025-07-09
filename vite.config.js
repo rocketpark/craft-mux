@@ -17,6 +17,7 @@ export default ({ command }) => {
                     'mux-signed-keys': 'src/web/src/js/mux-signed-keys.js',
                     'mux-dashboard': 'src/web/src/js/mux-dashboard.js',
                     'mux-cp': 'src/web/src/css/mux-cp.css',
+                    'mux': 'src/web/src/Mux.js',
                 },
                 output: {
                     entryFileNames: 'js/[name].js',

@@ -30,6 +30,13 @@ class MuxAsset extends AssetBundle
     {
         $this->sourcePath = '@rocketpark/mux/web/dist';
 
+        $this->depends = [
+            CpAsset::class,
+        ];
+
+        $this->jsOptions = ['type' => 'module'];
+        $this->js[] = 'js/mux.js';
+
         $this->css = [
             'css/mux-cp.css',
         ];

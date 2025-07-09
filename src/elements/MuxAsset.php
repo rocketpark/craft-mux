@@ -6,11 +6,13 @@ use Craft;
 use craft\base\Element;
 use craft\elements\User;
 use craft\elements\db\ElementQueryInterface;
+use craft\elements\actions\Restore;
 use craft\helpers\Db;
 use craft\helpers\Html;
 use craft\helpers\UrlHelper;
 use craft\models\FieldLayout;
 use craft\web\CpScreenResponseBehavior;
+
 use Exception as GlobalException;
 use rocketpark\mux\Mux;
 use rocketpark\mux\elements\db\MuxAssetQuery;
@@ -355,6 +357,7 @@ class MuxAsset extends Element
     protected static function defineActions(string $source): array
     {
         $actions = [];
+        $actions[] = Restore::class;
 
         if (Craft::$app->getUser()->checkPermission('mux:assets-create')) {
             $actions[] = SyncAssets::class;
@@ -660,17 +663,6 @@ class MuxAsset extends Element
         return implode('', $html);
     }
 
-    /**
-     * @inheritdoc
-     */
-//    public function beforeSave(bool $isNew): bool
-//    {
-//        //\yii\helpers\VarDumper::dump($this->meta, 5, true);exit;
-//        if (is_array($this->meta)) {
-//            $this->meta = $this->meta; // Serialize to JSON before saving
-//        }
-//        return parent::beforeSave($isNew);
-//    }
 
     /**
      * @inheritdoc
@@ -719,8 +711,6 @@ class MuxAsset extends Element
 
         parent::afterSave($isNew);
     }
-
-
 
 
     /**

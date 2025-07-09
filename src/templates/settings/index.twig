@@ -67,7 +67,7 @@
         }) }}
 
         {% set mp4Instructions %}
-            {{ "Enable static MP4 renditions on your video assets for offline viewing and other use cases."|t('mux') }}
+            {{ "Enable static MP4 renditions on your video assets for offline viewing and other use cases. (DEPRECATED)"|t('mux') }}
             <a href="https://docs.mux.com/guides/enable-static-mp4-renditions" target="_blank">View Documentation</a>
         {% endset %}
 
@@ -83,6 +83,24 @@
             ],
             value: settings.mp4Support,
             errors: settings.getErrors('mp4Support')
+        }) }}
+
+        {% set staticRenditionsInstructions %}
+            {{ "Enable static renditions on your video assets for offline viewing and other use cases."|t('mux') }}
+            <a href="https://docs.mux.com/guides/enable-static-mp4-renditions" target="_blank">View Documentation</a>
+        {% endset %}
+
+        {{  forms.selectField({
+            label: 'Default Static Renditions Support <div class="info">%s</div>'|format(staticRenditionsInstructions),
+            id: 'staticRenditions',
+            name: 'staticRenditions',
+            options: [
+                { label: 'None', value: 'none' },
+                { label: 'Highest', value: 'highest' },
+                { label: 'Audio Only', value: 'audio-only' }
+            ],
+            value: settings.staticRenditions,
+            errors: settings.getErrors('staticRenditions')
         }) }}
 
 <hr>

@@ -86,6 +86,12 @@ class MuxAsset extends BaseRelationField
     }
 
     /**
+     * @var bool Whether it should be possible to upload files directly to the field.
+     * @since 2.1.0
+     */
+    public bool $allowUploads = true;
+
+    /**
      * @inheritdoc
      */
     protected string $settingsTemplate = 'mux/fields/_settings.twig';
@@ -95,17 +101,7 @@ class MuxAsset extends BaseRelationField
      */
     protected string $inputTemplate = 'mux/fields/_input.twig';
 
-
-    /**
-     * @inheritdoc
-     */
-    // protected function inputHtml(mixed $value, ?ElementInterface $element = null): string
-    // {
-    //     $value = $this->_all($value, $element);
-    //     $variables = $this->inputTemplateVariables($value, $element);
-    //     return Craft::$app->getView()->renderTemplate($variables);
-    // }
-
+    
     public function getSourceOptions(): array
     {
         return [];
@@ -137,23 +133,20 @@ class MuxAsset extends BaseRelationField
             'complexity' => Gql::relatedArgumentComplexity(GqlService::GRAPHQL_COMPLEXITY_EAGER_LOAD),
         ];
     }
-    
-    /**
-     * @inheritdoc
-     * @since 3.3.0
-     */
-    // public function getEagerLoadingGqlConditions(): ?array
-    // {
-    //     return null;
-    // }
 
     /**
      * @inheritdoc
      */
-    /*protected function tableAttributeHtml(Collection $elements): string
+    protected function inputTemplateVariables(null|array|ElementQueryInterface $value = null, ?ElementInterface $element = null): array
     {
-        return Cp::elementPreviewHtml($elements->all(), Cp::ELEMENT_SIZE_SMALL, false, true, $this->previewMode === self::PREVIEW_MODE_FULL);
-    }*/
+        $variables = parent::inputTemplateVariables($value, $element);
+        $variables['canUpload'] = (
+            $this->allowUploads &&
+            Craft::$app->getUser()->checkPermission("mux:assets-create")
+        );
+
+        return $variables;
+    }
 
     // Events
     // -------------------------------------------------------------------------

@@ -4,6 +4,14 @@
 
 {% block fieldSettings %}
 
+    {{ forms.lightswitchField({
+        label: 'Allow uploading directly to the field'|t('mux'),
+        instructions: 'Whether authors should be able to upload videos directly to the field, rather than requiring them to select/upload assets via the selection modal.'|t('mux'),
+        id: 'allow-uploads',
+        name: 'allowUploads',
+        on: field.allowUploads,
+    }) }}
+
     {{ block('limitFields') }}
     {{ block('viewModeField') }}
     {{ block('selectionLabelField') }}
