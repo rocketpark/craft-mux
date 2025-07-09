@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.1.1 - July 8, 2025
+### Updated
+- Settings will now warn when mp4_spport or static_rendition inputs are being updated when the other is set
+### Fixed
+- Static renditions settings param name
+- Upload Mux Asset service method static_renditions support
+
 ## 2.1.0 - July 8, 2025
 ### Added
 - Added ability to upload via Mux Asset input

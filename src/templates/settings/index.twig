@@ -141,3 +141,51 @@
     {# include our JavaScript modules #}
     {{ parent() }}
 {% endblock %}
+
+{% block foot %}
+    {{ parent() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mp4SupportField = document.getElementById('settings-mp4Support');
+            const staticRenditionsField = document.getElementById('settings-staticRenditions');
+            
+            if (mp4SupportField && staticRenditionsField) {
+                // Function to check and show notification when static renditions is changed
+                function checkStaticRenditionsSelection() {
+                    const mp4Value = mp4SupportField.value;
+                    const staticValue = staticRenditionsField.value;
+                    
+                    if (mp4Value !== 'none' && staticValue !== 'none') {
+                        Craft.cp.displayNotification('notice', '{{ "Warning: MP4 Support is deprecated and should be set to \"None\" when using Static Renditions. Please set MP4 Support to \"None\" to use Static Renditions."|t("mux")|raw }}', {
+                            icon: 'alert',
+                            iconLabel: '{{ "Warning"|t("app") }}'
+                        });
+                        
+                        // Reset static renditions to 'none'
+                        staticRenditionsField.value = 'none';
+                    }
+                }
+                
+                // Function to check and show notification when mp4 support is changed
+                function checkMp4SupportSelection() {
+                    const mp4Value = mp4SupportField.value;
+                    const staticValue = staticRenditionsField.value;
+                    
+                    if (mp4Value !== 'none' && staticValue !== 'none') {
+                        Craft.cp.displayNotification('notice', '{{ "Warning: MP4 Support is deprecated and should be set to \"None\" when using Static Renditions. Please set MP4 Support to \"None\" to use Static Renditions."|t("mux")|raw }}', {
+                            icon: 'alert',
+                            iconLabel: '{{ "Warning"|t("app") }}'
+                        });
+                        
+                        // Reset mp4 support to 'none'
+                        mp4SupportField.value = 'none';
+                    }
+                }
+                
+                // Add event listeners
+                staticRenditionsField.addEventListener('change', checkStaticRenditionsSelection);
+                mp4SupportField.addEventListener('change', checkMp4SupportSelection);
+            }
+        });
+    </script>
+{% endblock %}
