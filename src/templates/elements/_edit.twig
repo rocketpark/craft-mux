@@ -5,7 +5,7 @@
 {% requirePermission "mux:assets-edit" %}
 {% set selectedSubnavItem = 'list' %}
 
-{% set muxAsset = craft.mux.id(id).one() %}
+{% set muxAsset = craft.mux.id(elementId).one() %}
 {% if muxAsset is null %}
     {% redirect cpUrl("mux/assets") %}
 {% endif %}
@@ -14,7 +14,7 @@
 {% set crumbs = [
     { label: "MUX"|t('mux'), url: cpUrl('mux/assets') },
     { label: "Assets"|t('mux'), url: cpUrl('mux/assets') },
-    { label: title, url: cpUrl('mux/assets/' ~ id) }
+    { label: title, url: cpUrl('mux/assets/edit/' ~ elementId) }
 ] %}
 
 {% block body %}

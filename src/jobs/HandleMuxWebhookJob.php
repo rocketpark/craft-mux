@@ -95,6 +95,6 @@ class HandleMuxWebhookJob extends BaseJob
     }
     protected function defaultDescription(): string
     {
-        return Craft::t('app', 'Handling Mux Webhook');
+        return Craft::t('mux', 'Handling Mux Webhook');
     }
 }

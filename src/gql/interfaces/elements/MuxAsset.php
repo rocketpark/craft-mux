@@ -153,6 +153,14 @@ class MuxAsset extends Element
                 'type' => Type::string(),
                 'description' => 'ID of the mux asset'
             ],
+            'volumeId' => [
+                'type' => Type::ID(),
+                'description' => 'Volume ID'
+            ],
+            'folderId' => [
+                'type' => Type::ID(),
+                'description' => 'Folder ID'
+            ],
             'created_at' => [
                 'type' => Type::string(),
                 'description' => 'Creation time of the object'

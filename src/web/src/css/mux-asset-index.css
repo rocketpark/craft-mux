@@ -1,0 +1,137 @@
+.source-path-container {
+    padding: 14px 24px;
+    border-bottom: 1px solid #e3e5e8;
+    background: #f8f9fa;
+    font-size: 13px;
+}
+
+.source-path-container a {
+    color: #0b69a3;
+    text-decoration: none;
+}
+
+.source-path-container a:hover {
+    color: #0d5a8a;
+    text-decoration: underline;
+}
+
+.source-path-container .separator {
+    color: #8f98a3;
+    margin: 0 8px;
+}
+
+/* MuxAsset Index Styles */
+
+.source-path-container {
+    padding: 10px 0;
+    border-bottom: 1px solid #e3e5e8;
+    margin-bottom: 20px;
+}
+
+.source-path-container a {
+    color: #0b69a3;
+    text-decoration: none;
+}
+
+.source-path-container a:hover {
+    text-decoration: underline;
+}
+
+.source-path-container .separator {
+    color: #8f98a3;
+    margin: 0 5px;
+}
+
+.folder-actions {
+    display: inline-block;
+    margin-left: 20px;
+}
+
+.folder-actions .btn {
+    margin-right: 10px;
+}
+
+/* Folder element styling */
+.element.folder {
+    cursor: pointer;
+}
+
+.element.folder:hover {
+    background-color: #f8f9fa;
+}
+
+.element.folder.drag-over {
+    background-color: #e3f2fd;
+    border: 2px dashed #2196f3;
+}
+
+/* Modal styling */
+.mux-new-folder-modal,
+.mux-delete-folder-modal,
+.mux-rename-folder-modal,
+.mux-move-modal {
+    background: rgba(0, 0, 0, 0.5);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mux-new-folder-modal > div,
+.mux-delete-folder-modal > div,
+.mux-rename-folder-modal > div,
+.mux-move-modal > div {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 100%;
+    margin: 20px;
+}
+
+.mux-new-folder-modal h2,
+.mux-delete-folder-modal h2,
+.mux-rename-folder-modal h2,
+.mux-move-modal h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.mux-new-folder-modal input,
+.mux-rename-folder-modal input,
+.mux-move-modal select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.mux-new-folder-modal .buttons,
+.mux-delete-folder-modal .buttons,
+.mux-rename-folder-modal .buttons,
+.mux-move-modal .buttons {
+    text-align: right;
+}
+
+.mux-new-folder-modal .btn,
+.mux-delete-folder-modal .btn,
+.mux-rename-folder-modal .btn,
+.mux-move-modal .btn {
+    margin-left: 10px;
+}
+
+/* Bulk actions */
+.bulk-actions {
+    display: inline-block;
+    margin-left: 20px;
+}
+
+.bulk-actions .btn {
+    margin-right: 10px;
+} 

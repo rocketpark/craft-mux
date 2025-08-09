@@ -61,7 +61,7 @@ class MuxAssetFieldLayoutElement extends BaseNativeField
                 ],
                 [
                     'label' => Craft::t('mux', 'Edit Mux Asset'),
-                    'url' => UrlHelper::cpUrl('mux/assets/' . $element->id),
+                    'url' => UrlHelper::cpUrl('mux/assets/edit/' . $element->id),
                 ],
             ]
         ];

@@ -25,6 +25,7 @@ use craft\services\UserPermissions;
 use craft\web\UrlManager;
 use craft\web\twig\variables\CraftVariable;
 use rocketpark\mux\assetbundles\mux\MuxAsset as MuxAssetAsset;
+use rocketpark\mux\assetbundles\mux\MuxAssetIndexAsset;
 use rocketpark\mux\elements\MuxAsset as MuxAssetElement;
 use rocketpark\mux\fields\MuxAsset as MuxAssetField;
 use rocketpark\mux\gql\interfaces\elements\MuxAsset as MuxAssetInterface;
@@ -66,7 +67,7 @@ class Mux extends Plugin
     /**
      * @var string
      */
-    public string $schemaVersion = '1.0.2';
+    public string $schemaVersion = '1.0.3';
 
     /**
      * @var bool
@@ -91,8 +92,9 @@ class Mux extends Plugin
         ];
     }
 
-    public function init()
+    public function init(): void
     {
+        parent::init();
 
         self::$plugin = $this;
         self::$settings = $this->getSettings();
@@ -109,6 +111,7 @@ class Mux extends Plugin
 
         // Register the asset bundle for the Control Panel
         if (Craft::$app->getRequest()->getIsCpRequest()) {
+            Craft::$app->view->registerAssetBundle(MuxAssetIndexAsset::class);
             Craft::$app->view->registerAssetBundle(MuxAssetAsset::class);
         }
 
@@ -160,7 +163,6 @@ class Mux extends Plugin
         Craft::$app->elements->on(
             Elements::EVENT_AFTER_SAVE_ELEMENT,
             function (ElementEvent $e) {
-                // Update the asset passthrough attribute (which holds the title) on Mux.
                 if ($e->element instanceof MuxAssetElement) {
                     $element = $e->element;
                     $attributes = $element->getAttributes();
@@ -170,7 +172,7 @@ class Mux extends Plugin
                     $asset = new MuxAsset();
 
                     $asset->asset_id = $attributes['asset_id'];
-                    $asset->passthrough = $attributes['title'];
+                    $asset->passthrough = $attributes['passthrough'];
                     $asset->meta['title'] = $attributes['title'];
                     $asset->meta['external_id'] = $attributes['id'];
                     $asset->meta['creator_id'] = $attributes['meta']['creator_id'] ?? '';
@@ -220,7 +222,15 @@ class Mux extends Plugin
 
         $this->_registerLogTarget();
 
-        parent::init();
+        // Register services
+        $this->setComponents([
+            'assets' => \rocketpark\mux\services\Assets::class,
+            'folders' => \rocketpark\mux\services\Folders::class,
+            'volumes' => \rocketpark\mux\services\Volumes::class,
+            'settings' => \rocketpark\mux\services\SettingsService::class,
+            'playbackRestrictions' => \rocketpark\mux\services\PlaybackRestrictions::class,
+            'signedKeys' => \rocketpark\mux\services\SignedKeys::class
+        ]);
     }
 
     /**
@@ -254,6 +264,22 @@ class Mux extends Plugin
                 format: "%datetime% %message%\n",
                 dateFormat: 'Y-m-d H:i:s',
             ),
+        ]);
+
+        Craft::getLogger()->dispatcher->targets[] = new MonologTarget([
+            'name' => 'mux',
+            'categories' => ['mux'],
+            'level' => LogLevel::WARNING,
+            'logContext' => false,
+            'allowLineBreaks' => false,
+        ]);
+
+        Craft::getLogger()->dispatcher->targets[] = new MonologTarget([
+            'name' => 'mux',
+            'categories' => ['mux'],
+            'level' => LogLevel::ERROR,
+            'logContext' => false,
+            'allowLineBreaks' => false,
         ]);
     }
 
@@ -349,12 +375,14 @@ class Mux extends Plugin
             UrlManager::class,
             UrlManager::EVENT_REGISTER_CP_URL_RULES,
             function (RegisterUrlRulesEvent $event) {
-                $event->rules['mux'] = ['template' => 'mux/elements/_index.twig'];
+                $event->rules['mux/assets/edit/<elementId:\d+>'] = 'mux/assets/edit';
+                $event->rules['mux/assets/<defaultSource:{handle}(\/[^\/]*)?>'] = 'mux/assets/index';
+                $event->rules['mux/assets'] = 'mux/assets/index';
+                
+                $event->rules['mux'] = 'mux/assets/index';
                 $event->rules['mux/settings'] = 'mux/settings/plugin-settings';
                 $event->rules['mux/restrictions'] = ['template' => 'mux/settings/restrictions'];
                 $event->rules['mux/signed-keys'] = ['template' => 'mux/settings/signedKeys'];
-                $event->rules['mux/assets'] = ['template' => 'mux/elements/_index.twig'];
-                $event->rules['mux/assets/<elementId:\d+>'] =  'elements/edit'; //['template' => 'mux/elements/_edit.twig'];
             }
         );
     }
@@ -390,4 +418,12 @@ class Mux extends Plugin
             ],
         ];
     }
-}
+
+//     /**
+//      * Returns the folders service
+//      */
+//     public function getFolders(): \rocketpark\mux\services\Folders
+//     {
+//         return $this->get('folders');
+//     }
+    }
