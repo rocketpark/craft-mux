@@ -33,6 +33,9 @@ use rocketpark\mux\gql\queries\MuxAsset as MuxAssetGqlQuery;
 use rocketpark\mux\models\MuxAsset;
 use rocketpark\mux\models\Settings;
 use rocketpark\mux\services\Assets;
+use rocketpark\mux\services\Data;
+use rocketpark\mux\services\Folders;
+use rocketpark\mux\services\Volumes;
 use rocketpark\mux\services\PlaybackRestrictions;
 use rocketpark\mux\services\SettingsService;
 use rocketpark\mux\services\SignedKeys;
@@ -86,8 +89,11 @@ class Mux extends Plugin
             'components' => [
                 'assets' => Assets::class,
                 'settings' => SettingsService::class,
+                'folders' => Folders::class,
+                'volumes' => Volumes::class,
                 'playbackRestrictions' => PlaybackRestrictions::class,
-                'signedKeys' => SignedKeys::class
+                'signedKeys' => SignedKeys::class,
+                'data' => Data::class
             ],
         ];
     }
@@ -229,7 +235,8 @@ class Mux extends Plugin
             'volumes' => \rocketpark\mux\services\Volumes::class,
             'settings' => \rocketpark\mux\services\SettingsService::class,
             'playbackRestrictions' => \rocketpark\mux\services\PlaybackRestrictions::class,
-            'signedKeys' => \rocketpark\mux\services\SignedKeys::class
+            'signedKeys' => \rocketpark\mux\services\SignedKeys::class,
+            'data' => \rocketpark\mux\services\Data::class
         ]);
     }
 

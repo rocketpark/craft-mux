@@ -129,6 +129,7 @@ class AssetsController extends Controller
             ->metaSidebarHtml($element->getSidebarHtml(false) . Cp::metadataHtml($element->getMetadata()))
             ->addTab('0', Craft::t('app', 'Content'), '#tab01-content', true)
             ->addTab('1', Craft::t('app', 'Tracks'), '#tab02-tracks', false)
+            ->addTab('2', Craft::t('app', 'Data'), '#tab03-data', false)
             ->contentHtml($html);
 
         // Add save and continue editing option
@@ -701,7 +702,7 @@ class AssetsController extends Controller
         // $this->requireVolumePermissionByAsset('deleteAssets', $asset);
         // $this->requirePeerVolumePermissionByAsset('savePeerAssets', $asset);
         // $this->requirePeerVolumePermissionByAsset('deletePeerAssets', $asset);
-        
+
         $result = $assetsService->moveAssets([$asset->id], $folderId, $volume->id);
 
         if (!$result) {

@@ -31,10 +31,13 @@ use Psr\Log\LogLevel;
 use rocketpark\mux\elements\MuxAsset as MuxAssetElement;
 use rocketpark\mux\models\MuxAsset as MuxAsset;
 use rocketpark\mux\records\Assets as MuxAssetsRecord;
-use rocketpark\mux\events\MuxAssetSyncEvent;
 use rocketpark\mux\jobs\CleanupMuxAssetsJob;
 use rocketpark\mux\records\MuxVolume as MuxVolumeRecord;
 use rocketpark\mux\records\MuxFolder as MuxFolderRecord;
+use rocketpark\mux\events\MuxAssetEvent;
+use rocketpark\mux\events\MuxAssetUploadEvent;
+use rocketpark\mux\events\MuxAssetMoveEvent;
+use rocketpark\mux\events\MuxAssetSyncEvent;
 use yii\base\Exception;
 use yii\base\InvalidArgumentException as BaseInvalidArgumentException;
 use yii\base\InvalidConfigException;
@@ -52,6 +55,17 @@ class Assets extends Component
 {
 
     public const EVENT_BEFORE_SYNCHRONIZE_MUX_ASSET = 'beforeSynchronizeMuxAsset';
+    public const EVENT_BEFORE_CREATE_ASSET = 'beforeCreateAsset';
+    public const EVENT_AFTER_CREATE_ASSET = 'afterCreateAsset';
+    public const EVENT_BEFORE_UPDATE_ASSET = 'beforeUpdateAsset';
+    public const EVENT_AFTER_UPDATE_ASSET = 'afterUpdateAsset';
+    public const EVENT_BEFORE_UPLOAD_ASSET = 'beforeUploadAsset';
+    public const EVENT_AFTER_UPLOAD_ASSET = 'afterUploadAsset';
+    public const EVENT_BEFORE_DELETE_ASSET = 'beforeDeleteAsset';
+    public const EVENT_AFTER_DELETE_ASSET = 'afterDeleteAsset';
+    public const EVENT_BEFORE_MOVE_ASSET = 'beforeMoveAsset';
+    public const EVENT_AFTER_MOVE_ASSET = 'afterMoveAsset';
+
     private const META_KEY = 'meta';
 
     /**
@@ -214,11 +228,28 @@ class Assets extends Component
      */
     public function saveAsset(MuxAssetElement $element): bool
     {
-        if (!Craft::$app->getElements()->saveElement($element)) {
-            return true;
+        $isNew = !$element->id;
+        
+        // Fire before event
+        $event = new MuxAssetEvent([
+            'asset' => $element,
+            'isNew' => $isNew,
+        ]);
+        
+        $this->trigger($isNew ? self::EVENT_BEFORE_CREATE_ASSET : self::EVENT_BEFORE_UPDATE_ASSET, $event);
+        
+        if ($event->isValid === false) {
+            return false;
+        }
+
+        $success = Craft::$app->getElements()->saveElement($element);
+        
+        if ($success) {
+            // Fire after event
+            $this->trigger($isNew ? self::EVENT_AFTER_CREATE_ASSET : self::EVENT_AFTER_UPDATE_ASSET, $event);
         }
     
-        return false;
+        return $success;
     }
 
     /**
@@ -228,17 +259,35 @@ class Assets extends Component
     */
     public function deleteAsset(String $id): bool
     {
-       $element = MuxAssetElement::find(['assetId' => $id])->one();
+        $element = MuxAssetElement::find(['assetId' => $id])->one();
     
         if (!$element) {
             return false;
         }
+        
+        // Fire before delete event
+        $event = new MuxAssetEvent([
+            'asset' => $element,
+            'isNew' => false,
+        ]);
+        
+        $this->trigger(self::EVENT_BEFORE_DELETE_ASSET, $event);
+        
+        if ($event->isValid === false) {
+            return false;
+        }
     
         try {
-            return (bool) Craft::$app->getElements()->deleteElement($element);
+            $success = (bool) Craft::$app->getElements()->deleteElement($element);
+            
+            if ($success) {
+                // Fire after delete event
+                $this->trigger(self::EVENT_AFTER_DELETE_ASSET, $event);
+            }
+            
+            return $success;
         } catch (Throwable $e) {
             throw new Exception("Unable to delete Asset Record: {$e->getMessage()}");
-            return false;
         }
     }
 
@@ -304,6 +353,21 @@ class Assets extends Component
      */
     public static function uploadMuxAsset(string $title, ?string $volumeUid, ?string $folderId)
     {
+        $service = Mux::$plugin->assets;
+        
+        // Fire before upload event
+        $event = new MuxAssetUploadEvent([
+            'title' => $title,
+            'volumeUid' => $volumeUid,
+            'folderId' => $folderId,
+        ]);
+        
+        $service->trigger(self::EVENT_BEFORE_UPLOAD_ASSET, $event);
+        
+        if ($event->isValid === false) {
+            return false;
+        }
+
         $settings = Mux::$settings;
         $config = Mux::$plugin->assets->muxConf();
         $apiInstance = new MuxPhp\Api\DirectUploadsApi(
@@ -351,8 +415,13 @@ class Assets extends Component
         $createUploadRequest = new MuxPhp\Models\CreateUploadRequest(["timeout" => 3600, "new_asset_settings" => $createAssetRequest, "cors_origin" => UrlHelper::siteUrl()]);
 
         $upload = $apiInstance->createDirectUpload($createUploadRequest);
-
-        return json_encode($upload->getData());
+        $uploadData = json_encode($upload->getData());
+        
+        // Fire after upload event
+        $event->uploadData = json_decode($uploadData, true);
+        $service->trigger(self::EVENT_AFTER_UPLOAD_ASSET, $event);
+        
+        return $uploadData;
     }
 
     /**
@@ -756,10 +825,24 @@ class Assets extends Component
                     } else if($key == 'passthrough') {
                         $parsed = json_decode($value, true);
                         if(isset($parsed['volumeId']) && $element->volumeId != $parsed['volumeId']) {
-                            $element->volumeId = $parsed['volumeId'];
+                            // Validate that the volume exists before setting it
+                            $volumeExists = MuxVolumeRecord::findOne(['id' => $parsed['volumeId']]);
+                            if ($volumeExists) {
+                                $element->volumeId = $parsed['volumeId'];
+                            } else {
+                                // Log warning and don't update the volumeId
+                                Mux::warning("Volume ID {$parsed['volumeId']} from passthrough data doesn't exist, keeping current volumeId {$element->volumeId}", 'mux');
+                            }
                         }
                         if(isset($parsed['folderId']) && $element->folderId != $parsed['folderId']) {
-                            $element->folderId = $parsed['folderId'];
+                            // Validate that the folder exists before setting it
+                            $folderExists = MuxFolderRecord::findOne(['id' => $parsed['folderId']]);
+                            if ($folderExists) {
+                                $element->folderId = $parsed['folderId'];
+                            } else {
+                                // Log warning and don't update the folderId
+                                Mux::warning("Folder ID {$parsed['folderId']} from passthrough data doesn't exist, keeping current folderId {$element->folderId}", 'mux');
+                            }
                         }
                     }
                     
@@ -1153,6 +1236,20 @@ class Assets extends Component
      */
     public function moveAssets(array $elementIds, ?int $targetFolderId, ?int $volumeId): bool
     {
+
+        // Fire before move event
+        $event = new MuxAssetMoveEvent([
+            'elementIds' => $elementIds,
+            'volumeId' => $volumeId,
+            'targetFolderId' => $targetFolderId,
+        ]);
+        
+        $this->trigger(self::EVENT_BEFORE_MOVE_ASSET, $event);
+        
+        if ($event->isValid === false) {
+            return false;
+        }
+
         $elements = MuxAssetElement::find()
             ->id($elementIds)
             ->all();
@@ -1164,6 +1261,9 @@ class Assets extends Component
                 return false;
             }
         }
+
+        // Fire after move event
+        $this->trigger(self::EVENT_AFTER_MOVE_ASSET, $event);
 
         return true;
     }

@@ -44,6 +44,7 @@ use craft\helpers\ElementHelper;
 use craft\helpers\Json;
 use craft\helpers\StringHelper;
 use Illuminate\Support\Collection;
+use rocketpark\mux\fieldlayoutelements\MuxAssetFieldDataTab;
 
 /**
  * Mux Asset element type
@@ -1176,8 +1177,12 @@ class MuxAsset extends Element
         $tab2->name = 'Tracks';
         $tab2->setLayout($fieldLayout);
 
+        $tab3 = new MuxAssetFieldDataTab();
+        $tab3->name = 'Data';
+        $tab3->setLayout($fieldLayout);
+
         $fieldLayout->setTabs([
-           $tab, $tab2
+           $tab, $tab2, $tab3
         ]);
 
         return $fieldLayout;

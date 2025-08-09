@@ -1,0 +1,159 @@
+{% import "_includes/forms" as forms %}
+{% do view.registerAssetBundle("craft\\web\\assets\\d3\\D3Asset") %}
+
+<style>
+.mux-data-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 30px;
+}
+
+.mux-data-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 6px;
+    background: #fdfdfd;
+    border: 1px solid #e4e6ea;
+    border-radius: 4px;
+    padding: 20px;
+    text-align: left;
+}
+
+.mux-data-number {
+    font-size: 2.25em;
+    font-weight: bold;
+    color: #29323d;
+}
+
+.mux-data-suffix {
+    font-size: 0.625em;
+    font-weight: normal;
+    color: #8f98a3;
+    padding-left: 2px;
+}
+
+.mux-data-label {
+    color: #29323d;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mux-chart-container {
+    background: #fff;
+    border: 1px solid #e4e6ea;
+    border-radius: 4px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.mux-chart-title {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #29323d;
+}
+
+#mux-views-chart {
+    width: 100%;
+    height: 300px;
+}
+</style>
+
+<div class="mux-data-section">
+    <h2>{{ "Metrics (last 7 days)"|t('mux') }}</h2>
+    
+    <div class="mux-data-grid">
+        <div class="mux-data-card">
+            <div class="mux-data-label">{{ "Total Views"|t('mux') }}</div>
+            <div class="mux-data-number">{{ muxData.views|number_format }}</div>
+        </div>
+        
+        <div class="mux-data-card">
+            <div class="mux-data-label">{{ "Total Unique Viewers"|t('mux') }}</div>
+            <div class="mux-data-number">{{ muxData.unique_viewers|number_format }}</div>
+        </div>
+        
+        <div class="mux-data-card">
+            <div class="mux-data-label">{{ "Total Playing Time"|t('mux') }}</div>
+            <div class="mux-data-number">{{ muxData.playing_time }}<span class="mux-data-suffix">{{ "m"|t('mux') }}</span></div>
+        </div>
+        
+        <div class="mux-data-card">
+            <div class="mux-data-label">{{ "Avg Playing Time"|t('mux') }}</div>
+            <div class="mux-data-number">{{ muxData.avg_playing_time }}<span class="mux-data-suffix">{{ "s"|t('mux') }}</span></div>
+        </div>
+        
+        <div class="mux-data-card">
+            <div class="mux-data-label">{{ "Avg Completion"|t('mux') }}</div>
+            <div class="mux-data-number">{{ muxData.avg_completion }}<span class="mux-data-suffix">{{ "%"|t('mux') }}</span></div>
+        </div>
+    </div>
+
+    {# Debug: Show chart data structure #}
+    {# {{ dump(chartData) }} #}
+
+    {% set hasChartData = chartData and chartData.rows and chartData.rows|length > 0 %}
+    {% set chartRowCount = chartData.rows ? chartData.rows|length : 0 %}
+    
+    {% if hasChartData %}
+        <div class="mux-chart-container">
+            <h3 class="mux-chart-title">{{ "Views Over Last 7 Days"|t('mux') }}</h3>
+            <div id="mux-views-chart"></div>
+        </div>
+    {% else %}
+        <div class="mux-chart-container">
+            <h3 class="mux-chart-title">{{ "Views Over Last 7 Days"|t('mux') }}</h3>
+            <p>{{ "No chart data available for the last 7 days."|t('mux') }}</p>
+            {# Debug info #}
+            <p><small>Chart data rows: {{ chartRowCount }}</small></p>
+        </div>
+    {% endif %}
+</div>
+
+{% if hasChartData %}
+{% js %}
+$(function() {
+    try {
+        console.log('Initializing Mux chart...');
+        console.log('Chart data:', {{ chartData|json_encode|raw }});
+        
+        var $chart = $('#mux-views-chart');
+        if ($chart.length === 0) {
+            console.error('Chart container not found');
+            return;
+        }
+        
+        var chart = new Craft.charts.Area($chart);
+        var chartDataTable = new Craft.charts.DataTable({{ chartData|json_encode|raw }});
+        
+        chart.draw(chartDataTable, {
+            colors: ['#cf3f40'],
+            hAxis: {
+                title: '{{ "Date"|t('mux') }}',
+                titleTextStyle: {
+                    color: '#29323d'
+                }
+            },
+            vAxis: {
+                title: '{{ "Views"|t('mux') }}',
+                titleTextStyle: {
+                    color: '#29323d'
+                },
+                minValue: 0
+            },
+            backgroundColor: 'transparent',
+            legend: {
+                position: 'none'
+            }
+        });
+        
+        console.log('Chart initialized successfully');
+    } catch (error) {
+        console.error('Error initializing chart:', error);
+    }
+});
+{% endjs %}
+{% endif %}
