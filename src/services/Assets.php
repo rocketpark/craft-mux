@@ -32,6 +32,9 @@ use rocketpark\mux\elements\MuxAsset as MuxAssetElement;
 use rocketpark\mux\models\MuxAsset as MuxAsset;
 use rocketpark\mux\records\Assets as MuxAssetsRecord;
 use rocketpark\mux\events\MuxAssetSyncEvent;
+use rocketpark\mux\jobs\CleanupMuxAssetsJob;
+use rocketpark\mux\records\MuxVolume as MuxVolumeRecord;
+use rocketpark\mux\records\MuxFolder as MuxFolderRecord;
 use yii\base\Exception;
 use yii\base\InvalidArgumentException as BaseInvalidArgumentException;
 use yii\base\InvalidConfigException;
@@ -91,10 +94,10 @@ class Assets extends Component
     /**
      * Hydrate Asset
      * @param array $params 
-     * @param Asset|MuxAssetElement $asset 
-     * @return Asset|MuxAssetElement 
+     * @param Asset|MuxAssetElement|MuxAsset $asset 
+     * @return Asset|MuxAssetElement|MuxAsset 
      */
-    private function hydrateAsset(array $params, Asset|MuxAssetElement $asset): Asset|MuxAssetElement 
+    private function hydrateAsset(array $params, Asset|MuxAssetElement|MuxAsset $asset): Asset|MuxAssetElement|MuxAsset
     {
         foreach ($params as $key => $value) {
             if ($key === self::META_KEY) {
@@ -122,6 +125,16 @@ class Assets extends Component
     }
 
     /**
+     * Get valid request parameters for asset hydration
+     * @param array $requestParams
+     * @return array
+     */
+    private function getValidRequestParams(array $requestParams): array
+    {
+        return array_intersect_key($requestParams, $this->defaultAttributes);
+    }
+
+    /**
      * Builds a asset model from POST data.
      *
      * @return MuxAsset
@@ -134,7 +147,25 @@ class Assets extends Component
 
         $asset = new MuxAsset();
 
-        $params = array_merge($this->defaultAttributes, array_intersect_key($requestParams, $this->defaultAttributes));
+         // Only include valid request parameters
+        $validRequestParams = $this->getValidRequestParams($requestParams);
+        $params = array_merge($this->defaultAttributes, $validRequestParams);
+
+        // If the volumeId is set in the request, update the asset's volumeId.
+        if (isset($requestParams['volumeId'])) {
+            // If requestParams['volumeId'] is different from the asset's volumeId, update the asset's volumeId.
+            if ($requestParams['volumeId'] !== $asset->volumeId) {
+                $asset->volumeId = $requestParams['volumeId'];
+            }
+        }
+
+        // If the folderId is set in the request, update the asset's folderId.
+        if (isset($requestParams['folderId'])) {
+            // If requestParams['folderId'] is different from the asset's folderId, update the asset's folderId.
+            if ($requestParams['folderId'] !== $asset->folderId) {
+                $asset->folderId = $requestParams['folderId'];
+            }
+        }
 
         return $this->hydrateAsset($params, $asset);
     }
@@ -155,7 +186,20 @@ class Assets extends Component
             $asset = new MuxAssetElement();
         }
 
-        $params = array_merge($this->defaultAttributes, array_intersect_key($requestParams, $this->defaultAttributes));
+         // Only include valid request parameters
+        $validRequestParams = $this->getValidRequestParams($requestParams);
+        $params = array_merge($this->defaultAttributes, $validRequestParams);
+
+        // Handle volumeUid separately since it's not in defaultAttributes
+        if (isset($requestParams['volumeUid'])) {
+            $volume = MuxVolumeRecord::findOne(['uid' => $requestParams['volumeUid']]);
+            $asset->volumeId = $volume ? $volume->id : null;
+        }
+
+        // Handle folderId separately since it's not in defaultAttributes
+        if (isset($requestParams['folderId'])) {
+            $asset->folderId = $requestParams['folderId'];
+        }
         
         return $this->hydrateAsset($params, $asset);
     }
@@ -258,7 +302,7 @@ class Assets extends Component
      * @throws ApiException 
      * @throws InvalidArgumentException 
      */
-    public static function uploadMuxAsset(?string $passthrough)
+    public static function uploadMuxAsset(string $title, ?string $volumeUid, ?string $folderId)
     {
         $settings = Mux::$settings;
         $config = Mux::$plugin->assets->muxConf();
@@ -279,15 +323,26 @@ class Assets extends Component
             ]);
         }
 
+        $passthrough = [];
+
+        if($volumeUid) {
+            $volume = MuxVolumeRecord::findOne(['uid' => $volumeUid]);
+            $passthrough['volumeId'] = $volume ? (int)$volume->id : null;
+        }
+
+        if($folderId) {
+            $passthrough['folderId'] = (int)$folderId;
+        }
+
         $createAssetRequest = new MuxPhp\Models\CreateAssetRequest([
             "inputs" => [$inputSettings],
             "playback_policy" => [$policy],
             "max_resolution_tier" => $settings->maxResolutionTier,
             "mp4_support" => $settings->mp4Support, //-- DEPRECATED
             "static_renditions" => $staticRenditions,
-            "passthrough" => $passthrough,
+            "passthrough" => json_encode($passthrough),
             "meta" => new MuxPhp\Models\AssetMetadata([
-                "title" => $passthrough,
+                "title" => $title,
                 "external_id" => '',
                 "creator_id" => '',
             ])
@@ -402,7 +457,7 @@ class Assets extends Component
      * @return array 
      * @throws Exception 
      */
-    public static function getMuxAsset(?string $id): array
+    public static function getMuxAsset(?string $id): array|bool
     {
         $config = Mux::$plugin->assets->muxConf();
         $apiInstance = new MuxPhp\Api\AssetsApi(
@@ -421,28 +476,84 @@ class Assets extends Component
     }
 
     /**
-     * Delete MUX Asset by ID
-     * @param null|string $id 
-     * @return true[]|void 
+     * Delete a Mux asset by ID.
+     * Returns true if deleted or already absent (404).
+     * Returns false for non-retryable failures.
+     * For retryable errors (429/5xx), throws so the caller can back off & retry.
      */
-    public function deleteAssetById(?string $id)
+    public function deleteAssetById(?string $id, ?MuxPhp\Api\AssetsApi $api = null): bool
     {
-        $config = Mux::$plugin->assets->muxConf();
-        $apiInstance = new MuxPhp\Api\AssetsApi(
-            new Client(),
-            $config
-        );
+        if (empty($id)) return true;
+
+        $api ??= new MuxPhp\Api\AssetsApi(new Client(), $this->muxConf());
 
         try {
-            $apiInstance->deleteAsset($id);
-            return ['success' => true];
-        } catch (\Exception $e) {
-            throw new Exception("Exception when calling AssetsApi->deleteAsset: {$e->getMessage()}");
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
+            $api->deleteAsset($id);
+            Mux::info("Deleted Mux asset via API: {$id}.", 'mux');
+            return true;
+        } catch (\MuxPhp\ApiException $e) {
+            $code = $e->getCode();
+            if ($code === 404) {
+                Mux::info("Mux asset {$id} not found (404); treating as already deleted.", 'mux');
+                return true;
+            }
+            if ($code === 429 || $code >= 500) {
+                throw $e; // let the job retry inside its loop
+            }
+            Mux::error("Non-retryable error deleting {$id}: HTTP {$code} {$e->getMessage()}", 'mux');
+            return false;
         }
+    }
+
+    /**
+     * Delete MUX Asset by Volume ID
+     * @param int $volumeId
+     * @return bool
+     */
+    public function deleteAssetByVolumeId(int $volumeId): bool
+    {
+        $assets = MuxAssetElement::find()->volumeId($volumeId)->all();
+        foreach($assets as $asset) {
+            $this->deleteAsset($asset->id);
+        }
+
+        return true;
+    }
+
+    /**
+     * Delete MUX Asset by Folder ID
+     * @param int $folderId
+     * @return bool
+     */
+    public function deleteAssetByFolderId(int $folderId): bool
+    {
+        $assets = MuxAssetElement::find()->folderId($folderId)->all();
+        foreach($assets as $asset) {
+            $this->deleteAsset($asset->id);
+        }
+
+        return true;
+    }
+
+
+    /**
+     * Queue cleanup of Mux assets.
+     * @param array $assetIds
+     * @return void
+     */
+    public function queueCleanupMuxAssets(array $assetIds): void
+    {
+        if (empty($assetIds)) {
+            Mux::info('queueCleanupMuxAssets called with empty array; nothing to enqueue.', 'mux');
+            return;
+        }
+        $count = count($assetIds);
+        Mux::info("Enqueuing CleanupMuxAssetsJob for {$count} asset(s).", 'mux');
+
+        Craft::$app->getQueue()->push(new CleanupMuxAssetsJob([
+            'assetIds' => array_values(array_unique($assetIds)),
+            'description' => "Cleanup {$count} Mux asset(s)"
+        ]));
     }
 
 
@@ -643,8 +754,12 @@ class Assets extends Component
                         $element->asset_status = $value;
                         continue;
                     } else if($key == 'passthrough') {
-                        if($element->title != $value) {
-                            $element->title = $value;
+                        $parsed = json_decode($value, true);
+                        if(isset($parsed['volumeId']) && $element->volumeId != $parsed['volumeId']) {
+                            $element->volumeId = $parsed['volumeId'];
+                        }
+                        if(isset($parsed['folderId']) && $element->folderId != $parsed['folderId']) {
+                            $element->folderId = $parsed['folderId'];
                         }
                     }
                     
@@ -741,20 +856,37 @@ class Assets extends Component
             ->asset_id($asset['id'])
             ->status(null)
             ->one();
+
+        // Get the title from the meta data
+        $title = !empty($asset->getMeta()) ? $asset->getMeta()->getTitle() : '';
             
         if ($muxAssetElement === null) {
             /** @var MuxAssetElement $muxAssetElement */
             $muxAssetElement = new muxAssetElement();
-            $muxAssetElement->title = $asset['passthrough'];
+            $muxAssetElement->title = $title;
             $muxAssetElement->meta = [
-                'title' => $asset['passthrough'],
+                'title' => $title,
                 'external_id' => $asset['id'],
                 'creator_id' => '',
             ];
+            $volumeId = null;
+            $folderId = null;
+            $passthrough = $asset->getPassthrough();
+            if (!empty($passthrough)) {
+                $decoded = json_decode($passthrough, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && array_key_exists('volumeId', $decoded)) {
+                    $volumeId = $decoded['volumeId'];
+                }
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && array_key_exists('folderId', $decoded)) {
+                    $folderId = $decoded['folderId'];
+                }
+            }
+            $muxAssetElement->volumeId = $volumeId;
+            $muxAssetElement->folderId = $folderId;
         } else {
-            $muxAssetElement->title = $asset['passthrough'];
+            $muxAssetElement->title = $title;
             $muxAssetElement->meta = [
-                'title' => $asset['passthrough'],
+                'title' => $title,
                 'external_id' => $asset['id'],
                 'creator_id' => '',
             ];
@@ -999,6 +1131,41 @@ class Assets extends Component
             }
         }
         return $data;
+    }
+
+    /**
+     * Get assets by folder ID
+     * @param int|null $folderId
+     * @return array
+     */
+    public function getAssetsByFolderId(?int $folderId): array
+    {
+        return MuxAssetElement::find()
+            ->folderId($folderId)
+            ->all();
+    }
+
+    /**
+     * Move assets to a different folder
+     * @param array $elementIds
+     * @param int|null $targetFolderId
+     * @return bool
+     */
+    public function moveAssets(array $elementIds, ?int $targetFolderId, ?int $volumeId): bool
+    {
+        $elements = MuxAssetElement::find()
+            ->id($elementIds)
+            ->all();
+
+        foreach ($elements as $element) {
+            $element->folderId = $targetFolderId;
+            $element->volumeId = $volumeId;
+            if (!Craft::$app->getElements()->saveElement($element)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

@@ -48,6 +48,20 @@ class MuxAssetQuery extends ElementQuery
     public mixed $metaTitle = null;
     public mixed $metaExternalId = null;
     public mixed $metaCreatorId = null;
+    public mixed $folderId = null;
+    public mixed $volumeId = null;
+
+    /**
+     * @var bool Whether the query should search the subfolders of [[folderId]].
+     * @used-by includeSubfolders()
+     */
+    public bool $includeSubfolders = false;
+
+    /**
+     * @var mixed The folder path that resulting assets must live within
+     * @used-by folderPath()
+     */
+    public mixed $folderPath = null;
 
 
     public function asset_id(mixed $value): self
@@ -137,6 +151,133 @@ class MuxAssetQuery extends ElementQuery
     {
         $this->meta = $value;
 
+        return $this;
+    }
+
+    /**
+     * Narrows the query results based on the folders the assets belong to, per the folders’ IDs.
+     *
+     * Possible values include:
+     *
+     * | Value | Fetches assets…
+     * | - | -
+     * | `1` | in a folder with an ID of 1.
+     * | `'not 1'` | not in a folder with an ID of 1.
+     * | `[1, 2]` | in a folder with an ID of 1 or 2.
+     * | `['not', 1, 2]` | not in a folder with an ID of 1 or 2.
+     *
+     * ---
+     *
+     * ```twig
+     * {# Fetch assets in the folder with an ID of 1 #}
+     * {% set {elements-var} = {twig-method}
+     *   .folderId(1)
+     *   .all() %}
+     * ```
+     *
+     * ```php
+     * // Fetch assets in the folder with an ID of 1
+     * ${elements-var} = {php-method}
+     *     ->folderId(1)
+     *     ->all();
+     * ```
+     *
+     * ---
+     *
+     * ::: tip
+     * This can be combined with [[includeSubfolders()]] if you want to include assets in all the subfolders of a certain folder.
+     * :::
+     *
+     * @param mixed $value The property value
+     * @return static self reference
+     * @uses $folderId
+     */
+    public function folderId(mixed $value): self
+    {
+        $this->folderId = $value;
+        return $this;
+    }
+
+    /**
+     * Broadens the query results to include assets from any of the subfolders of the folder specified by [[folderId()]].
+     *
+     * ---
+     *
+     * ```twig
+     * {# Fetch assets in the folder with an ID of 1 (including its subfolders) #}
+     * {% set {elements-var} = {twig-method}
+     *   .folderId(1)
+     *   .includeSubfolders()
+     *   .all() %}
+     * ```
+     *
+     * ```php
+     * // Fetch assets in the folder with an ID of 1 (including its subfolders)
+     * ${elements-var} = {php-method}
+     *     ->folderId(1)
+     *     ->includeSubfolders()
+     *     ->all();
+     * ```
+     *
+     * ---
+     *
+     * ::: warning
+     * This will only work if [[folderId()]] was set to a single folder ID.
+     * :::
+     *
+     * @param bool $value The property value (defaults to true)
+     * @return static self reference
+     * @uses $includeSubfolders
+     */
+    public function includeSubfolders(bool $value = true): static
+    {
+        $this->includeSubfolders = $value;
+        return $this;
+    }
+
+    /**
+     * Narrows the query results based on the folders the assets belong to, per the folders’ paths.
+     *
+     * Possible values include:
+     *
+     * | Value | Fetches assets…
+     * | - | -
+     * | `foo/` | in a `foo/` folder (excluding nested folders).
+     * | `foo/*` | in a `foo/` folder (including nested folders).
+     * | `'not foo/*'` | not in a `foo/` folder (including nested folders).
+     * | `['foo/*', 'bar/*']` | in a `foo/` or `bar/` folder (including nested folders).
+     * | `['not', 'foo/*', 'bar/*']` | not in a `foo/` or `bar/` folder (including nested folders).
+     *
+     * ---
+     *
+     * ```twig
+     * {# Fetch assets in the foo/ folder or its nested folders #}
+     * {% set {elements-var} = {twig-method}
+     *   .folderPath('foo/*')
+     *   .all() %}
+     * ```
+     *
+     * ```php
+     * // Fetch assets in the foo/ folder or its nested folders
+     * ${elements-var} = {php-method}
+     *     ->folderPath('foo/*')
+     *     ->all();
+     * ```
+     *
+     * @param mixed $value The property value
+     * @return static self reference
+     * @uses $folderPath
+     * @since 3.7.39
+     */
+    public function folderPath(mixed $value): static
+    {
+        $this->folderPath = $value;
+        return $this;
+    }
+
+    public function volumeId(mixed $value): self
+    {
+        $this->volumeId = $value;
         return $this;
     }
 
@@ -236,6 +377,8 @@ class MuxAssetQuery extends ElementQuery
             'mux_assets.max_resolution_tier',
             'mux_assets.ingest_type',
             'mux_assets.meta',
+            'mux_assets.folderId',
+            'mux_assets.volumeId',
         ]);
 
         if ($this->aspect_ratio) {
@@ -296,7 +439,7 @@ class MuxAssetQuery extends ElementQuery
         if($this->meta){
             $jsonCondition = new Expression('JSON_CONTAINS(mux_assets.meta, :meta)');
             $this->subQuery->andWhere($jsonCondition, [':meta' => json_encode($this->meta)]);
-        }
+        }     
 
         // Check if any track filtering is required
         if (
@@ -392,6 +535,13 @@ class MuxAssetQuery extends ElementQuery
             if ($this->metaCreatorId !== null) {
                 $this->subQuery->andWhere(Db::parseParam('jm.creator_id', $this->metaCreatorId));
             }
+        }
+
+        if ($this->folderId) {
+            $this->subQuery->andWhere(['mux_assets.folderId' => $this->folderId]);
+        }
+        if ($this->volumeId) {
+            $this->subQuery->andWhere(['mux_assets.volumeId' => $this->volumeId]);
         }
 
         return parent::beforePrepare();

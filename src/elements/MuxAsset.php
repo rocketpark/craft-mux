@@ -4,6 +4,10 @@ namespace rocketpark\mux\elements;
 
 use Craft;
 use craft\base\Element;
+use craft\controllers\ElementIndexesController;
+use craft\controllers\ElementSelectorModalsController;
+use craft\db\Query;
+use craft\db\QueryAbortedException;
 use craft\elements\User;
 use craft\elements\db\ElementQueryInterface;
 use craft\elements\actions\Restore;
@@ -11,16 +15,22 @@ use craft\helpers\Db;
 use craft\helpers\Html;
 use craft\helpers\UrlHelper;
 use craft\models\FieldLayout;
+use craft\search\SearchQuery;
+use craft\search\SearchQueryTerm;
+use craft\search\SearchQueryTermGroup;
 use craft\web\CpScreenResponseBehavior;
 
 use Exception as GlobalException;
 use rocketpark\mux\Mux;
 use rocketpark\mux\elements\db\MuxAssetQuery;
 use rocketpark\mux\elements\actions\SyncAssets;
+use rocketpark\mux\elements\actions\MoveMuxAssets;
 use rocketpark\mux\fieldlayoutelements\MuxAssetFieldContentTab;
 use rocketpark\mux\fieldlayoutelements\MuxAssetFieldTracksTab;
 use rocketpark\mux\records\SignedKeys;
 use rocketpark\mux\models\SignedKey;
+use rocketpark\mux\models\MuxFolder;
+use rocketpark\mux\models\MuxVolume;
 use rocketpark\mux\helpers\JWT as JWTHelper;
 use yii\base\InvalidConfigException;
 use yii\base\NotSupportedException;
@@ -28,6 +38,12 @@ use yii\base\InvalidArgumentException;
 use yii\behaviors\AttributeTypecastBehavior;
 use yii\db\Exception;
 use yii\web\Response;
+
+use craft\helpers\ArrayHelper;
+use craft\helpers\ElementHelper;
+use craft\helpers\Json;
+use craft\helpers\StringHelper;
+use Illuminate\Support\Collection;
 
 /**
  * Mux Asset element type
@@ -171,6 +187,8 @@ class MuxAsset extends Element
     }
 
     public ?string $asset_id = '';
+    public ?int $folderId = null;
+    public ?int $volumeId = null;
     public ?string $created_at = '';
     public ?string $asset_status = '';
     public ?string $duration = '';
@@ -312,12 +330,41 @@ class MuxAsset extends Element
     }
 
     /**
+     * @inheritdoc
+     */
+    protected function thumbSvg(): ?string
+    {
+        if ($this->isFolder) {
+            return file_get_contents(Craft::getAlias('@app/elements/thumbs/folder.svg'));
+        }
+        
+        // Return a video icon or your custom icon for Mux assets
+        return file_get_contents(Craft::getAlias('@app/elements/thumbs/video.svg'));
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected function thumbAlt(): ?string
+    {
+        if ($this->isFolder) {
+            return null;
+        }
+        
+        return $this->asset_id;
+    }
+
+    /**
      * Get Thumb Url
      * @param int $size 
      * @return string|null 
      */
     public function getThumbUrl(int $size, bool $animated = false): ?string
     {
+        if ($this->isFolder) {
+            return null;
+        }
+
         $options = [
             'width' => $size,
             'height' => $size,
@@ -337,8 +384,17 @@ class MuxAsset extends Element
         }
     }
 
+    /**
+     * Get Thumb Html
+     * @param int $size 
+     * @return string|null 
+     */
     public function getThumbHtml(int $size): ?string
     {
+        if($this->isFolder) {
+            return parent::getThumbHtml($size);
+        }
+
         $height = round($size * 9 / 16);
         $url = $this->getThumbUrl($size);
         $animated = $this->getThumbUrl($size, true);
@@ -348,6 +404,7 @@ class MuxAsset extends Element
         $div = Html::tag('figure', $baseImg . $animImg, ['class' => 'mux-thumb-figure']);
 
         return $div;
+
     }
 
 
@@ -361,6 +418,9 @@ class MuxAsset extends Element
 
         if (Craft::$app->getUser()->checkPermission('mux:assets-create')) {
             $actions[] = SyncAssets::class;
+
+            // Add move action for folder support
+            $actions[] = MoveMuxAssets::class;
         }
 
         return $actions;
@@ -377,15 +437,74 @@ class MuxAsset extends Element
     /**
      * @inheritdoc
      */
-    protected static function defineSources(string $context = null): array
+    protected static function defineSources(string $context = 'index'): array
     {
-        return [
-            [
-                'key' => 'allassets',
-                'label' => 'All Assets',
-                'hasThumbs' => true,
-            ]
-        ];
+        $sources = [];
+
+        $volumes = Mux::$plugin->volumes->getAllVolumes();
+        $user = Craft::$app->getUser()->getIdentity();
+        
+        foreach ($volumes as $volume) {
+            $folder = Mux::$plugin->folders->getRootFolderByVolumeId($volume->id);
+
+            $sources[] = self::_assembleSourceInfoForFolder($folder, $user);
+            // $sources[] = [
+            //     'key' => "volume:{$volume->uid}",
+            //     'label' => $volume->name,
+            //     'hasThumbs' => true,
+            //     'criteria' => ['volumeId' => $volume->id],
+            //     'defaultSort' => ['dateCreated', 'desc'],
+            // ];
+        }
+
+        return $sources;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public static function getAssetBundle(): string
+    {
+        return \rocketpark\mux\assetbundles\mux\MuxAssetIndexAsset::class;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public static function findSource(string $sourceKey, ?string $context): ?array
+    {
+        if (preg_match('/^volume:[\w\-]+(?:\/.+)?\/folder:([\w\-]+)$/', $sourceKey, $match)) {
+            $folder = Mux::$plugin->folders->getFolderByUid($match[1]);
+            if ($folder) {
+                $source = self::_assembleSourceInfoForFolder($folder, Craft::$app->getUser()->getIdentity());
+                $source['keyPath'] = $sourceKey;
+                return $source;
+            }
+        }
+
+        return null;
+    }
+
+    public static function sourcePath(string $sourceKey, string $stepKey, ?string $context): ?array
+    {
+        if (!preg_match('/^folder:([\w\-]+)$/', $stepKey, $match)) {
+            return null;
+        }
+
+        $folder = Mux::$plugin->folders->getFolderByUid($match[1]);
+
+        if (!$folder) {
+            return null;
+        }
+
+        $path = [$folder->getSourcePathInfo()];
+
+        while ($parent = $folder->getParent()) {
+            array_unshift($path, $parent->getSourcePathInfo());
+            $folder = $parent;
+        }
+
+        return $path;
     }
 
     /**
@@ -437,8 +556,38 @@ class MuxAsset extends Element
     /**
      * @inheritdoc
      */
+    public function getHtmlAttributes(string $context): array
+    {
+        if ($this->isFolder) {
+            $attributes = [
+                'data' => [
+                    'is-folder' => true,
+                    'folder-id' => $this->folderId,
+                    'folder-name' => $this->title,
+                    'source-path' => Json::encode($this->sourcePath),
+                    'has-children' => Mux::$plugin->folders->foldersExist(['parentId' => $this->folderId]),
+                ],
+            ];
+
+            $attributes['data']['movable'] = true;
+
+            return $attributes;
+        }
+
+        
+
+        return parent::getHtmlAttributes($context);
+    }
+
+    /**
+     * @inheritdoc
+     */
     protected function attributeHtml(string $attribute): string
     {
+        if ($this->isFolder) {
+            return '';
+        }
+
         switch ($attribute) {
             case 'duration':
                 $duration = $this->duration;
@@ -479,6 +628,11 @@ class MuxAsset extends Element
 
         return parent::attributeHtml($attribute);
     }
+
+    /**
+     * Get Card Body Html
+     * @return string|null 
+     */
     public function getCardBodyHtml(): ?string
     {
         $duration = $this->duration;
@@ -496,6 +650,8 @@ class MuxAsset extends Element
         }
         return Html::tag('p', Html::encode($durationOutput), ['class' => 'mux-duration']);
     }
+
+    
     
     /**
      * @inheritdoc
@@ -508,6 +664,9 @@ class MuxAsset extends Element
                 'mux-asset-status' => $this->asset_status,
             ],
         ];
+
+        // TODO: Check if the user has permission to move the asset
+        $attributes['data']['movable'] = true;
 
         return $attributes;
     }
@@ -541,16 +700,380 @@ class MuxAsset extends Element
     /**
      * @inheritdoc
      */
-    protected function route(): array|string|null
+    protected static function indexElements(ElementQueryInterface $elementQuery, ?string $sourceKey): array
     {
-        // Define how mux assets should be routed when their URLs are requested
-        return [
-            'templates/render',
-            [
-                'template' => 'site/template/path',
-                'variables' => ['muxAsset' => $this],
-            ]
+        $assets = [];
+        
+        // Include folders in the results?
+        /** @var MuxAssetQuery $elementQuery */
+        if (self::_includeFoldersInIndexElements($elementQuery, $sourceKey, $queryFolder)) {
+            $foldersService = Mux::$plugin->folders;
+            $folderQuery = self::_createFolderQueryForIndex($elementQuery, $queryFolder);
+            $totalFolders = $folderQuery->count();
+
+            if ($totalFolders > $elementQuery->offset) {
+                $source = ElementHelper::findSource(static::class, $sourceKey);
+                if (isset($source['criteria']['folderId'])) {
+                    $baseFolder = $foldersService->getFolderById($source['criteria']['folderId']);
+                } else {
+                    $baseFolder = $foldersService->getRootFolderByVolumeId($queryFolder->getVolume()->id);
+                }
+                $baseSourcePathStep = $baseFolder->getSourcePathInfo();
+
+                $folderQuery
+                    ->offset($elementQuery->offset)
+                    ->limit($elementQuery->limit);
+
+                // Convert database arrays to MuxFolder objects
+                $folders = array_map(fn(array $result) => $foldersService->_createFolderFromArray($result), $folderQuery->all());
+
+                $foldersByPath = ArrayHelper::index($folders, fn($folder) => rtrim($folder->path, '/'));
+
+                foreach ($folders as $folder) {
+                    $sourcePath = [$baseSourcePathStep];
+                    $path = rtrim($baseFolder->path ?? '', '/');
+                    $pathSegs = ArrayHelper::filterEmptyStringsFromArray(explode('/', StringHelper::removeLeft($folder->path, $baseFolder->path ?? '')));
+                    foreach ($pathSegs as $i => $seg) {
+                        $path .= ($path !== '' ? '/' : '') . $seg;
+                        if (isset($foldersByPath[$path])) {
+                            $stepFolder = $foldersByPath[$path];
+                        } else {
+                            $stepFolder = $foldersService->findFolder([
+                                'volumeId' => $queryFolder->volumeId,
+                                'path' => "$path/",
+                            ]);
+                            if (!$stepFolder) {
+                                $stepFolder = $foldersService->ensureFolderByFullPathAndVolume($path, $queryFolder->getVolume());
+                            }
+                            $foldersByPath[$path] = $stepFolder;
+                        }
+
+                        if ($i < count($pathSegs) - 1) {
+                            $stepFolder->setHasChildren(true);
+                        }
+                        $sourcePath[] = $stepFolder->getSourcePathInfo();
+                    }
+
+                    $path = rtrim($folder->path, '/');
+                    $path = StringHelper::removeRight($path, $folder->name);
+                    $path = StringHelper::removeLeft($path, $queryFolder->path ?? '');
+
+                    $assets[] = new self([
+                        'isFolder' => true,
+                        'volumeId' => $queryFolder->volumeId,
+                        'folderId' => $folder->id,
+                        'folderPath' => $path,
+                        'title' => $folder->name,
+                        'uiLabelPath' => ArrayHelper::filterEmptyStringsFromArray(explode('/', $path)),
+                        'sourcePath' => $sourcePath,
+                    ]);
+                }
+            }
+
+            // Is there room for any normal assets as well?
+            $totalAssets = count($assets);
+
+            /** @phpstan-ignore-next-line */
+            if ($totalAssets < $elementQuery->limit) {
+                $elementQuery->offset(max($elementQuery->offset - $totalFolders, 0));
+                $elementQuery->limit($elementQuery->limit - $totalAssets);
+            }
+        }
+
+        // if it's a 'foldersOnly' request, or we have enough folders to hit the query limit,
+        // return the folders directly
+        if (
+            self::isFolderIndex() ||
+            count($assets) === (int)$elementQuery->limit
+        ) {
+            return $assets;
+        }
+
+        // otherwise merge in the resulting assets
+        return array_merge($assets, $elementQuery->all());
+
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public static function indexElementCount(ElementQueryInterface $elementQuery, ?string $sourceKey): int
+    {
+        $count = 0;
+
+        /** @var MuxAssetQuery $elementQuery */
+        if (self::_includeFoldersInIndexElements($elementQuery, $sourceKey, $queryFolder)) {
+            try {
+                $count += self::_createFolderQueryForIndex($elementQuery, $queryFolder)->count();
+            } catch (QueryAbortedException $e) {
+                return 0;
+            }
+        }
+
+        if (!self::isFolderIndex()) {
+            $count += parent::indexElementCount($elementQuery, $sourceKey);
+        }
+
+        return $count;
+    }
+
+    /**
+     * Include Folders In Index Elements
+     * @param MuxAssetQuery $assetQuery 
+     * @param string|null $sourceKey 
+     * @param mixed $queryFolder
+     * @return bool 
+     */
+    private static function _includeFoldersInIndexElements(MuxAssetQuery $assetQuery, ?string $sourceKey, ?MuxFolder &$queryFolder = null): bool
+    {
+
+        if (
+            !Craft::$app->getRequest()->getBodyParam('showFolders') ||
+            !str_starts_with($sourceKey, 'volume:') ||
+            !is_numeric($assetQuery->folderId)
+        ) {
+            return false;
+        }
+
+
+        if ($queryFolder === null && $assetQuery->folderId !== null) {
+            $foldersService = Mux::$plugin->folders;
+            $queryFolder = $foldersService->getFolderById($assetQuery->folderId);
+            if (!$queryFolder) {
+                return false;
+            }
+        }
+
+        if ($assetQuery->search) {
+            $assetQuery->search = $searchQuery = Craft::$app->getSearch()->normalizeSearchQuery($assetQuery->search);
+            $tokens = $searchQuery->getTokens();
+            if (count($tokens) !== 1 || !self::_validateSearchTermForIndex(reset($tokens))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Validate Search Term For Index
+     * @param SearchQueryTerm|SearchQueryTermGroup $token 
+     * @return bool 
+     */
+    private static function _validateSearchTermForIndex(SearchQueryTerm|SearchQueryTermGroup $token): bool
+    {
+        if ($token instanceof SearchQueryTermGroup) {
+            foreach ($token->terms as $term) {
+                if (!self::_validateSearchTermForIndex($term)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /** @var SearchQueryTerm $token */
+        return !$token->exclude && !$token->attribute;
+    }
+
+    /**
+     * @throws QueryAbortedException
+     */
+    private static function _createFolderQueryForIndex(MuxAssetQuery $assetQuery, ?MuxFolder $queryFolder = null): Query
+    {
+        if (
+            is_array($assetQuery->orderBy) &&
+            is_string($firstOrderByCol = array_key_first($assetQuery->orderBy)) &&
+            in_array($firstOrderByCol, ['title', 'filename'])
+        ) {
+            $sortDir = $assetQuery->orderBy[$firstOrderByCol];
+        } else {
+            $sortDir = SORT_ASC;
+        }
+
+        $foldersService = Mux::$plugin->folders;
+        $query = $foldersService->createFolderQuery()
+            ->orderBy(['name' => $sortDir]);
+
+        if ($assetQuery->includeSubfolders) {
+            if ($queryFolder === null) {
+                $queryFolder = $foldersService->getFolderById($assetQuery->folderId);
+                if (!$queryFolder) {
+                    throw new QueryAbortedException();
+                }
+            }
+            $query
+                ->where(['volumeId' => $queryFolder->volumeId])
+                ->andWhere(['not', ['id' => $queryFolder->id]])
+                ->andWhere(['like', 'path', "$queryFolder->path%", false]);
+        } else {
+            $query->where(['parentId' => $assetQuery->folderId]);
+        }
+
+        if ($assetQuery->search) {
+            // `search` will already be normalized to a SearchQuery obj via _includeFoldersInIndexElements(),
+            // and we already know it only has one token
+            /** @var SearchQuery $searchQuery */
+            $searchQuery = $assetQuery->search;
+            $token = ArrayHelper::firstValue($searchQuery->getTokens());
+            $query->andWhere(self::_buildFolderQuerySearchCondition($token));
+        }
+
+        return $query;
+    }
+
+    /**
+     * Build Folder Query Search Condition
+     * @param SearchQueryTerm|SearchQueryTermGroup $token 
+     * @return array 
+     */
+    private static function _buildFolderQuerySearchCondition(SearchQueryTerm|SearchQueryTermGroup $token): array
+    {
+        if ($token instanceof SearchQueryTermGroup) {
+            $condition = ['or'];
+            foreach ($token->terms as $term) {
+                $condition[] = self::_buildFolderQuerySearchCondition($term);
+            }
+            return $condition;
+        }
+
+        $isPgsql = Craft::$app->getDb()->getIsPgsql();
+
+        /** @var SearchQueryTerm $token */
+        if ($token->subLeft || $token->subRight) {
+            return [$isPgsql ? 'ilike' : 'like', 'name', sprintf('%s%s%s',
+                $token->subLeft ? '%' : '',
+                $token->term,
+                $token->subRight ? '%' : '',
+            ), false];
+        }
+
+        // Only Postgres supports case-sensitive queries
+        if ($isPgsql) {
+            return ['=', 'lower([[name]])', mb_strtolower($token->term)];
+        }
+
+        return ['name' => $token->term];
+    }
+
+    /**
+     * Transforms an VolumeFolderModel into a source info array.
+     *
+     * @param VolumeFolder $folder
+     * @param User|null $user
+     * @return array
+     */
+    private static function _assembleSourceInfoForFolder(MuxFolder $folder, ?User $user = null): array
+    {
+ 
+        $volume = $folder->getVolume();
+        if (!$folder->parentId) {
+            $volumeHandle = $volume->handle ?? false;
+        } else {
+            $volumeHandle = false;
+        }
+
+        $userSession = Craft::$app->getUser();
+        $canMoveTo = true; //$canUpload && $userSession->checkPermission("deleteAssets:$volume->uid");
+        $canMovePeerFilesTo = true; // (
+        //     $canMoveTo &&
+        //     $userSession->checkPermission("savePeerAssets:$volume->uid") &&
+        //     $userSession->checkPermission("deletePeerAssets:$volume->uid")
+        // );
+
+        $sourcePathInfo = $folder->getSourcePathInfo();
+
+        $source = [
+            'key' => $folder->parentId ? "folder:$folder->uid" : "volume:$volume->uid",
+            'label' => $folder->parentId ? $folder->name : Craft::t('site', $folder->name),
+            'hasThumbs' => true,
+            'criteria' => ['folderId' => $folder->id],
+            'defaultSort' => ['dateCreated', 'desc'],
+            'defaultSourcePath' => $sourcePathInfo ? [$sourcePathInfo] : null,
+            'data' => [
+                'volume-handle' => $volumeHandle,
+                'folder-id' => $folder->id,
+                'can-move-to' => $canMoveTo,
+                'can-move-peer-files-to' => $canMovePeerFilesTo,
+            ],
         ];
+
+        return $source;
+    }
+
+    /**
+     * Check if the current request is a folder index.
+     * @return bool 
+     * @throws InvalidConfigException 
+     */
+    private static function isFolderIndex(): bool
+    {
+        return (
+            (Craft::$app->controller instanceof ElementIndexesController || Craft::$app->controller instanceof ElementSelectorModalsController) &&
+            Craft::$app->getRequest()->getBodyParam('foldersOnly')
+        );
+    }
+
+    /**
+     * @var bool Whether this is a folder.
+     */
+    public bool $isFolder = false;
+
+    /**
+     * @var array|null The source path, if this represents a folder.
+     * @internal
+     */
+    public ?array $sourcePath = null;
+
+    /**
+     * @var string|null Folder path
+     */
+    public ?string $folderPath = null;
+
+    /**
+     * @var array|null UI label path
+     */
+    public ?array $uiLabelPath = null;
+
+    /**
+     * @inheritdoc
+     */
+    protected function crumbs(): array
+    {
+        $volume = $this->getVolume();
+
+        $crumbs = [
+            [
+                'label' => Craft::t('mux', 'Mux Assets'),
+                'url' => UrlHelper::cpUrl('mux/assets'),
+            ],
+            [
+                'menu' => [
+                    'label' => Craft::t('mux', 'Select volume'),
+                    'items' => Collection::make(Mux::$plugin->volumes->getAllVolumes())
+                        ->map(fn(MuxVolume $v) => [
+                            'label' => Craft::t('site', $v->name),
+                            'url' => "mux/$v->handle",
+                            'selected' => $v->id === $this->volumeId,
+                        ])
+                        ->all(),
+                ],
+            ],
+        ];
+
+        $uri = "mux/assets/$volume->handle";
+
+        if ($this->folderPath !== null) {
+            $subfolders = ArrayHelper::filterEmptyStringsFromArray(explode('/', $this->folderPath));
+            foreach ($subfolders as $subfolder) {
+                $uri .= "/$subfolder";
+                $crumbs[] = [
+                    'label' => $subfolder,
+                    'url' => UrlHelper::cpUrl($uri),
+                ];
+            }
+        }
+
+        return $crumbs;
     }
 
     /**
@@ -558,6 +1081,10 @@ class MuxAsset extends Element
      */
     public function canView(User $user): bool
     {
+        if ($this->isFolder) {
+            return false; // Folders can't be viewed directly
+        }
+
         return $user->can('mux:assets');
     }
 
@@ -574,6 +1101,10 @@ class MuxAsset extends Element
      */
     public function canDelete(User $user): bool
     {
+        if ($this->isFolder) {
+            return false; // Folders can't be deleted through this interface
+        }
+
         return $user->can('mux:assets-delete');
     }
 
@@ -595,7 +1126,11 @@ class MuxAsset extends Element
      */
     protected function cpEditUrl(): ?string
     {
-        return sprintf('mux/assets/%s', $this->getCanonicalId());
+        if ($this->isFolder) {
+            return null; // Folders don't have edit URLs
+        }
+
+        return sprintf('mux/assets/edit/%s', $this->getCanonicalId());
     }
 
     /**
@@ -618,15 +1153,12 @@ class MuxAsset extends Element
                 'label' => Craft::t('app', 'MUX'),
                 'url' => UrlHelper::cpUrl('mux/assets'),
             ],
-//            [
-//                'label' => self::pluralDisplayName(),
-//                'url' => UrlHelper::cpUrl('mux/assets'),
-//            ],
             [
                 'label' => $this->title,
                 'url' => "",
             ],
         ]);
+        
     }
 
     /**
@@ -653,7 +1185,6 @@ class MuxAsset extends Element
 
     /**
      * @inheritdoc
-     * @since 3.7.0
      */
     public function getSidebarHtml(bool $static): string
     {
@@ -666,13 +1197,14 @@ class MuxAsset extends Element
 
     /**
      * @inheritdoc
-     * @since 3.7.0
      */
     public function afterSave(bool $isNew): void
     {
         $data = [
             'id' => $this->id,
             'asset_id' => $this->asset_id,
+            'volumeId' => $this->volumeId,
+            'folderId' => $this->folderId,
             'created_at' => $this->created_at,
             'asset_status' => $this->asset_status,
             'duration' => $this->duration,
@@ -783,5 +1315,63 @@ class MuxAsset extends Element
     public function __set($name, $value)
     {
         parent::__set($name, $value);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getIsFolder(): bool
+    {
+        return $this->isFolder;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getFolderId(): ?int
+    {
+        return $this->folderId;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function setFolderId(?int $folderId): void
+    {
+        $this->folderId = $folderId;
+    }
+
+    /**
+     * Get Folder
+     * @return mixed 
+     */
+    public function getFolder()
+    {
+        if ($this->folderId) {
+            return Mux::$plugin->folders->getFolderById($this->folderId);
+        }
+        return null;
+    }
+
+    /**
+     * Returns the asset's folder name for display
+     */
+    public function getFolderName(): string
+    {
+        if (!$this->folderId) {
+            return Craft::t('mux', 'Root');
+        }
+        
+        $folder = Mux::$plugin->folders->getFolderById($this->folderId);
+        return $folder ? $folder->name : Craft::t('mux', 'Unknown Folder');
+    }
+
+    /**
+     * Get Volume
+     * @return MuxVolume|null
+     */
+    public function getVolume(): ?MuxVolume
+    {
+        return Mux::$plugin->volumes->getVolumeById($this->volumeId);
     }
 }

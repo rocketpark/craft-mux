@@ -80,6 +80,16 @@ class MuxAsset extends ElementArguments
                 'type' => Type::listOf(QueryArgument::getType()),
                 'description' => 'Narrows the query results based on the mux asset’ meta.',
             ],
+            'folderId' => [
+                'name' => 'folderId',
+                'type' => Type::listOf(QueryArgument::getType()),
+                'description' => 'Narrows the query results based on the folder ID.',
+            ],
+            'volumeId' => [
+                'name' => 'volumeId',
+                'type' => Type::listOf(QueryArgument::getType()),
+                'description' => 'Narrows the query results based on the volume ID.',
+            ],
         ]);
     }
 

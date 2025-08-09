@@ -16,6 +16,8 @@ class MuxAsset extends Model
 {
     public $id;
     public $asset_id;
+    public $volumeId;
+    public $folderId;
     public $created_at;
     public $asset_status;
     public $duration;

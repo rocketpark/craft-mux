@@ -69,8 +69,11 @@
                 {% for item in muxAsset.tracks %}
                     {% switch item.type %}
                         {% case "audio" %}
-                            {% if item.max_channel_layout is defined %}                            
+                            {% if item.max_channel_layout is defined %}
+                                {# TODO: Remove this once we have a new version of the API #}
                                 <li>Audio {{ item.max_channel_layout }}</li>
+                            {% elseif item.max_channels is defined %}
+                                <li>Audio {{ item.max_channels }} channels</li>
                             {% endif %}
                         {% case "video" %}
                             {% if item.max_height is defined %}                                

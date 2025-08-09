@@ -23,6 +23,47 @@ export const uploadState = reactive({
     uploadingFile: null,
 });
 
+/**
+ * Get the current source key
+ * @returns {string|null}
+ */
+const getCurrentSourceKey = () => {
+    if (window.Craft && window.Craft.elementIndex) {
+        return window.Craft.elementIndex.sourceKey;
+    }
+    return null;
+};
+
+/**
+ * Get the current volume UID
+ * @returns {string|null}
+ */
+function getCurrentVolume() {
+    const sourceKey = getCurrentSourceKey();
+    if (sourceKey && sourceKey.startsWith('volume:')) {
+        // Extract the volume UID from the source key
+        const volumeUid = sourceKey.replace('volume:', '');        
+
+        return volumeUid;
+    }
+    return null;
+}
+
+/**
+ * Get the current folder ID
+ * @returns {int|null}
+ */
+function getCurrentFolder() {
+    //const sourceKey = getCurrentSourceKey();
+    if (window.Craft.elementIndex) {
+        return window.Craft.elementIndex.currentFolderId;
+        // const sourcePaths = window.Craft.elementIndex.sourcePaths[sourceKey];
+        // const folder = sourcePaths?.at(-1);
+        // return folder.key.replace('folder:', '');
+    }
+    return null;
+}
+
 
 /**
  * Set Selected Mux Asset
@@ -127,7 +168,7 @@ export function useAssetById(id) {
  */
 export const getUploadUrl = (file) => {
 
-    const body = { passthrough: file.name };
+    const body = { title: file.name, volumeUid: getCurrentVolume(), folderId: getCurrentFolder() };
     body[window.Craft.csrfTokenName] = window.Craft.csrfTokenValue;
     return new Promise((resolve, reject) => {
         fetch('/actions/mux/assets/upload-asset', {
@@ -210,14 +251,20 @@ export const getAssetById = (id) => {
  */
 export const createAsset = (data) => {
 
+    const volumeUid = getCurrentVolume();
+    const folderId = getCurrentFolder();
+
     let body = {};
     // Reset the values so they correspond to the element model
+    data.volumeUid = volumeUid;
+    data.folderId = folderId;
     data.asset_id = data.id;
     data.asset_status = data.status;
     data.title = data.title !== undefined ? data.title : data.id;
     // We don't want these assigned to the Element since they have been reassigned
     delete data.id;
     delete data.status;
+    
     body = data;
     body[window.Craft.csrfTokenName] = window.Craft.csrfTokenValue;
 

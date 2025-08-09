@@ -1,19 +1,14 @@
 {% extends '_layouts/elementindex' %}
 {% do view.registerAssetBundle("rocketpark\\mux\\assetbundles\\mux\\MuxDashboardAsset") %}
+
 {% set title = 'MUX Assets'|t('mux') %}
-{#{% requirePermission 'accessPlugin-mux' %}#}
+
 {% requirePermission "mux:assets" %}
-{% set crumbs = [
+{# {% set crumbs = [
     { label: "MUX"|t('mux'), url: url('/mux/assets') },
-] %}
+] %} #}
 {% set elementType = "rocketpark\\mux\\elements\\MuxAsset" %}
 {% set canHaveDrafts = false %}
-{% set selectedSubnavItem = 'assets' %}   
-{# {% set defaultSource = 'allassets' %} #}
-
-{# {% block body %}
-    {{ parent() }}
-{% endblock %} #}
 
 {% block content %}
 
@@ -42,4 +37,5 @@
         </div>
     {% endif %}
 {% endblock %}
+
 

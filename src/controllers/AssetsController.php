@@ -3,6 +3,7 @@
 namespace rocketpark\mux\controllers;
 
 use Craft;
+use craft\db\Query;
 use craft\elements\GlobalSet;
 use craft\helpers\Console;
 use craft\web\Controller;
@@ -24,8 +25,15 @@ use rocketpark\mux\Mux;
 use rocketpark\mux\assetbundles\mux\MuxDashboardAsset;
 use rocketpark\mux\models\MuxAsset as MuxAsset;
 use rocketpark\mux\records\Assets as MuxAssetsRecord;
+use rocketpark\mux\records\MuxFolder as MuxFolderRecord;
 use rocketpark\mux\elements\MuxAsset as MuxAssetElement;
 use yii\base\InvalidArgumentException;
+
+use craft\elements\actions\MoveAssets as CraftMoveAssets;
+use craft\helpers\ArrayHelper;
+use craft\helpers\Cp;
+use craft\helpers\ElementHelper;
+use craft\helpers\StringHelper;
 
 /**
  * Assets controller
@@ -40,14 +48,109 @@ class AssetsController extends Controller
     /**
      * @throws ForbiddenHttpException
      */
-    public function actionIndex(): Response
+    public function actionIndex(string|null $defaultSource = null): Response
     {
-//        $this->requirePermission('mux:assets');
-//        PermissionHelper::controllerPermissionCheck('mux:assets');
+        $this->requireCpRequest();
 
-        return $this->renderTemplate('mux/elements/_index', []);
+        $variables = [
+            'elementType' => MuxAssetElement::class,
+        ];
+
+        if ($defaultSource) {
+            $defaultSourcePath = ArrayHelper::filterEmptyStringsFromArray(explode('/', $defaultSource));
+            $volumesService = Mux::$plugin->volumes;
+            $volume = $volumesService->getVolumeByHandle(array_shift($defaultSourcePath));
+
+            if ($volume) {
+                $foldersService = Mux::$plugin->folders;
+                $variables['defaultSource'] = "volume:$volume->uid";
+
+                if (!empty($defaultSourcePath)) {
+                    $subfolder = $foldersService->findFolder([
+                        'volumeId' => $volume->id,
+                        'path' => sprintf('%s/', implode('/', $defaultSourcePath)),
+                    ]);
+                    if ($subfolder) {
+                        $sourcePath = [];
+                        /** @var VolumeFolder[] $folders */
+                        $folders = [];
+                        while ($subfolder) {
+                            array_unshift($folders, $subfolder);
+                            $subfolder = $subfolder->getParent();
+                        }
+                        foreach ($folders as $i => $folder) {
+                            if ($i < count($folders) - 1) {
+                                $folder->setHasChildren(true);
+                            }
+                            $sourcePath[] = $folder->getSourcePathInfo();
+                        }
+                        $variables['defaultSourcePath'] = $sourcePath;
+                    }
+                }
+            }
+        }
+        
+        return $this->renderTemplate('mux/elements/_index', $variables);
     }
 
+    /**
+     * Edit Mux Asset Element
+     * @param int $elementId
+     * @return Response
+     */ 
+    public function actionEdit(int $elementId): Response
+    {
+        $this->requireCpRequest();
+
+        $strictSite = $this->request->getAcceptsJson();
+
+        $user = static::currentUser();
+
+        $element = MuxAssetElement::find()->id($elementId)->one();
+
+        // Permissions
+        $canSave = $element->canSave($user);
+        // Check if user has permission to edit assets
+        //PermissionHelper::controllerPermissionCheck('mux:assets-edit');
+
+        if (!$element) {
+            return $this->redirect(UrlHelper::cpUrl('mux/assets'));
+        }
+
+        $redirectUrl = ElementHelper::postEditUrl($element);
+
+        $fieldLayout = $element->getFieldLayout();
+        $html = $fieldLayout->createForm($element)->render();
+
+        $response = $this->asCpScreen()
+            ->editUrl($element->getCpEditUrl())
+            ->title($element->title)
+            ->crumbs($element->getCrumbs())
+            ->metaSidebarHtml($element->getSidebarHtml(false) . Cp::metadataHtml($element->getMetadata()))
+            ->addTab('0', Craft::t('app', 'Content'), '#tab01-content', true)
+            ->addTab('1', Craft::t('app', 'Tracks'), '#tab02-tracks', false)
+            ->contentHtml($html);
+
+        // Add save and continue editing option
+        $response->addAltAction(Craft::t('app', 'Save and continue editing'),[
+            'redirect' => $element->getCpEditUrl(),
+            'shortcut' => true,
+            'retainScroll' => true,
+            'eventData' => ['autosave' => false],
+        ]);
+
+        $response->submitButtonLabel(Craft::t('app', 'Save'))
+            ->action('mux/assets/save')
+            ->redirectUrl($redirectUrl);
+
+        $response->actionMenuItems(fn() => $element->id ? array_filter(
+            $element->getActionMenuItems(),
+            fn(array $item) => !str_starts_with($item['id'] ?? '', 'action-edit-'),
+        ) : []);
+
+        $response->registerAssetBundle(MuxDashboardAsset::class);
+        return $response;
+    }
 
     /**
      * Saves an asset element.
@@ -67,10 +170,11 @@ class AssetsController extends Controller
         $assetsService = Mux::$plugin->assets;
 
         // Build asset from POST data
-        $asset = $assetsService->buildAssetFromPost();
+        $asset = Mux::$plugin->assets->buildAssetElementFromPost();
 
         // Try saving the asset
-        if ($assetsService->saveAsset($asset)) {
+        // if ($assetsService->saveAsset($asset)) {
+        if(Craft::$app->getElements()->saveElement($asset)) {
             // Successful save
             return $this->_handleSaveResponse(true, 'Asset saved.', $asset->getErrors(), $request);
         }
@@ -161,6 +265,33 @@ class AssetsController extends Controller
         );
     }
 
+    /**
+     * Move Mux Asset Element
+     * @return Response
+     * @throws BadRequestHttpException
+     */
+    public function actionMove()
+    {
+        $this->requirePostRequest();
+        $this->requirePermission('mux:assets-edit');
+        $request = Craft::$app->getRequest();
+        $elementIds = $request->getBodyParam('elementIds');
+        $targetFolderId = $request->getBodyParam('targetFolderId');
+
+        $elements = MuxAssetElement::find()->id($elementIds)->all();
+
+        foreach ($elements as $element) {
+            $element->folderId = $targetFolderId;
+            Craft::$app->getElements()->saveElement($element);
+        }
+
+        return $this->asJson([
+            'success' => true,
+            'message' => Craft::t('mux', 'Assets moved successfully.'),
+        ]);
+
+    }
+
 
     /**
      * Use Mux Asset
@@ -217,9 +348,12 @@ class AssetsController extends Controller
         $this->requirePostRequest();
 
         $request = Craft::$app->getRequest();
-        $passthrough = $request->getBodyParam('passthrough');
+        $title = $request->getBodyParam('title');
+        $volumeUid = $request->getBodyParam('volumeUid');
+        $folderId = $request->getBodyParam('folderId');
+
         if ($request->getAcceptsJson()) {
-            return MUX::$plugin->assets->uploadMuxAsset($passthrough);
+            return MUX::$plugin->assets->uploadMuxAsset($title, $volumeUid, $folderId);
         };
     }
 
@@ -525,6 +659,152 @@ class AssetsController extends Controller
             'success' => false
         ]);
 
+    }
+
+    /**
+     * Move one or more assets.
+     *
+     * @return Response
+     * @throws BadRequestHttpException if the asset or the target folder cannot be found
+     * @throws Exception
+     * @throws ForbiddenHttpException
+     * @throws InvalidConfigException
+     * @throws VolumeException
+     * @throws Throwable
+     * @throws ElementNotFoundException
+     */
+    public function actionMoveAsset(): Response
+    {
+        $this->requireAcceptsJson();
+
+        $assetsService = Mux::$plugin->assets;
+
+        // Get the asset
+        $assetId = $this->request->getRequiredBodyParam('assetId');
+        $asset = MuxAssetElement::find()->id($assetId)->one(); 
+
+        if ($asset === null) {
+            throw new BadRequestHttpException('The Asset cannot be found');
+        }
+
+        // Get the target folder
+        $folderId = $this->request->getBodyParam('folderId', $asset->folderId);
+        $folder = MuxFolderRecord::findOne(['id' => $folderId]);
+        $volume = $folder->getVolume()->one();
+
+        if ($folder === null) {
+            throw new BadRequestHttpException('The folder cannot be found');
+        }
+
+        // Check if it's possible to delete objects in the source volume and save assets in the target volume.
+        // $this->requireVolumePermissionByFolder('saveAssets', $folder);
+        // $this->requireVolumePermissionByAsset('deleteAssets', $asset);
+        // $this->requirePeerVolumePermissionByAsset('savePeerAssets', $asset);
+        // $this->requirePeerVolumePermissionByAsset('deletePeerAssets', $asset);
+        
+        $result = $assetsService->moveAssets([$asset->id], $folderId, $volume->id);
+
+        if (!$result) {
+            return $this->asJson([
+                'assetId' => $asset->id,
+            ]);
+        }
+
+        return $this->asSuccess();
+    }
+
+    /**
+     * Returns the total number of assets, and their total file size, based on their IDs and/or folder IDs.
+     *
+     * @return Response
+     * @throws BadRequestHttpException
+     */
+    public function actionMoveInfo(): Response
+    {
+        $this->requireCpRequest();
+        $this->requirePostRequest();
+
+        $folderIds = Craft::$app->getRequest()->getBodyParam('folderIds', []);
+        $assetIds = Craft::$app->getRequest()->getBodyParam('assetIds', []);
+
+        if (!empty($folderIds)) {
+            // Add descendant folders
+            $assetsService = Mux::$plugin->assets;
+            foreach ($folderIds as $folderId) {
+                $folder = $assetsService->getFolderById($folderId);
+                if (!$folder) {
+                    throw new BadRequestHttpException("Invalid folder ID: $folderId");
+                }
+                $descendants = $assetsService->getAllDescendantFolders($folder);
+                array_push($folderIds, ...array_keys($descendants));
+            }
+        }
+
+        $query = (new Query())
+            ->from(MuxAssetsRecord::tableName())
+            ->where([
+                'or',
+                ['id' => $assetIds],
+                ['folderId' => array_unique($folderIds)],
+            ]);
+        $count = (int)$query->count();
+        $totalSize = (int)$query->sum('[[size]]');
+
+        return $this->asJson([
+            'count' => $count,
+            'totalSize' => $totalSize,
+        ]);
+    }
+
+    /**
+     * Show in folder action.
+     * Find asset by id and Return source path info for each folder up until the one the asset is in.
+     *
+     * @return Response
+     * @throws BadRequestHttpException
+     * @throws InvalidConfigException
+     * @throws \yii\web\MethodNotAllowedHttpException
+     */
+    public function actionShowInFolder(): Response
+    {
+        $this->requireCpRequest();
+
+        $assetId = Craft::$app->getRequest()->getRequiredParam('assetId');
+
+        $asset = MuxAssetElement::find()->id($assetId)->one();
+        if ($asset === null) {
+            throw new BadRequestHttpException("Invalid asset ID: $assetId");
+        }
+
+        // get the folder for selected asset
+        $folder = $asset->getFolder();
+        $sourcePath[] = $folder->getSourcePathInfo();
+
+        // for a JSON response (e.g. via element actions)
+        if ($this->request->getAcceptsJson()) {
+            // get all the way up to the root folder, cause we need source path info for each step
+            while (($parent = $folder->getParent()) !== null) {
+                $sourcePath[] = $parent->getSourcePathInfo();
+                $folder = $parent;
+            }
+
+            $data = [
+                'filename' => $asset->filename,
+                'sourcePath' => array_reverse($sourcePath),
+            ];
+
+            return $this->asJson($data);
+        }
+
+        // for a redirect response (e.g. element action menu items)
+        $uri = StringHelper::ensureLeft(UrlHelper::prependCpTrigger($sourcePath[0]['uri']), '/');
+        $url = UrlHelper::urlWithParams($uri, [
+            'search' => $asset->filename,
+            'includeSubfolders' => '0',
+            'sourcePathStep' => "folder:$folder->uid",
+        ]);
+
+        return $this->redirect($url);
     }
 
     // Private Methods

@@ -99,31 +99,52 @@ watch(() => uploadState, (state) => {
 let dragCounter = 0;
 
 document.body.addEventListener('dragover', (event) => {
-    event.preventDefault(); // Necessary to allow dropping
-    dropZone.classList.add('active-dropzone'); // Ensure drop zone is ready to accept drops
+    // Check if the dragged items contain files
+    const hasFiles = event.dataTransfer.types.includes('Files');
+
+    if (hasFiles) {
+        event.preventDefault(); // Necessary to allow dropping
+        dropZone.classList.add('active-dropzone'); // Ensure drop zone is ready to accept drops
+    }
 });
 
 dropZone.addEventListener('dragenter', (event) => {
-    event.preventDefault();
-    dragCounter++;
-    if (dragCounter === 1) {
-        dropZone.classList.add('mux-dropzone-overlay--dragover');
+    // Check if the dragged items contain files
+    const hasFiles = event.dataTransfer.types.includes('Files');
+
+    if (hasFiles) {
+        event.preventDefault();
+        dragCounter++;
+        if (dragCounter === 1) {
+            dropZone.classList.add('mux-dropzone-overlay--dragover');
+        }
     }
 });
 
 dropZone.addEventListener('dragleave', (event) => {
-    event.preventDefault();
-    dragCounter = Math.max(0, dragCounter - 1); // Safeguard to avoid negative counter
-    if (dragCounter === 0) {
-        dropZone.classList.remove('mux-dropzone-overlay--dragover', 'active-dropzone');
+    // Check if the dragged items contain files
+    const hasFiles = event.dataTransfer.types.includes('Files');
+
+    if (hasFiles) {
+        event.preventDefault();
+        dragCounter = Math.max(0, dragCounter - 1); // Safeguard to avoid negative counter
+        if (dragCounter === 0) {
+            dropZone.classList.remove('mux-dropzone-overlay--dragover', 'active-dropzone');
+        }
     }
 });
 
 dropZone.addEventListener('drop', (event) => {
-    event.preventDefault();
-    dragCounter = 0; // Reset counter after drop
-    dropZone.classList.remove('mux-dropzone-overlay--dragover', 'active-dropzone');
-    onDrop(Array.from(event.dataTransfer.files));
+    // Check if the dragged items contain files
+    const hasFiles = event.dataTransfer.files.length > 0;
+
+    if (hasFiles) {
+        event.preventDefault();
+        dragCounter = 0; // Reset counter after drop
+        dropZone.classList.remove('mux-dropzone-overlay--dragover', 'active-dropzone');
+        onDrop(Array.from(event.dataTransfer.files));
+    }
+    
 });
 
 </script>
