@@ -10,6 +10,7 @@ use rocketpark\mux\elements\MuxAsset;
 use rocketpark\mux\models\FolderCriteria;
 use rocketpark\mux\models\MuxFolder;
 use rocketpark\mux\records\MuxFolder as MuxFolderRecord;
+use rocketpark\mux\events\MuxFolderEvent;
 use yii\db\Exception;
 use rocketpark\mux\Mux;
 use Throwable;
@@ -19,6 +20,15 @@ use Throwable;
  */
 class Folders extends Component
 {
+    // Event constants
+    public const EVENT_BEFORE_CREATE_FOLDER = 'beforeCreateFolder';
+    public const EVENT_AFTER_CREATE_FOLDER = 'afterCreateFolder';
+    // public const EVENT_BEFORE_UPDATE_FOLDER = 'beforeUpdateFolder';
+    // public const EVENT_AFTER_UPDATE_FOLDER = 'afterUpdateFolder';
+    public const EVENT_BEFORE_DELETE_FOLDER = 'beforeDeleteFolder';
+    public const EVENT_AFTER_DELETE_FOLDER = 'afterDeleteFolder';
+
+    // Folder Table Name
     public const MUX_FOLDERS_TABLE = '{{%mux_volumefolders}}';
 
     /**
@@ -176,6 +186,17 @@ class Folders extends Component
      */
     public function createFolder(MuxFolder $folder): void
     {
+        // Fire before create event
+        $event = new MuxFolderEvent([
+            'folder' => $folder,
+            'isNew' => true,
+        ]);
+        
+        $this->trigger(self::EVENT_BEFORE_CREATE_FOLDER, $event);
+        
+        if ($event->isValid === false) {
+            throw new Exception('Folder creation was cancelled by event handler.');
+        }
 
         $parent = $folder->getParent();
 
@@ -195,6 +216,9 @@ class Folders extends Component
         }
 
         $this->storeFolderRecord($folder);
+
+        // Fire after create event
+        $this->trigger(self::EVENT_AFTER_CREATE_FOLDER, $event);
     }
 
     /**
@@ -273,8 +297,29 @@ class Folders extends Component
      */
     public function deleteFolder(int $folderId): bool
     {
-        if (!$this->getFolderById($folderId)) return false;
+        $folder = $this->getFolderById($folderId);
+        
+        if (!$folder) {
+            return false;
+        }
+        
+        // Fire before delete event
+        $event = new MuxFolderEvent([
+            'folder' => $folder,
+            'isNew' => false,
+        ]);
+        
+        $this->trigger(self::EVENT_BEFORE_DELETE_FOLDER, $event);
+        
+        if ($event->isValid === false) {
+            return false;
+        }
+        
         $this->_deleteFoldersAndContents([$folderId], true);
+        
+        // Fire after delete event
+        $this->trigger(self::EVENT_AFTER_DELETE_FOLDER, $event);
+        
         return true;
     }
 

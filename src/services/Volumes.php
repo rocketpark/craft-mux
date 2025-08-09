@@ -12,6 +12,7 @@ use rocketpark\mux\Mux;
 use rocketpark\mux\models\MuxVolume;
 use rocketpark\mux\records\MuxVolume as MuxVolumeRecord;
 use rocketpark\mux\elements\MuxAsset;
+use rocketpark\mux\events\MuxVolumeEvent;
 use Throwable;
 use yii\db\Exception;
 
@@ -20,6 +21,15 @@ use yii\db\Exception;
  */
 class Volumes extends Component
 {
+    // Event constants
+    public const EVENT_BEFORE_CREATE_VOLUME = 'beforeCreateVolume';
+    public const EVENT_AFTER_CREATE_VOLUME = 'afterCreateVolume';
+    public const EVENT_BEFORE_UPDATE_VOLUME = 'beforeUpdateVolume';
+    public const EVENT_AFTER_UPDATE_VOLUME = 'afterUpdateVolume';
+    public const EVENT_BEFORE_DELETE_VOLUME = 'beforeDeleteVolume';
+    public const EVENT_AFTER_DELETE_VOLUME = 'afterDeleteVolume';
+    
+    // Mux Volumes Table Name
     public const MUX_VOLUMES_TABLE = '{{%mux_volumes}}';
 
     /**
@@ -147,13 +157,17 @@ class Volumes extends Component
     {
         $isNewVolume = !$volume->id;
 
-        // Fire a 'beforeSaveVolume' event
-        // if ($this->hasEventHandlers(self::EVENT_BEFORE_SAVE_VOLUME)) {
-        //     $this->trigger(self::EVENT_BEFORE_SAVE_VOLUME, new VolumeEvent([
-        //         'volume' => $volume,
-        //         'isNew' => $isNewVolume,
-        //     ]));
-        // }
+        // Fire before event
+        $event = new MuxVolumeEvent([
+            'volume' => $volume,
+            'isNew' => $isNewVolume,
+        ]);
+        
+        $this->trigger($isNewVolume ? self::EVENT_BEFORE_CREATE_VOLUME : self::EVENT_BEFORE_UPDATE_VOLUME, $event);
+
+        if ($event->isValid === false) {
+            return false;
+        }
 
         if ($runValidation && !$volume->validate()) {
             Craft::info('Volume not saved due to validation error.', __METHOD__);
@@ -201,6 +215,9 @@ class Volumes extends Component
         // Clear the memoized volumes cache
         $this->_volumes = null;
 
+        // Fire after event
+        $this->trigger($isNewVolume ? self::EVENT_AFTER_CREATE_VOLUME : self::EVENT_AFTER_UPDATE_VOLUME, $event);
+
         return true;
     }
 
@@ -231,12 +248,17 @@ class Volumes extends Component
      */
     public function deleteVolume(MuxVolume $volume): bool
     {
-        // Fire a 'beforeDeleteVolume' event
-        // if ($this->hasEventHandlers(self::EVENT_BEFORE_DELETE_VOLUME)) {
-        //     $this->trigger(self::EVENT_BEFORE_DELETE_VOLUME, new VolumeEvent([
-        //         'volume' => $volume,
-        //     ]));
-        // }
+        // Fire before delete event
+        $event = new MuxVolumeEvent([
+            'volume' => $volume,
+            'isNew' => false,
+        ]);
+        
+        $this->trigger(self::EVENT_BEFORE_DELETE_VOLUME, $event);
+        
+        if ($event->isValid === false) {
+            return false;
+        }
 
         $db = Craft::$app->getDb();
         $transaction = $db->beginTransaction();
@@ -262,6 +284,9 @@ class Volumes extends Component
             
             // 2. Clean up Mux assets
             Mux::$plugin->assets->queueCleanupMuxAssets(array_values(array_unique($assetIds)));
+            
+            // Fire after delete event
+            $this->trigger(self::EVENT_AFTER_DELETE_VOLUME, $event);
             
             return true;
             
