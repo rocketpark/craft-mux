@@ -21,6 +21,8 @@ use yii\base\Exception;
 
 /**
  * Playback Restrictions service
+ *
+ * @property-read MuxPhp\Configuration $muxConfig MUX API configuration
  */
 class PlaybackRestrictions extends Component
 {

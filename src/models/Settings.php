@@ -9,6 +9,14 @@ use craft\validators\ArrayValidator;
 
 /**
  * Mux settings
+ *
+ * @property-read string $pluginName The public-facing name of the plugin
+ * @property-read string $muxTokenId Mux's TokenID for Authentication
+ * @property-read string $muxTokenSecret Mux's TokenSecret for Authentication
+ * @property-read bool $muxSecurePlayback The MUX Asset has secure playback
+ * @property-read string $maxResolutionTier The MUX Asset resolution tier
+ * @property-read string $mp4Support Enable static MP4 renditions
+ * @property-read string $staticRenditions Enable static renditions
  */
 class Settings extends Model
 {

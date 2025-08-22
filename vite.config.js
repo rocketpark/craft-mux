@@ -20,7 +20,7 @@ export default ({ command }) => {
                     'mux-volume-folder-selector-modal': 'src/web/src/js/MuxVolumeFolderSelectorModal.js',
                     'mux-asset-mover': 'src/web/src/js/MuxAssetMover.js',
                     'mux-cp': 'src/web/src/css/mux-cp.css',
-                    'mux': 'src/web/src/Mux.js',
+                    'mux': 'src/web/src/Mux.js'
                 },
                 output: {
                     entryFileNames: 'js/[name].js',

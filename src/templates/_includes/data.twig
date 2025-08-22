@@ -1,5 +1,4 @@
 {% import "_includes/forms" as forms %}
-{% do view.registerAssetBundle("craft\\web\\assets\\d3\\D3Asset") %}
 
 <style>
 .mux-data-grid {
@@ -19,6 +18,19 @@
     border-radius: 4px;
     padding: 20px;
     text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mux-data-card:hover {
+    background: #f8f9fa;
+    border-color: #d1d5da;
+}
+
+.mux-data-card.active {
+    background: #f1f5fb;
+    border-color: #cf3f40;
+    box-shadow: 0 2px 4px rgba(207, 63, 64, 0.1);
 }
 
 .mux-data-number {
@@ -49,111 +61,706 @@
     margin-top: 20px;
 }
 
+.mux-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
 .mux-chart-title {
     font-size: 1.2em;
     font-weight: bold;
-    margin-bottom: 20px;
     color: #29323d;
 }
 
-#mux-views-chart {
+.mux-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 20px;
+}
+
+.mux-controls h2 {
+    margin: 0;
+    flex: 1;
+}
+
+.mux-cache-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.mux-cache-controls .field {
+    margin: 0;
+}
+
+.mux-chart-canvas {
+    position: relative;
     width: 100%;
     height: 300px;
 }
+
+.mux-loading {
+    display: none;
+    text-align: center;
+    padding: 40px;
+    color: #8f98a3;
+}
+
+.mux-error {
+    display: none;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 4px;
+    padding: 15px;
+    color: #991b1b;
+    margin-top: 10px;
+}
+
+.mux-no-data {
+    text-align: center;
+    padding: 40px;
+    color: #8f98a3;
+    font-style: italic;
+}
 </style>
 
-<div class="mux-data-section">
-    <h2>{{ "Metrics (last 7 days)"|t('mux') }}</h2>
+<div class="mux-data-section" data-asset-id="{{ muxAsset.asset_id }}" data-mux-ready="false">
+    <div class="mux-controls">
+        <h2>{{ "Metrics"|t('mux') }}</h2>
+        
+        {% if availableTimespans is defined %}
+        <div class="mux-cache-controls">
+            {# Debug: Show what we're working with #}
+            <!-- Debug: availableTimespans = {{ availableTimespans|json_encode }} -->
+            <!-- Debug: defaultTimespan = {{ defaultTimespan }} -->
+            <div class=" select">
+            <select id="mux-timespan-select-{{ muxAsset.asset_id }}" class="mux-timespan-select">
+                {% for value, label in availableTimespans %}
+                    <option value="{{ value }}"{% if value == defaultTimespan %} selected="selected"{% endif %}>
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+            </div>
+            
+            <button type="button" class="mux-clear-cache btn secondary small" data-asset-id="{{ muxAsset.asset_id }}">
+                {{ "Clear Cache"|t('mux') }}
+            </button>
+        </div>
+        {% endif %}
+    </div>
     
     <div class="mux-data-grid">
-        <div class="mux-data-card">
-            <div class="mux-data-label">{{ "Total Views"|t('mux') }}</div>
-            <div class="mux-data-number">{{ muxData.views|number_format }}</div>
-        </div>
-        
-        <div class="mux-data-card">
-            <div class="mux-data-label">{{ "Total Unique Viewers"|t('mux') }}</div>
-            <div class="mux-data-number">{{ muxData.unique_viewers|number_format }}</div>
-        </div>
-        
-        <div class="mux-data-card">
-            <div class="mux-data-label">{{ "Total Playing Time"|t('mux') }}</div>
-            <div class="mux-data-number">{{ muxData.playing_time }}<span class="mux-data-suffix">{{ "m"|t('mux') }}</span></div>
-        </div>
-        
-        <div class="mux-data-card">
-            <div class="mux-data-label">{{ "Avg Playing Time"|t('mux') }}</div>
-            <div class="mux-data-number">{{ muxData.avg_playing_time }}<span class="mux-data-suffix">{{ "s"|t('mux') }}</span></div>
-        </div>
-        
-        <div class="mux-data-card">
-            <div class="mux-data-label">{{ "Avg Completion"|t('mux') }}</div>
-            <div class="mux-data-number">{{ muxData.avg_completion }}<span class="mux-data-suffix">{{ "%"|t('mux') }}</span></div>
-        </div>
+        {% if availableMetrics is defined %}
+            {% for metricKey, metricConfig in availableMetrics %}
+                <div class="mux-data-card{% if metricKey == defaultMetric %} active{% endif %}" 
+                     data-metric="{{ metricKey }}" data-asset-id="{{ muxAsset.asset_id }}">
+                    <div class="mux-data-label">{{ metricConfig.label }}</div>
+                    <div class="mux-data-number">
+                        <span class="metric-value">
+                            {% if metricKey == 'views' %}
+                                {{ muxData.views|number_format }}
+                            {% elseif metricKey == 'unique_viewers' %}
+                                {{ muxData.unique_viewers|number_format }}
+                            {% elseif metricKey == 'playing_time' %}
+                                {{ muxData.playing_time }}
+                            {% elseif metricKey == 'avg_playing_time' %}
+                                {{ muxData.avg_playing_time }}
+                            {% elseif metricKey == 'avg_completion' %}
+                                {{ muxData.avg_completion }}
+                            {% endif %}
+                        </span>
+                        {% if metricConfig.suffix %}
+                            <span class="mux-data-suffix">{{ metricConfig.suffix }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            {# Fallback for basic view without enhanced features #}
+            <div class="mux-data-card active" data-metric="views" data-asset-id="{{ muxAsset.asset_id }}">
+                <div class="mux-data-label">{{ "Total Views"|t('mux') }}</div>
+                <div class="mux-data-number">{{ muxData.views|number_format }}</div>
+            </div>
+            
+            <div class="mux-data-card" data-metric="unique_viewers" data-asset-id="{{ muxAsset.asset_id }}">
+                <div class="mux-data-label">{{ "Total Unique Viewers"|t('mux') }}</div>
+                <div class="mux-data-number">{{ muxData.unique_viewers|number_format }}</div>
+            </div>
+            
+            <div class="mux-data-card" data-metric="playing_time" data-asset-id="{{ muxAsset.asset_id }}">
+                <div class="mux-data-label">{{ "Total Playing Time"|t('mux') }}</div>
+                <div class="mux-data-number">{{ muxData.playing_time }}<span class="mux-data-suffix">{{ "m"|t('mux') }}</span></div>
+            </div>
+            
+            <div class="mux-data-card" data-metric="avg_playing_time" data-asset-id="{{ muxAsset.asset_id }}">
+                <div class="mux-data-label">{{ "Avg Playing Time"|t('mux') }}</div>
+                <div class="mux-data-number">{{ muxData.avg_playing_time }}<span class="mux-data-suffix">{{ "s"|t('mux') }}</span></div>
+            </div>
+            
+            <div class="mux-data-card" data-metric="avg_completion" data-asset-id="{{ muxAsset.asset_id }}">
+                <div class="mux-data-label">{{ "Avg Completion"|t('mux') }}</div>
+                <div class="mux-data-number">{{ muxData.avg_completion }}<span class="mux-data-suffix">{{ "%"|t('mux') }}</span></div>
+            </div>
+        {% endif %}
     </div>
 
-    {# Debug: Show chart data structure #}
-    {# {{ dump(chartData) }} #}
-
-    {% set hasChartData = chartData and chartData.rows and chartData.rows|length > 0 %}
-    {% set chartRowCount = chartData.rows ? chartData.rows|length : 0 %}
-    
-    {% if hasChartData %}
-        <div class="mux-chart-container">
-            <h3 class="mux-chart-title">{{ "Views Over Last 7 Days"|t('mux') }}</h3>
-            <div id="mux-views-chart"></div>
+    <div class="mux-chart-container">
+        <div class="mux-chart-header">
+            <h3 class="mux-chart-title">
+                {% if availableMetrics is defined %}
+                    {{ (availableMetrics[defaultMetric].label ?? "Views") ~ " Over " ~ (availableTimespans[defaultTimespan] ?? "Last Week") }}
+                {% else %}
+                    {{ "Views Over Last 7 Days"|t('mux') }}
+                {% endif %}
+            </h3>
         </div>
-    {% else %}
-        <div class="mux-chart-container">
-            <h3 class="mux-chart-title">{{ "Views Over Last 7 Days"|t('mux') }}</h3>
-            <p>{{ "No chart data available for the last 7 days."|t('mux') }}</p>
-            {# Debug info #}
-            <p><small>Chart data rows: {{ chartRowCount }}</small></p>
+        
+        <div class="mux-loading">
+            {{ "Loading chart data..."|t('mux') }}
         </div>
-    {% endif %}
+        
+        <div class="mux-error" style="display: none;"></div>
+        
+        <div class="mux-chart-canvas">
+            <canvas class="mux-chart-canvas-element" data-asset-id="{{ muxAsset.asset_id }}" width="400" height="200"></canvas>
+        </div>
+    </div>
 </div>
 
-{% if hasChartData %}
+<!-- Load Chart.js from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+
 {% js %}
-$(function() {
-    try {
-        console.log('Initializing Mux chart...');
-        console.log('Chart data:', {{ chartData|json_encode|raw }});
+// Global namespace to track chart instances
+window.muxCharts = window.muxCharts || {};
+window.muxChartInitializers = window.muxChartInitializers || {};
+
+// Global initialization function for this asset
+window.muxChartInitializers['{{ muxAsset.asset_id }}'] = function() {
+    var assetId = '{{ muxAsset.asset_id }}';
+    var chartInstanceId = 'mux-chart-' + assetId;
+    
+    // Prevent duplicate initialization
+    if (window.muxCharts[chartInstanceId]) {
+        console.log('Mux chart already exists for asset', assetId);
+        return true;
+    }
+    
+    console.log('Attempting to initialize Mux chart for asset', assetId);
+    
+    function initializeMuxChart() {
+        // Use asset-specific selectors
+        var $dataSection = $('.mux-data-section[data-asset-id="' + assetId + '"]');
         
-        var $chart = $('#mux-views-chart');
-        if ($chart.length === 0) {
-            console.error('Chart container not found');
-            return;
+        // Check if this section exists
+        if ($dataSection.length === 0) {
+            console.log('Mux data section not found for asset', assetId);
+            return false;
         }
         
-        var chart = new Craft.charts.Area($chart);
-        var chartDataTable = new Craft.charts.DataTable({{ chartData|json_encode|raw }});
+        // Check if already marked as ready
+        if ($dataSection.attr('data-mux-ready') === 'true') {
+            console.log('Mux data section already initialized for asset', assetId);
+            return true;
+        }
         
-        chart.draw(chartDataTable, {
-            colors: ['#cf3f40'],
-            hAxis: {
-                title: '{{ "Date"|t('mux') }}',
-                titleTextStyle: {
-                    color: '#29323d'
+        // Get chart canvas element using class and data attribute (more flexible than ID)
+        var $canvas = $dataSection.find('.mux-chart-canvas-element[data-asset-id="' + assetId + '"]');
+        if ($canvas.length === 0) {
+            console.log('Chart canvas not found for asset', assetId);
+            return false;
+        }
+        
+        var canvas = $canvas[0];
+        var ctx = canvas.getContext('2d');
+        
+        console.log('Found canvas for asset', assetId, 'with ID:', canvas.id);
+        
+        // Use scoped selectors within the data section
+        var $chartContainer = $dataSection.find('.mux-chart-canvas');
+        var $loading = $dataSection.find('.mux-loading');
+        var $error = $dataSection.find('.mux-error');
+        var $chartTitle = $dataSection.find('.mux-chart-title');
+        var $timespanSelect = $dataSection.find('.mux-timespan-select');
+        var $clearCacheBtn = $dataSection.find('.mux-clear-cache');
+        var $dataCards = $dataSection.find('.mux-data-card');
+        
+        var currentChart = null;
+        var currentMetric = '{{ defaultMetric ?? 'views' }}';
+        var currentTimespan = '{{ defaultTimespan ?? '1week' }}';
+        var hasEnhancedFeatures = {{ availableMetrics is defined ? 'true' : 'false' }};
+        
+        {% if availableMetrics is defined %}
+        var metricLabels = {
+            {% for metricKey, metricConfig in availableMetrics %}
+            '{{ metricKey }}': '{{ metricConfig.label }}',
+            {% endfor %}
+        };
+        
+        var timespanLabels = {
+            {% for timespanKey, timespanLabel in availableTimespans %}
+            '{{ timespanKey }}': '{{ timespanLabel }}',
+            {% endfor %}
+        };
+        {% else %}
+        var metricLabels = {
+            'views': 'Total Views',
+            'unique_viewers': 'Total Unique Viewers',
+            'playing_time': 'Total Playing Time',
+            'avg_playing_time': 'Avg Playing Time',
+            'avg_completion': 'Avg Completion'
+        };
+        
+        var timespanLabels = {
+            '1week': 'Last 7 Days'
+        };
+        {% endif %}
+
+        // Handle metric card clicks
+        if (hasEnhancedFeatures) {
+            $dataCards.on('click', function() {
+                console.log('Card clicked for asset', assetId, 'metric', $(this).data('metric'));
+                var metric = $(this).data('metric');
+                if (metric === currentMetric) return;
+                
+                // Update active state within this section only
+                $dataCards.removeClass('active');
+                $(this).addClass('active');
+                
+                currentMetric = metric;
+                
+                // Update chart title immediately to show the new metric
+                updateChartTitle(metric);
+                
+                // Load new chart data for the selected metric
+                loadChartData();
+            });
+
+            // Handle timespan changes - use more flexible selector
+            $dataSection.on('change', '.mux-timespan-select', function() {
+                var selectedTimespan = $(this).val();
+                console.log('Timespan dropdown changed. Raw value:', selectedTimespan);
+                console.log('Available options:', $(this).find('option').map(function() { return {value: this.value, text: this.text}; }).get());
+                
+                if (!selectedTimespan || selectedTimespan === '') {
+                    console.error('No timespan selected!');
+                    return;
                 }
-            },
-            vAxis: {
-                title: '{{ "Views"|t('mux') }}',
-                titleTextStyle: {
-                    color: '#29323d'
+                
+                if (selectedTimespan === currentTimespan) {
+                    console.log('Same timespan selected, no change needed');
+                    return;
+                }
+                
+                console.log('Timespan changed for asset', assetId, 'from', currentTimespan, 'to', selectedTimespan);
+                
+                // Update current timespan
+                currentTimespan = selectedTimespan;
+                
+                // Update chart title immediately to show the new timespan
+                updateChartTitle(currentMetric);
+                
+                // Update both data and chart with new timespan
+                loadAssetData();
+                loadChartData();
+            });
+
+            // Handle cache clearing
+            $clearCacheBtn.on('click', function() {
+                console.log('Cache clear clicked for asset', assetId);
+                clearCache();
+            });
+        }
+
+        function loadAssetData() {
+            console.log('Loading asset data for timespan:', currentTimespan);
+            
+            $.ajax({
+                url: Craft.getActionUrl('mux/data/get-asset-data'),
+                type: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
                 },
-                minValue: 0
-            },
-            backgroundColor: 'transparent',
-            legend: {
-                position: 'none'
+                data: JSON.stringify({
+                    assetId: assetId,
+                    timespan: currentTimespan,
+                    [Craft.csrfTokenName]: Craft.csrfTokenValue
+                })
+            })
+            .done(function(response) {
+                console.log('Asset data response:', response);
+                if (response.success) {
+                    updateDataCards(response.data);
+                } else {
+                    showError('Error loading data: ' + response.message);
+                }
+            })
+            .fail(function(xhr, status, error) {
+                console.error('AJAX Error:', xhr.responseText);
+                showError('Failed to load asset data: ' + error);
+            });
+        }
+
+        function loadChartData() {
+            console.log('Loading chart data for metric:', currentMetric, 'timespan:', currentTimespan);
+            showLoading();
+            
+            $.ajax({
+                url: Craft.getActionUrl('mux/data/get-chart-data'),
+                type: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                data: JSON.stringify({
+                    assetId: assetId,
+                    metric: currentMetric,
+                    timespan: currentTimespan,
+                    [Craft.csrfTokenName]: Craft.csrfTokenValue
+                })
+            })
+            .done(function(response) {
+                console.log('Chart data response:', response);
+                hideLoading();
+                
+                if (response.success) {
+                    drawChart(response.chartData, response.metric);
+                } else {
+                    showError('Error loading chart: ' + response.message);
+                }
+            })
+            .fail(function(xhr, status, error) {
+                hideLoading();
+                console.error('AJAX Error:', xhr.responseText);
+                showError('Failed to load chart data: ' + error);
+            });
+        }
+
+        function drawChart(chartData, metric) {
+            try {
+                // Destroy existing chart if it exists
+                if (currentChart) {
+                    currentChart.destroy();
+                    currentChart = null;
+                }
+                
+                // Clear any error states
+                $error.hide();
+                
+                // Check if we have data
+                if (!chartData || !chartData.rows || chartData.rows.length === 0) {
+                    var metricLabel = metricLabels[metric] || 'Views';
+                    $chartContainer.html('<div class="mux-no-data">No ' + metricLabel.toLowerCase() + ' data available for this timespan.</div>');
+                    // Don't call updateChartTitle here since it's already been called
+                    return;
+                }
+
+                // Restore canvas if it was replaced with no-data message
+                var $currentCanvas = $dataSection.find('.mux-chart-canvas-element[data-asset-id="' + assetId + '"]');
+                if ($currentCanvas.length === 0) {
+                    $chartContainer.html('<canvas class="mux-chart-canvas-element" data-asset-id="' + assetId + '" width="400" height="200"></canvas>');
+                    $currentCanvas = $dataSection.find('.mux-chart-canvas-element[data-asset-id="' + assetId + '"]');
+                    canvas = $currentCanvas[0];
+                    ctx = canvas.getContext('2d');
+                }
+
+                // Prepare data for Chart.js
+                var labels = chartData.rows.map(function(row) {
+                    return new Date(row[0]).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric' 
+                    });
+                });
+                
+                var data = chartData.rows.map(function(row) {
+                    return row[1];
+                });
+                
+                var metricLabel = metricLabels[metric] || 'Views';
+                
+                // Configure Chart.js options
+                var chartConfig = {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: metricLabel,
+                            data: data,
+                            borderColor: '#cf3f40',
+                            backgroundColor: 'rgba(207, 63, 64, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#cf3f40',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(41, 50, 61, 0.9)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#ffffff',
+                                borderColor: '#cf3f40',
+                                borderWidth: 1,
+                                cornerRadius: 4,
+                                displayColors: false,
+                                callbacks: {
+                                    title: function(context) {
+                                        return context[0].label;
+                                    },
+                                    label: function(context) {
+                                        var value = context.parsed.y;
+                                        if (metric === 'avg_completion') {
+                                            return metricLabel + ': ' + value.toFixed(1) + '%';
+                                        } else if (metric === 'views' || metric === 'unique_viewers') {
+                                            return metricLabel + ': ' + value.toLocaleString();
+                                        } else {
+                                            return metricLabel + ': ' + value;
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: '{{ "Date"|t('mux') }}',
+                                    color: '#29323d',
+                                    font: {
+                                        weight: 'bold'
+                                    }
+                                },
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    color: '#8f98a3'
+                                }
+                            },
+                            y: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: metricLabel,
+                                    color: '#29323d',
+                                    font: {
+                                        weight: 'bold'
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(143, 152, 163, 0.1)',
+                                    lineWidth: 1
+                                },
+                                ticks: {
+                                    color: '#8f98a3',
+                                    beginAtZero: true,
+                                    callback: function(value, index, values) {
+                                        if (metric === 'avg_completion') {
+                                            return value + '%';
+                                        } else if (metric === 'views' || metric === 'unique_viewers') {
+                                            return value.toLocaleString();
+                                        }
+                                        return value;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                };
+                
+                // Special handling for percentage metrics
+                if (metric === 'avg_completion') {
+                    chartConfig.options.scales.y.max = 100;
+                    chartConfig.options.scales.y.ticks.stepSize = 10;
+                }
+                
+                // Create the chart
+                currentChart = new Chart(ctx, chartConfig);
+                
+                // Don't call updateChartTitle here since it's already been called
+                // updateChartTitle(metric);
+                
+                console.log('Chart.js chart created successfully for asset', assetId);
+                
+            } catch (error) {
+                console.error('Error drawing chart for asset', assetId, ':', error);
+                showError('Error rendering chart: ' + error.message);
             }
-        });
+        }
+
+        function updateChartTitle(metric) {
+            var metricLabel = metricLabels[metric] || 'Views';
+            var timespanLabel = timespanLabels[currentTimespan] || 'Last 7 Days';
+            var newTitle = metricLabel + ' Over ' + timespanLabel;
+            
+            console.log('Updating chart title to:', newTitle, 'for metric:', metric, 'timespan:', currentTimespan);
+            
+            $chartTitle.text(newTitle);
+        }
+
+        function updateDataCards(data) {
+            $dataCards.each(function() {
+                var $card = $(this);
+                var metric = $card.data('metric');
+                var $valueSpan = $card.find('.metric-value');
+                
+                switch (metric) {
+                    case 'views':
+                        $valueSpan.text(Number(data.views).toLocaleString());
+                        break;
+                    case 'unique_viewers':
+                        $valueSpan.text(Number(data.unique_viewers).toLocaleString());
+                        break;
+                    case 'playing_time':
+                        $valueSpan.text(data.playing_time);
+                        break;
+                    case 'avg_playing_time':
+                        $valueSpan.text(data.avg_playing_time);
+                        break;
+                    case 'avg_completion':
+                        $valueSpan.text(data.avg_completion);
+                        break;
+                }
+            });
+        }
+
+        function clearCache() {
+            $clearCacheBtn.prop('disabled', true).text('{{ "Clearing..."|t('mux') }}');
+            
+            $.ajax({
+                url: Craft.getActionUrl('mux/data/clear-cache'),
+                type: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                data: JSON.stringify({
+                    assetId: assetId,
+                    [Craft.csrfTokenName]: Craft.csrfTokenValue
+                })
+            })
+            .done(function(response) {
+                if (response.success) {
+                    loadAssetData();
+                    loadChartData();
+                    Craft.cp.displayNotice('{{ "Cache cleared successfully"|t('mux') }}');
+                } else {
+                    showError('Error clearing cache: ' + response.message);
+                }
+            })
+            .fail(function(xhr, status, error) {
+                console.error('AJAX Error:', xhr.responseText);
+                showError('Failed to clear cache: ' + error);
+            })
+            .always(function() {
+                $clearCacheBtn.prop('disabled', false).text('{{ "Clear Cache"|t('mux') }}');
+            });
+        }
+
+        function showLoading() {
+            $loading.show();
+            $chartContainer.hide();
+            $error.hide();
+        }
+
+        function hideLoading() {
+            $loading.hide();
+            $chartContainer.show();
+        }
+
+        function showError(message) {
+            $error.text(message).show();
+            $loading.hide();
+            $chartContainer.hide();
+        }
         
-        console.log('Chart initialized successfully');
-    } catch (error) {
-        console.error('Error initializing chart:', error);
+        // Mark section as ready and store chart instance
+        $dataSection.attr('data-mux-ready', 'true');
+        window.muxCharts[chartInstanceId] = {
+            initialized: true,
+            assetId: assetId,
+            currentMetric: currentMetric,
+            currentTimespan: currentTimespan,
+            chartInstance: currentChart
+        };
+        
+        // Load initial chart data
+        {% if chartData and chartData.rows and chartData.rows|length > 0 %}
+            drawChart({{ chartData|json_encode|raw }}, currentMetric);
+        {% else %}
+            drawChart(null, currentMetric);
+        {% endif %}
+        
+        console.log('Mux Chart.js initialized successfully for asset', assetId);
+        return true;
     }
+    
+    // Wait for Chart.js to load
+    if (typeof Chart === 'undefined') {
+        console.log('Chart.js not available yet for asset', assetId);
+        return false;
+    }
+    
+    return initializeMuxChart();
+};
+
+// Initialize immediately for regular page loads
+$(function() {
+    setTimeout(function() {
+        window.muxChartInitializers['{{ muxAsset.asset_id }}']();
+    }, 100);
+});
+
+// Also initialize when content becomes visible (for slideouts and tabs)
+$(document).ready(function() {
+    // Watch for when the data section becomes visible
+    function checkVisibilityAndInit() {
+        var $dataSection = $('.mux-data-section[data-asset-id="{{ muxAsset.asset_id }}"]');
+        if ($dataSection.length > 0 && $dataSection.is(':visible') && $dataSection.attr('data-mux-ready') !== 'true') {
+            console.log('Data section became visible, initializing chart for asset {{ muxAsset.asset_id }}');
+            setTimeout(function() {
+                window.muxChartInitializers['{{ muxAsset.asset_id }}']();
+            }, 50);
+        }
+    }
+    
+    // Check immediately
+    checkVisibilityAndInit();
+    
+    // Check periodically for slideouts
+    var visibilityChecker = setInterval(function() {
+        var $dataSection = $('.mux-data-section[data-asset-id="{{ muxAsset.asset_id }}"]');
+        if ($dataSection.attr('data-mux-ready') === 'true') {
+            clearInterval(visibilityChecker);
+        } else {
+            checkVisibilityAndInit();
+        }
+    }, 500);
+    
+    // Stop checking after 10 seconds
+    setTimeout(function() {
+        clearInterval(visibilityChecker);
+    }, 10000);
 });
 {% endjs %}
-{% endif %}

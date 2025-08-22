@@ -18,6 +18,8 @@ use yii\db\Exception;
 
 /**
  * Volumes service - for virtual volume organization
+ *
+ * @property-read MemoizableArray<MuxVolume>|null $volumes Memoized volumes array
  */
 class Volumes extends Component
 {

@@ -53,17 +53,22 @@ use yii\log\Logger;
  * @license https://craftcms.github.io/license/ Craft License
  * @property-read PlaybackRestrictions $playbackRestrictions
  * @property-read SignedKeys $signedKeys
+ * @property-read Assets $assets
+ * @property-read Folders $folders
+ * @property-read Volumes $volumes
+ * @property-read SettingsService $settings
+ * @property-read Data $data
  */
 class Mux extends Plugin
 {
 
     /**
-     * @var Retour
+     * @var Plugin|null
      */
     public static ?Plugin $plugin = null;
 
     /**
-     * @var ?Settings
+     * @var Settings|null
      */
     public static ?Settings $settings = null;
 
@@ -108,7 +113,7 @@ class Mux extends Plugin
 
 
         if (Craft::$app->getRequest()->getIsCpRequest()) {
-            $this->_registerCpRoutes();
+            $this->registerCpRoutes();
         }
 
         if (Craft::$app->getEdition() === Craft::Pro) {
@@ -166,7 +171,7 @@ class Mux extends Plugin
             }
         );
 
-        Craft::$app->elements->on(
+        Craft::$app->getElements()->on(
             Elements::EVENT_AFTER_SAVE_ELEMENT,
             function (ElementEvent $e) {
                 if ($e->element instanceof MuxAssetElement) {
@@ -183,7 +188,7 @@ class Mux extends Plugin
                     $asset->meta['external_id'] = $attributes['id'];
                     $asset->meta['creator_id'] = $attributes['meta']['creator_id'] ?? '';
 
-                    Mux::info("Updating Asset in MUX: ". $asset->asset_id, 'mux');
+                    Mux::info("Updating Asset in MUX: ". $asset->asset_id);
 
                     Mux::$plugin->assets->updateMuxAsset($asset);
                 }
@@ -201,7 +206,7 @@ class Mux extends Plugin
                         If (trashed == true) the element is being hard deleted (removed FOREVER see:https://media.giphy.com/media/hEwkspP1OllJK/giphy.gif)
                           then we remove it from MUX unless it has already been removed from MUX. 
                     */
-                    if ($attributes['trashed'] == 'true') {
+                    if ($attributes['trashed'] === 'true') {
                         $config = Mux::$plugin->assets->muxConf();
                         $apiInstance = new MuxPhp\Api\AssetsApi(
                             new Client(),
@@ -221,6 +226,19 @@ class Mux extends Plugin
                             $this->info("Attempting to hard delete a trashed asset element and it's MUX counterpart. However, the asset cannot be found in MUX as it has already been deleted. Therefore, only the MuxAssetElement was deleted.");
                             return true;
                         }
+                    }
+                }
+            }
+        );
+
+        Event::on(
+            Elements::class,
+            Elements::EVENT_AFTER_DELETE_ELEMENT,
+            function(ElementEvent $event) {
+                if ($event->element instanceof MuxAssetElement) {
+                    $assetId = $event->element->asset_id;
+                    if ($assetId) {
+                        Mux::$plugin->data->clearAssetCache($assetId);
                     }
                 }
             }
@@ -320,11 +338,6 @@ class Mux extends Plugin
             ];
         }
 
-//        $editableSettings = true;
-//        $general = Craft::$app->getConfig()->getGeneral();
-//        if (!$general->allowAdminChanges) {
-//            $editableSettings = false;
-//        }
         if ($currentUser->can('mux:settings')) {
             $subNavs['settings'] = [
                 'label' => 'Settings',
@@ -376,7 +389,7 @@ class Mux extends Plugin
         );
     }
 
-    protected function _registerCpRoutes(): void
+    protected function registerCpRoutes(): void
     {
         Event::on(
             UrlManager::class,
@@ -401,7 +414,8 @@ class Mux extends Plugin
      */
     protected function customAdminCpPermissions(): array
     {
-        return [
+        $permissions = [];
+        $permissions[] = [
             'mux:assets' => [
                 'label' => Craft::t('mux', 'View Assets'),
                 'info' => Craft::t('mux', 'This user will be able to view Mux assets.'),
@@ -424,13 +438,8 @@ class Mux extends Plugin
                 'label' => Craft::t('mux', 'Settings'),
             ],
         ];
-    }
 
-//     /**
-//      * Returns the folders service
-//      */
-//     public function getFolders(): \rocketpark\mux\services\Folders
-//     {
-//         return $this->get('folders');
-//     }
+
+        return $permissions;
     }
+}

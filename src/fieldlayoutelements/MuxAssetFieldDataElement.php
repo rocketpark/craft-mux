@@ -39,17 +39,29 @@ class MuxAssetFieldDataElement extends BaseNativeField
             return '<p>' . Craft::t('mux', 'Data will be available once the asset is processed.') . '</p>';
         }
 
-        // Fetch data from Mux Data API
-        $muxData = Mux::$plugin->data->getAssetData($element->asset_id);
+        // Fetch data from Mux Data API with edit_screen context
+        // This ensures fresh data for content managers
+        $muxData = Mux::$plugin->data->getAssetData($element->asset_id, 'edit_screen');
         
-        // Prepare chart data for Craft's chart system
-        $chartData = Mux::$plugin->data->prepareChartData($muxData['views_timeseries']);
+        // Get initial chart data using the new timeseries system
+        $defaultMetric = 'views';
+        $defaultTimespan = '1week';
+        $timeseriesData = Mux::$plugin->data->getMetricTimeseries($element->asset_id, $defaultMetric, $defaultTimespan);
+        $chartData = Mux::$plugin->data->prepareChartData($timeseriesData, $defaultMetric);
+
+        // Get available options
+        $availableTimespans = Mux::$plugin->data->getAvailableTimespans();
+        $availableMetrics = Mux::$plugin->data->getAvailableMetrics();
 
         $variables = [
             'editable' => !$static,
             'muxAsset' => $element,
             'muxData' => $muxData,
             'chartData' => $chartData,
+            'availableTimespans' => $availableTimespans,
+            'availableMetrics' => $availableMetrics,
+            'defaultTimespan' => $defaultTimespan,
+            'defaultMetric' => $defaultMetric,
             'siteId' => $element->siteId
         ];
 
