@@ -14,7 +14,7 @@ use MuxPhp;
 
 
 /**                             
- * @property-read Settings $settings
+ * @property-read Settings $settings Plugin settings
  */
 
 /**

@@ -48,6 +48,13 @@ use rocketpark\mux\fieldlayoutelements\MuxAssetFieldDataTab;
 
 /**
  * Mux Asset element type
+ *
+ * @property-read string $tableName Database table name
+ * @property-read string $displayName Element display name
+ * @property-read string $lowerDisplayName Lowercase display name
+ * @property-read string $pluralDisplayName Plural display name
+ * @property-read string $pluralLowerDisplayName Plural lowercase display name
+ * @property-read string|null $refHandle Reference handle
  */
 class MuxAsset extends Element
 {

@@ -9,6 +9,7 @@ use craft\helpers\Db;
 use rocketpark\mux\elements\MuxAsset;
 use rocketpark\mux\models\FolderCriteria;
 use rocketpark\mux\models\MuxFolder;
+use rocketpark\mux\models\MuxVolume;
 use rocketpark\mux\records\MuxFolder as MuxFolderRecord;
 use rocketpark\mux\events\MuxFolderEvent;
 use yii\db\Exception;
@@ -17,6 +18,10 @@ use Throwable;
 
 /**
  * Folders service - for virtual folder organization
+ *
+ * @property-read array<int,MuxFolder|null> $foldersById Cached folders by ID
+ * @property-read array<string,MuxFolder|null> $foldersByUid Cached folders by UID
+ * @property-read array<int,MuxFolder|null> $rootFolders Cached root folders
  */
 class Folders extends Component
 {
@@ -322,6 +327,54 @@ class Folders extends Component
         
         return true;
     }
+
+    /**
+     * Ensures a folder entry exists in the DB for the full path. Depending on the use, it’s also possible to ensure a physical folder exists.
+     *
+     * @param string $fullPath The path to ensure the folder exists at.
+     * @param MuxVolume $volume
+     * @return MuxFolder
+     * @throws VolumeException if something went catastrophically wrong creating the folder.
+     */
+    public function ensureFolderByFullPathAndVolume(string $fullPath, MuxVolume $volume): MuxFolder
+    {
+        $parentFolder = $this->getRootFolderByVolumeId($volume->id);
+        $folderModel = $parentFolder;
+        $parentId = $parentFolder->id;
+
+        if ($fullPath !== '') {
+            // Split the path into segments
+            $parts = preg_split('/\\\\|\//', trim($fullPath, '/\\'));
+            $path = '';
+
+            // Create each folder segment recursively
+            while (($part = array_shift($parts)) !== null) {
+                $path .= $part . '/';
+
+                $parameters = new FolderCriteria([
+                    'path' => $path,
+                    'volumeId' => $volume->id,
+                ]);
+
+                // Create the record for current segment if needed
+                if (($folderModel = $this->findFolder($parameters)) === null) {
+                    $folderModel = new MuxFolder();
+                    $folderModel->volumeId = $volume->id;
+                    $folderModel->parentId = $parentId;
+                    $folderModel->name = $part;
+                    $folderModel->path = $path;
+                    $this->storeFolderRecord($folderModel);
+                }
+
+                // Set up for next iteration
+                $folderId = $folderModel->id;
+                $parentId = $folderId;
+            }
+        }
+
+        return $folderModel;
+    }
+
 
     /**
      * Deletes folders and their contents.

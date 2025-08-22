@@ -28,6 +28,8 @@ use yii\base\InvalidConfigException;
 
 /**
  * Signed Keys service
+ *
+ * @property-read MuxPhp\Configuration $muxConfig MUX API configuration
  */
 class SignedKeys extends Component
 {

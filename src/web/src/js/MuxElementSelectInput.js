@@ -520,8 +520,13 @@ export const MuxElementSelectInput = Craft.BaseElementSelectInput.extend({
      * @private
      */
     _getUploadUrl: function (file) {
+        const uploadSource = this.settings.defaultUploadLocationSource;
+        const defaultFolderId = this.settings.defaultFolderId;
+        
         return Helpers.apiRequest(CONSTANTS.API_ENDPOINTS.UPLOAD_ASSET, { 
-            passthrough: file.name 
+            title: file.name,
+            volumeUid: uploadSource,
+            folderId: defaultFolderId,
         });
     },
 

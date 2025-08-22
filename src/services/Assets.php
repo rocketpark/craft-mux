@@ -50,6 +50,11 @@ use function json_encode;
 
 /**
  * Assets service
+ *
+ * @property-read Assets $assets
+ * @property-read Folders $folders
+ * @property-read Volumes $volumes
+ * @property-read Data $data
  */
 class Assets extends Component
 {
@@ -1185,7 +1190,7 @@ class Assets extends Component
         $deletableMuxAssetElements = MuxAssetElement::find()->asset_id(['not', $muxAssetIds])->all();
 
         foreach ($deletableMuxAssetElements as $element) {
-            Craft::$app->elements->deleteElement($element);
+            Craft::$app->getElements()->deleteElement($element);
         }
     }
 
