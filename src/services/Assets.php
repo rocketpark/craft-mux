@@ -47,15 +47,6 @@ use function json_encode;
 /**                             
  * @property-read Assets $assets
  */
-
-/**
- * Assets service
- *
- * @property-read Assets $assets
- * @property-read Folders $folders
- * @property-read Volumes $volumes
- * @property-read Data $data
- */
 class Assets extends Component
 {
 
@@ -79,6 +70,8 @@ class Assets extends Component
      */
     private $defaultAttributes = [
         'title' => "",
+        'volumeId' => null,
+        'folderId' => null,
         'asset_id' => "",
         'created_at' => "",
         'asset_status' => "",
@@ -121,6 +114,12 @@ class Assets extends Component
         foreach ($params as $key => $value) {
             if ($key === self::META_KEY) {
                 $asset->$key = $this->createMetaData($params['title'] ?? '', $params['id'] ?? '', '');
+            } else if ($key === 'volumeId' || $key === 'folderId') {
+                $asset->$key = is_null($value) ? null : (int)$value;
+            } else if ($key === 'static_renditions' || $key === 'mp4_support') {
+                // Skip these fields as they're handled separately in the controller
+                // to avoid type conflicts and ensure proper API integration
+                continue;
             } else {
                 $asset->$key = $value;
             }
@@ -156,15 +155,15 @@ class Assets extends Component
     /**
      * Builds a asset model from POST data.
      *
-     * @return MuxAsset
+     * @return MuxAssetElement
      * @throws Exception
      */
-    public function buildAssetFromPost(): MuxAsset
+    public function buildAssetFromPost(): MuxAssetElement
     {
         $request = Craft::$app->getRequest();
         $requestParams = $request->getBodyParams();
 
-        $asset = new MuxAsset();
+        $asset = new MuxAssetElement();
 
          // Only include valid request parameters
         $validRequestParams = $this->getValidRequestParams($requestParams);
@@ -205,9 +204,14 @@ class Assets extends Component
             $asset = new MuxAssetElement();
         }
 
-         // Only include valid request parameters
-        $validRequestParams = $this->getValidRequestParams($requestParams);
-        $params = array_merge($this->defaultAttributes, $validRequestParams);
+        // Only include valid request parameters
+        // $validRequestParams = $this->getValidRequestParams($requestParams);
+        // $params = array_merge($this->defaultAttributes, $validRequestParams);
+
+        // Handle title (Craft element field)
+        if (isset($requestParams['title'])) {
+            $asset->title = $requestParams['title'];
+        }
 
         // Handle volumeUid separately since it's not in defaultAttributes
         if (isset($requestParams['volumeUid'])) {
@@ -217,10 +221,21 @@ class Assets extends Component
 
         // Handle folderId separately since it's not in defaultAttributes
         if (isset($requestParams['folderId'])) {
-            $asset->folderId = $requestParams['folderId'];
+            $asset->folderId = is_null($requestParams['folderId']) ? null : (int)$requestParams['folderId'];
         }
-        
-        return $this->hydrateAsset($params, $asset);
+
+        if(isset($requestParams['static_renditions']) && $requestParams['static_renditions'] !== 'none') {
+            $asset->static_renditions = [];
+        }
+
+        if(isset($requestParams['mp4_support']) && $requestParams['mp4_support'] !== 'none') {
+            $asset->mp4_support = $requestParams['mp4_support'];
+        }
+
+        $asset->meta = $this->createMetaData($requestParams['title'] ?? '', is_null($asset->id) ? $requestParams['id'] ?? '' : $asset->id, '');
+
+        return $asset;
+        //return $this->hydrateAsset($params, $asset);
     }
 
 
@@ -233,28 +248,50 @@ class Assets extends Component
      */
     public function saveAsset(MuxAssetElement $element): bool
     {
-        $isNew = !$element->id;
-        
-        // Fire before event
-        $event = new MuxAssetEvent([
-            'asset' => $element,
-            'isNew' => $isNew,
-        ]);
-        
-        $this->trigger($isNew ? self::EVENT_BEFORE_CREATE_ASSET : self::EVENT_BEFORE_UPDATE_ASSET, $event);
-        
-        if ($event->isValid === false) {
+        $mutexKey = "mux-asset-{$element->asset_id}";
+        $mutex = Craft::$app->getMutex();
+
+        // Try to acquire the lock with a 30-second timeout
+        if (!$mutex->acquire($mutexKey, 30)) {
+            Mux::warning("Could not acquire mutex lock for asset {$element->asset_id}", 'mux');
             return false;
         }
 
-        $success = Craft::$app->getElements()->saveElement($element);
-        
-        if ($success) {
-            // Fire after event
-            $this->trigger($isNew ? self::EVENT_AFTER_CREATE_ASSET : self::EVENT_AFTER_UPDATE_ASSET, $event);
+        try {
+
+            $isNew = !$element->id;
+            
+            // Fire before event
+            $event = new MuxAssetEvent([
+                'asset' => $element,
+                'isNew' => $isNew,
+            ]);
+            
+            $this->trigger($isNew ? self::EVENT_BEFORE_CREATE_ASSET : self::EVENT_BEFORE_UPDATE_ASSET, $event);
+            
+            if ($event->isValid === false) {
+                return false;
+            }
+
+            // Log the attributes of the element for debugging
+            //Mux::info('Saving asset with attributes: ' . json_encode($element->getAttributes()), 'mux');
+
+            $success = Craft::$app->getElements()->saveElement($element);
+            
+            if ($success) {
+                Mux::info("Asset saved successfully" . $element->id . " : " . $element->asset_id, 'mux');
+                // Fire after event
+                $this->trigger($isNew ? self::EVENT_AFTER_CREATE_ASSET : self::EVENT_AFTER_UPDATE_ASSET, $event);
+            }
+
+            return $success;
+        } catch (Throwable $e) {
+            Mux::error("Error saving asset {$element->asset_id}: {$e->getMessage()}", 'mux');
+            return false;
+        } finally {
+            $mutex->release($mutexKey);
         }
-    
-        return $success;
+        
     }
 
     /**
@@ -431,10 +468,10 @@ class Assets extends Component
 
     /**
      * Update MUX Asset
-     * @param MuxAsset $asset 
+     * @param array $params
      * @return void 
      */
-    public static function updateMuxAsset(MuxAsset $asset)
+    public static function updateMuxAsset(array $params)
     {
         $config = Mux::$plugin->assets->muxConf();
         $apiInstance = new MuxPhp\Api\AssetsApi(
@@ -442,16 +479,16 @@ class Assets extends Component
             $config
         );
         $update_asset_request = [
-            'passthrough' => $asset->passthrough,
+            'passthrough' => $params['passthrough'],
             'meta' => [
-                'title' => $asset->meta['title'],
-                'external_id' => (string) $asset->meta['external_id'],
-                'creator_id' => (string) $asset->meta['creator_id'],
+                'title' => $params['meta']['title'],
+                'external_id' => (string) $params['meta']['external_id'],
+                'creator_id' => (string) $params['meta']['creator_id'],
             ]
         ];
 
         try {
-            $result = $apiInstance->updateAsset($asset->asset_id, $update_asset_request);
+            $result = $apiInstance->updateAsset($params['asset_id'], $update_asset_request);
             return $result->getData();
         } catch (Exception $e) {
             throw new Exception("Exception when calling AssetsApi->updateAsset: {$e->getMessage()}");
@@ -686,7 +723,7 @@ class Assets extends Component
      * @param array $muxAssetArray 
      * @return bool
      */
-    public function updateAssetElementWithMuxAssetById(?string $id): bool
+    public function updateAssetElementWithMuxAssetById(?string $id, bool $isWebhookUpdate = false): bool
     {
 
         $muxAsset =  $this->getMuxAsset($id);
@@ -702,6 +739,10 @@ class Assets extends Component
         }
 
         foreach($elements as $element) {
+            // Mark as webhook update to prevent sync back to Mux
+            if ($isWebhookUpdate) {
+                $element->isWebhookUpdate = true;
+            }
             foreach ($muxAsset as $key => $value) {
                 if(array_key_exists($key, $this->defaultAttributes) || $key === 'status') {
                     if($key == 'id') {
@@ -711,7 +752,8 @@ class Assets extends Component
                         $element->asset_status = $value;
                         continue;
                     }
-                    $element[$key] = $value;
+
+                    $element->$key = $value;
                 }
             }
 
@@ -724,7 +766,6 @@ class Assets extends Component
                 return false;
             }
         }
-        
     }
 
     /**
@@ -798,27 +839,27 @@ class Assets extends Component
      * @param array $muxAssetArray 
      * @return bool
      */
-    public function updateAssetElementWithMuxAsset(?array $muxAssetArray): bool
+    public function updateAssetElementWithMuxAsset(?array $muxAssetArray, bool $isWebhookUpdate = false): bool
     {
 
-        $muxAsset =  $muxAssetArray;
-
+        $muxAsset = $muxAssetArray;
+        
         $elements = MuxAssetElement::find()
-        ->asset_id($muxAsset['id'])
-        ->limit(1)
-        ->unique()
-        ->all();
+            ->asset_id($muxAsset['id'])
+            ->limit(1)
+            ->unique()
+            ->all();
 
         if(!$elements) {
             return false;
         }
 
-        // If no changes needed don't resave just return everything is good.
-        if(!$this->hasChanges($muxAsset, $elements)) {
-            return true;
-        }
-
         foreach($elements as $element) {
+            // Mark as webhook update to prevent sync back to Mux
+            if ($isWebhookUpdate) {
+                $element->isWebhookUpdate = true;
+            }
+
             foreach ($muxAsset as $key => $value) {
                 if(array_key_exists($key, $this->defaultAttributes) || $key === 'status') {
                     if($key == 'id') {
@@ -846,15 +887,32 @@ class Assets extends Component
                                 $element->folderId = $parsed['folderId'];
                             } else {
                                 // Log warning and don't update the folderId
-                                Mux::warning("Folder ID {$parsed['folderId']} from passthrough data doesn't exist, keeping current folderId {$element->folderId}", 'mux');
+                                Mux::warning("Folder ID {$parsed['folderId']} from passthrough data doesn't exist, keeping current volumeId {$element->folderId}", 'mux');
                             }
                         }
+                        continue;
+                    } else if($key == 'static_renditions') {
+                        if (
+                            !empty($element->static_renditions) && 
+                            (!isset($muxAsset['static_renditions']) || empty($muxAsset['static_renditions']))
+                        ) {
+                            // If static_renditions is missing in $muxAsset, reset to default (null)
+                            $element->static_renditions = [];
+                        } else {
+                            // Otherwise, update it with the value from $muxAsset
+                            $element->static_renditions = $value;
+                        }
+                        continue;
                     }
                     
-                    $element[$key] = $value;
+                    // Only assign if the key exists in defaultAttributes (excluding special cases)
+                    if (array_key_exists($key, $this->defaultAttributes)) {
+                        $element->$key = $value;
+                    }
                 }
             }
 
+            
             if(!$this->saveAsset($element)) {
                 return false;
             }
@@ -865,6 +923,7 @@ class Assets extends Component
     }
 
     /**
+     * Create or Update MUX Asset
      * @param Asset $asset
      * @return bool
      * @throws Exception
@@ -880,11 +939,16 @@ class Assets extends Component
             "created_at" => $asset->getCreatedAt(),
             "asset_status" => $asset->getStatus(),
             "duration" => $asset->getDuration(),
-            "max_stored_resolution" => $asset->getMaxStoredResolution(),
+            // max_stored_resolution is deprecated in the Mux API, so we should avoid using it if possible.
+            "max_stored_resolution" => method_exists($asset, 'getMaxStoredResolution') ? $asset->getMaxStoredResolution() : null,
             "max_stored_frame_rate" => $asset->getMaxStoredFrameRate(),
             "resolution_tier" => $asset->getResolutionTier(),
             "max_resolution_tier" => $asset->getMaxResolutionTier(),
-            "encoding_tier" => $asset->getEncodingTier(),
+            // encoding_tier is deprecated in the Mux API, so we should avoid using it if possible.
+            // If you need to maintain backward compatibility, you can check if the method exists before calling it.
+            // Otherwise, you may want to remove this line entirely.
+            // Example for backward compatibility:
+            "encoding_tier" => method_exists($asset, 'getEncodingTier') ? $asset->getEncodingTier() : null,
             "aspect_ratio" => $asset->getAspectRatio(),
             "playback_ids" => !empty($asset->getPlaybackIds()) ? array_map(function ($playbackId) {
                 return [
@@ -919,7 +983,7 @@ class Assets extends Component
             "mp4_support" => $asset->getMp4Support(),
             "source_asset_id" => $asset->getSourceAssetId(),
             "normalize_audio" => $asset->getNormalizeAudio(),
-            "static_renditions" => $asset->getStaticRenditions(),
+            "static_renditions" => !empty($asset->getStaticRenditions()) && !empty($asset->getStaticRenditions()->getFiles()) ? $asset->getStaticRenditions()->getFiles() : [],
             "recording_times" => $asset->getRecordingTimes(),
             "non_standard_input_reasons" => !empty($asset->getNonStandardInputReasons()) ? json_decode($asset->getNonStandardInputReasons(), true): [],
             "test" => $asset->getTest(),
@@ -932,7 +996,7 @@ class Assets extends Component
         ];
 
         /** @var MuxAssetRecord $assetData */
-        $assetRecord = MuxAssetsRecord::find()->where(['asset_id' => $asset['id']])->one();
+        $assetRecord = MuxAssetsRecord::find()->where(['asset_id' => $asset->getId()])->one();
         if($assetRecord) {
             $assetRecord->setAttributes($attributes, false);
             $assetRecord->save();
@@ -941,7 +1005,7 @@ class Assets extends Component
         // Find the mux asset element or create one
         /** @var MuxAssetElement|null $muxAssetElement */
         $muxAssetElement = MuxAssetElement::find()
-            ->asset_id($asset['id'])
+            ->asset_id($asset->getId())
             ->status(null)
             ->one();
 
@@ -954,7 +1018,7 @@ class Assets extends Component
             $muxAssetElement->title = $title;
             $muxAssetElement->meta = [
                 'title' => $title,
-                'external_id' => $asset['id'],
+                'external_id' => $asset->getId(),
                 'creator_id' => '',
             ];
             $volumeId = null;
@@ -969,6 +1033,7 @@ class Assets extends Component
                     $folderId = $decoded['folderId'];
                 }
             }
+
             $muxAssetElement->volumeId = $volumeId;
             $muxAssetElement->folderId = $folderId;
         } else {
@@ -991,13 +1056,13 @@ class Assets extends Component
         $this->trigger(self::EVENT_BEFORE_SYNCHRONIZE_MUX_ASSET, $event);
 
         if (!$event->isValid) {
-            Mux::info("Synchronization of MUX Asset ID #{$asset['id']} was stopped by a plugin.", 'mux');
+            Mux::info("Synchronization of MUX Asset ID #{$asset->getId()} was stopped by a plugin.", 'mux');
 
             return false;
         }
 
         if (!Craft::$app->getElements()->saveElement($muxAssetElement)) {
-            Mux::error("Failed to synchronize MUX Asset ID #{$asset['id']}.", 'mux');
+            Mux::error("Failed to synchronize MUX Asset ID #{$asset->getId()}.", 'mux');
 
             return false;
         }
@@ -1093,6 +1158,38 @@ class Assets extends Component
         } catch (\Exception $e) {
             // Handle generic exceptions
             Mux::error("Exception when calling updateMuxAssetStaticRenditions: {$e->getMessage()}: ". __METHOD__, 'mux');
+            return false;
+        }
+    }
+
+    public function deleteMuxAssetStaticRenditionById(string|int $assetId, string $staticRenditionId): bool
+    {
+        // Validate inputs
+        if (empty($assetId) || empty($staticRenditionId)) {
+            Mux::error('Invalid input provided for assetId or staticRenditionId.'. __METHOD__, 'mux');
+            return false;
+        }
+
+        try {
+            // Initialize the API instance with configuration
+            $config = Mux::$plugin->assets->muxConf();
+            $apiInstance = new MuxPhp\Api\AssetsApi(new Client(), $config);
+
+            //Mux::info("Deleting static rendition for asset ID: {$assetId} and static rendition ID: {$staticRenditionId}. ". __METHOD__, 'mux');
+
+            // Call the API to delete the static rendition
+            $apiInstance->deleteAssetStaticRendition($assetId, $staticRenditionId);
+            
+            //Mux::info("Successfully deleted static rendition for asset ID: {$assetId}. ". __METHOD__, 'mux');
+            return true;
+            
+        } catch (\MuxPhp\ApiException $apiException) {
+            // Handle specific API exceptions
+            Mux::error("Mux API Exception: {$apiException->getMessage()}: ". __METHOD__, 'mux');
+            return false;
+        } catch (\Exception $e) {
+            // Handle generic exceptions
+            Mux::error("Exception when calling deleteMuxAssetStaticRenditionById: {$e->getMessage()}: ". __METHOD__, 'mux');
             return false;
         }
     }
@@ -1275,13 +1372,17 @@ class Assets extends Component
 
     /**
      * Create Meta Data
-     * @param string $title
-     * @param string $externalId
-     * @param string $creatorId
-     * @return string
+     * @param string|null $title
+     * @param string|null $externalId
+     * @param string|null $creatorId
+     * @return null|array
      */
-    private function createMetaData(string $title, string $externalId, string $creatorId = ''): array
+    private function createMetaData(string|null $title, string|null $externalId, string $creatorId = ''): array
     {
+        if (is_null($title) || is_null($externalId)) {
+            return [];
+        }
+
         return [
             'title' => $title,
             'external_id' => $externalId,

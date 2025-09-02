@@ -61,6 +61,25 @@ class MuxAsset extends Element
     public const TABLE = '{{%mux_assets}}';
     public const TABLE_STD = 'mux_assets';
 
+    // Scenario constants
+    // const SCENARIO_WEBHOOK_UPDATE = 'webhook-update';
+    // const SCENARIO_USER_UPDATE = 'user-update';
+    // const SCENARIO_BULK_IMPORT = 'bulk-import';
+
+    // /**
+    //  * @inheritdoc
+    //  */
+    // public function scenarios()
+    // {
+    //     $scenarios = parent::scenarios();
+    //     // Get all available attributes for this model
+    //     $allAttributes = array_keys($this->getAttributes());
+    //     $scenarios[self::SCENARIO_WEBHOOK_UPDATE] = $allAttributes;
+    //     $scenarios[self::SCENARIO_USER_UPDATE] = $allAttributes;
+    //     $scenarios[self::SCENARIO_BULK_IMPORT] = $allAttributes;
+    //     return $scenarios;
+    // }
+
 
     public static function tableName(): string
     {
@@ -219,12 +238,17 @@ class MuxAsset extends Element
     public ?string $mp4_support = '';
     public ?string $source_asset_id = '';
     public ?string $normalize_audio = '';
-    public ?array $static_renditions = null;
+    public ?array $static_renditions = [];
     public ?array  $recording_times = [];
     public ?array $non_standard_input_reasons = [];
     public ?bool $test = null;
     public ?string $ingest_type = '';
     public ?array $meta = [];
+
+    /**
+     * @var bool Temporary flag to prevent sync loops during webhook processing
+     */
+    public bool $isWebhookUpdate = false;
 
     /**
      * Get Playback Id
@@ -385,10 +409,14 @@ class MuxAsset extends Element
             $options = [ 'token' => $jwt ];
         }
 
-        if ($animated) {
-            return UrlHelper::urlWithParams("https://image.mux.com/{$this->playback_ids[0]['id']}/animated.gif?width=".$size."&fps=5", $options);
+        if($this->playback_ids) {
+            if ($animated) {
+                return UrlHelper::urlWithParams("https://image.mux.com/{$this->playback_ids[0]['id']}/animated.gif?width=".$size."&fps=5", $options);
+            } else {
+                return UrlHelper::urlWithParams("https://image.mux.com/{$this->playback_ids[0]['id']}/thumbnail.webp", $options);
+            }
         } else {
-            return UrlHelper::urlWithParams("https://image.mux.com/{$this->playback_ids[0]['id']}/thumbnail.webp", $options);
+            return '';
         }
     }
 
@@ -692,6 +720,46 @@ class MuxAsset extends Element
             'duration',
             'dateCreated',
         ];
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected function defineAttributes(): array
+    {
+        return array_merge(parent::defineAttributes(), [
+            'asset_id' => AttributeType::String,
+            'folderId' => AttributeType::Number,
+            'volumeId' => AttributeType::Number,
+            'created_at' => AttributeType::String,
+            'asset_status' => AttributeType::String,
+            'duration' => AttributeType::String,
+            'max_stored_resolution' => AttributeType::String,
+            'max_stored_frame_rate' => AttributeType::String,
+            'resolution_tier' => AttributeType::String,
+            'max_resolution_tier' => AttributeType::String,
+            'encoding_tier' => AttributeType::String,
+            'aspect_ratio' => AttributeType::String,
+            'playback_ids' => AttributeType::Mixed,
+            'tracks' => AttributeType::Mixed,
+            'errors' => AttributeType::String,
+            'per_title_encode' => AttributeType::Bool,
+            'upload_id' => AttributeType::String,
+            'is_live' => AttributeType::Bool,
+            'passthrough' => AttributeType::String,
+            'live_stream_id' => AttributeType::String,
+            'master' => AttributeType::Mixed,
+            'master_access' => AttributeType::String,
+            'mp4_support' => AttributeType::String,
+            'source_asset_id' => AttributeType::String,
+            'normalize_audio' => AttributeType::Bool,
+            'static_renditions' => AttributeType::Mixed,
+            'recording_times' => AttributeType::Mixed,
+            'non_standard_input_reasons' => AttributeType::Mixed,
+            'test' => AttributeType::Bool,
+            'ingest_type' => AttributeType::String,
+            'meta' => AttributeType::Mixed,
+        ]);
     }
 
     /**
@@ -1212,50 +1280,54 @@ class MuxAsset extends Element
      */
     public function afterSave(bool $isNew): void
     {
-        $data = [
-            'id' => $this->id,
-            'asset_id' => $this->asset_id,
-            'volumeId' => $this->volumeId,
-            'folderId' => $this->folderId,
-            'created_at' => $this->created_at,
-            'asset_status' => $this->asset_status,
-            'duration' => $this->duration,
-            'max_stored_resolution' => $this->max_stored_resolution,
-            'max_stored_frame_rate' => $this->max_stored_frame_rate,
-            'resolution_tier' => $this->resolution_tier,
-            'max_resolution_tier' => $this->max_resolution_tier,
-            'encoding_tier' => $this->encoding_tier,
-            'aspect_ratio' => $this->aspect_ratio,
-            'playback_ids' => $this->playback_ids,
-            'tracks' => $this->tracks,
-            'errors' => $this->errors,
-            'per_title_encode' => $this->per_title_encode,
-            'upload_id' => $this->upload_id,
-            'is_live' => $this->is_live,
-            'passthrough' => $this->passthrough,
-            'live_stream_id' => $this->live_stream_id,
-            'master' => $this->master,
-            'master_access' => $this->master_access,
-            'mp4_support' => $this->mp4_support,
-            'source_asset_id' => $this->source_asset_id,
-            'normalize_audio' => $this->normalize_audio,
-            'static_renditions' => $this->static_renditions,
-            'recording_times' => $this->recording_times,
-            'non_standard_input_reasons' => $this->non_standard_input_reasons,
-            'test' => $this->test,
-            'ingest_type' => $this->ingest_type,
-            'meta' => $this->meta,
-        ];
-
-        if ($isNew) {
-            Db::insert('{{%mux_assets}}', $data);
-        } else {
-            Db::update('{{%mux_assets}}', $data, ['id' => $this->id]);
-        }
-
         parent::afterSave($isNew);
+        
+        // Use a single, optimized database operation
+        $this->syncToCustomTable($isNew);
     }
 
+    /**
+     * Sync element data to custom table efficiently
+     */
+    private function syncToCustomTable(bool $isNew): void
+    {
+        // Get all attributes instead of trying to get dirty ones
+        $allAttributes = $this->getAttributes();
+        
+        // Filter to only include our custom fields
+        $customFields = array_intersect_key($allAttributes, array_flip([
+            'asset_id', 'folderId', 'volumeId', 'created_at', 'asset_status',
+            'duration', 'max_stored_resolution', 'max_stored_frame_rate',
+            'resolution_tier', 'max_resolution_tier', 'encoding_tier',
+            'aspect_ratio', 'playback_ids', 'tracks', 'errors',
+            'per_title_encode', 'upload_id', 'is_live', 'passthrough',
+            'live_stream_id', 'master', 'master_access', 'mp4_support',
+            'source_asset_id', 'normalize_audio', 'static_renditions',
+            'recording_times', 'non_standard_input_reasons', 'test',
+            'ingest_type', 'meta'
+        ]));
+        
+        // Remove null values to avoid database issues
+        $customFields = array_filter($customFields, function($value) {
+            return $value !== null;
+        });
+        
+        if (empty($customFields)) {
+            return; // No custom fields changed
+        }
+        
+        try {
+            if ($isNew) {
+                $customFields['id'] = $this->id;
+                Db::insert('{{%mux_assets}}', $customFields);
+            } else {
+                Db::update('{{%mux_assets}}', $customFields, ['id' => $this->id]);
+            }
+        } catch (\Exception $e) {
+            Mux::error("Failed to sync asset data: " . $e->getMessage(), 'mux');
+            // Don't throw - let the main save operation complete
+        }
+    }
 
     /**
      * Generate Jwt

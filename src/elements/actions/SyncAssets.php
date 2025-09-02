@@ -43,10 +43,10 @@ class SyncAssets extends ElementAction
             const \$elements = \$selectedItems.find('.element');
             for (let i = 0; i < \$elements.length; i++) {
                 const \$element = \$elements.eq(i);
-                if (!Garnish.hasAttr(\$element, 'data-mux-asset-status') || 
-                    \$element.attr('data-mux-asset-status') === 'ready') {
-                    return false;
-                }
+                // if (!Garnish.hasAttr(\$element, 'data-mux-asset-status') || 
+                //     \$element.attr('data-mux-asset-status') === 'ready') {
+                //     return false;
+                // }
             }
 
             return true;
