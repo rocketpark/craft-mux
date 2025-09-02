@@ -94,7 +94,7 @@
                 </h5>
                 <div class="value flex">
                     <div class="select">
-                        <select id="mux-mp4-support" name="mux-mp4-support">
+                        <select id="{{ ns }}mux-mp4-support" name="mp4_support">
                             <option value="none" {% if muxAsset.mp4_support == 'none' %}selected{% endif %}>None</option>
                             <option value="capped-1080p" {% if muxAsset.mp4_support == 'capped-1080p' %}selected{% endif %}>Capped 1080p</option>
                             <option value="audio-only" {% if muxAsset.mp4_support == 'audio-only' %}selected{% endif %}>Audio Only</option>
@@ -124,7 +124,7 @@
             </h5>
             <div class="value flex">
                 <div class="select">
-                    <select id="mux-static-renditions" name="mux-static-renditions">
+                    <select id="{{ ns }}mux-static-renditions" name="static_renditions">
                         <option value="none" {% if muxAsset.static_renditions is empty or muxAsset.static_renditions == 'none' %}selected{% endif %}>None</option>
                         <option value="highest" 
                             {% if muxAsset.static_renditions is defined 
@@ -148,7 +148,7 @@
 
             {% if muxAsset.static_renditions != null and (muxAsset.static_renditions != 'none' and muxAsset.static_renditions != null and muxAsset.static_renditions.files is defined and muxAsset.static_renditions.files|length > 0) %}
                 <h5 class="heading">{{ "Static Renditions Status"|t('mux') }}</h5>
-                <div class="value flex">
+                <div class="value flex" id="{{ ns }}static-rendition-status" data-static-rendition-id="{{ muxAsset.static_renditions.files[0].id }}">
                     {% set colors = {
                         'ready': 'teal',
                         'preparing': 'purple',
@@ -177,75 +177,41 @@
 </fieldset>
 
 {% js at endBody %}
-{#<script>#}
+
     $(function() {
         const mp4SupportSelect = $("#{{ ns }}mux-mp4-support");
         const staticRenditionsSelect = $("#{{ ns }}mux-static-renditions");
-        mp4SupportSelect.on('change', function(evt) {
-            const value = $(this).val();
-            let body = { assetId: "{{ muxAsset.asset_id }}", mp4Support: value };
-            body[Craft.csrfTokenName] = Craft.csrfTokenValue;
 
-            fetch('/actions/mux/assets/update-mp4-support', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(body)
-            }).then(res => {
-                if (!res.ok) {
-                    throw new Error("HTTP error " + res.status);
-                }
-                return res.json();
-            }).then(json => {
-                if(json.success) {
-                    Craft.cp.displayNotice(Craft.t("mux", "MP4 Support updated."));
-                } else {
-                    Craft.cp.displayError(Craft.t("mux", "Failed to update MP4 Support."));
-                }
-            }).catch(err => {
-                Craft.cp.displayError(Craft.t("mux", "Failed to update MP4 Support."));
-            });
+        // Validation function to check if static renditions can be set
+        function validateStaticRenditions() {
+            const mp4SupportValue = mp4SupportSelect.val();
+            const staticRenditionsValue = staticRenditionsSelect.val();
+            
+            // Only allow static renditions if mp4Support is 'none'
+            if (mp4SupportValue !== 'none' && mp4SupportValue !== undefined && staticRenditionsValue !== 'none') {
+                Craft.cp.displayError(Craft.t("mux", "Static renditions can only be set if MP4 Support is set to 'None'."));
+                staticRenditionsSelect.val('none');
+                return false;
+            }
+            return true;
+        }
+
+        // Validate on change of either select
+        mp4SupportSelect.on('change', function() {
+            validateStaticRenditions();
         });
 
-        staticRenditionsSelect.on('change', function(evt) {
-            const value = $(this).val();
-            const mp4SupportValue = mp4SupportSelect.val();
+        staticRenditionsSelect.on('change', function() {
+            validateStaticRenditions();
+        });
 
-            // Only allow static renditions if mp4Support is 'none'
-            if (mp4SupportValue !== 'none') {
-                Craft.cp.displayError(Craft.t("mux", "Static renditions can only be set if MP4 Support is set to 'None'."));
-                // Optionally reset the select to 'none' or previous value
-                $(this).val('none');
-                return;
+        // Validate before form submission
+        $('form').on('submit', function(e) {
+            if (!validateStaticRenditions()) {
+                e.preventDefault();
+                return false;
             }
-
-            let body = { assetId: "{{ muxAsset.asset_id }}", staticRendition: value };
-            body[Craft.csrfTokenName] = Craft.csrfTokenValue;
-
-            fetch('/actions/mux/assets/update-static-renditions', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(body)
-            }).then(res => {
-                if (!res.ok) {
-                    throw new Error("HTTP error " + res.status);
-                }
-                return res.json();
-            }).then(json => {
-                if(json.success) {
-                    Craft.cp.displayNotice(Craft.t("mux", "MP4 Support updated."));
-                } else {
-                    Craft.cp.displayError(Craft.t("mux", "Failed to update MP4 Support."));
-                }
-            }).catch(err => {
-                Craft.cp.displayError(Craft.t("mux", "Failed to update MP4 Support."));
-            });
         });
     });
-{#</script>#}
+
 {% endjs %}

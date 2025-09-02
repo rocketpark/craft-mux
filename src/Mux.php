@@ -64,11 +64,13 @@ class Mux extends Plugin
 
     /**
      * @var Plugin|null
+     * @property-read Plugin $plugin
      */
     public static ?Plugin $plugin = null;
 
     /**
      * @var Settings|null
+     * @property-read Settings $settings
      */
     public static ?Settings $settings = null;
 
@@ -171,30 +173,47 @@ class Mux extends Plugin
             }
         );
 
+        // Craft::$app->getElements()->on(
+        //     Elements::EVENT_BEFORE_SAVE_ELEMENT,
+        //     function (ElementEvent $e) {
+        //         if ($e->element instanceof MuxAssetElement) {
+        //             $element = $e->element;
+        //             Mux::info('Before saving asset with attributes: ' . json_encode($element->getAttributes()), 'mux');
+        //         }
+        //     }
+        // );
+
         Craft::$app->getElements()->on(
             Elements::EVENT_AFTER_SAVE_ELEMENT,
             function (ElementEvent $e) {
                 if ($e->element instanceof MuxAssetElement) {
+                    
                     $element = $e->element;
-                    $attributes = $element->getAttributes();
 
-                    //$muxAsset = Mux::$plugin->assets->getMuxAsset($attributes['asset_id']);
+                    //Mux::info('Saving asset with attributes: ' . json_encode($element->getAttributes()), 'mux');
+                    
+                    // Skip sync if this was triggered by a webhook
+                    if (isset($element->isWebhookUpdate) && !$element->isWebhookUpdate) {
 
-                    $asset = new MuxAsset();
+                        $attributes = $element->getAttributes();
+                        $params = [
+                            'asset_id' => $attributes['asset_id'],
+                            'passthrough' => $attributes['passthrough'],
+                            'meta' => [
+                                'title' => $attributes['title'],
+                                'external_id' => $attributes['id'],
+                                'creator_id' => $attributes['meta']['creator_id'] ?? ''
+                            ]
+                        ];
 
-                    $asset->asset_id = $attributes['asset_id'];
-                    $asset->passthrough = $attributes['passthrough'];
-                    $asset->meta['title'] = $attributes['title'];
-                    $asset->meta['external_id'] = $attributes['id'];
-                    $asset->meta['creator_id'] = $attributes['meta']['creator_id'] ?? '';
+                        Mux::info("Updating Asset in MUX: ". $params['asset_id']);
 
-                    Mux::info("Updating Asset in MUX: ". $asset->asset_id);
+                        Mux::$plugin->assets->updateMuxAsset($params);
+                    }
 
-                    Mux::$plugin->assets->updateMuxAsset($asset);
                 }
             }
         );
-
 
         Craft::$app->elements->on(
             Elements::EVENT_BEFORE_DELETE_ELEMENT,
@@ -206,7 +225,7 @@ class Mux extends Plugin
                         If (trashed == true) the element is being hard deleted (removed FOREVER see:https://media.giphy.com/media/hEwkspP1OllJK/giphy.gif)
                           then we remove it from MUX unless it has already been removed from MUX. 
                     */
-                    if ($attributes['trashed'] === 'true') {
+                    if ($e->hardDelete) {
                         $config = Mux::$plugin->assets->muxConf();
                         $apiInstance = new MuxPhp\Api\AssetsApi(
                             new Client(),
@@ -272,6 +291,14 @@ class Mux extends Plugin
     public static function error(string $message): void
     {
         Craft::error($message, 'mux');
+    }
+
+    /**
+     * Logs a warning message to our custom log target.
+     */
+    public static function warning(string $message): void
+    {
+        Craft::warning($message, 'mux');
     }
 
     /**

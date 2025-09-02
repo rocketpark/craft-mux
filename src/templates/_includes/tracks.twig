@@ -22,9 +22,27 @@
     </div>
 </div>
 
+{% css %}
+.track-fields {
+    margin-top: 20px;
+}
+.track-fields.hidden {
+    display: none !important;
+}
+
+/* Track error styling */
+.mux-track-error {
+    border-left: 4px solid #e74c3c;
+}
+
+.mux-track-error-badge:before {
+    color: #e74c3c;
+}
+{% endcss %}
+
 {% js at endBody %}
     $(function() { 
-        $("#{{ ns }}mux-asset-tracks").find('.mux-track-text').each(function(el) {
+        $("#{{ ns }}mux-asset-tracks").find('.mux-track').each(function(el) {
             const track = $(this);
             const deleteButton = $(this).find('button');
             const spinner = deleteButton.find('.spinner');
@@ -63,9 +81,10 @@
                             icon.toggleClass('hidden');
                         }
                     }).catch((err) => {
-                        console.log(err);
+                        console.error('Error deleting track:', err);
                         spinner.toggleClass('hidden');
                         icon.toggleClass('hidden');
+                        Craft.cp.displayError('{{ 'Failed to delete track'|t('mux') }}');
                     });
                 }
             });
@@ -85,14 +104,29 @@
         
         let $heading = $('<h2/>').text('{{ 'Add Mux Track'|t('mux') }}').appendTo($body);
 
+        // Track Type Selector
+        let $trackTypeSelector = Craft.ui.createSelectField({
+            label: Craft.t("mux",'Track Type'),
+            options: [
+                { label: '{{ 'Text (Subtitles/Captions)'|t('mux') }}', value: 'text' },
+                { label: '{{ 'Audio'|t('mux') }}', value: 'audio' }
+            ],
+            value: 'text',
+            required: true,
+            instructions: '{{ 'Select the type of track to add.'|t('mux') }}',
+            id: 'mux-track-type-selector',
+            name: 'track[type]'
+        }).appendTo($body);
+
+        // URL Field (for both text and audio tracks)
         let $trackUrl = Craft.ui.createTextField({
             id: 'mux-track-url',
             name: 'track[url]',
-            label: '{{ 'Mux Asset Track URL'|t('mux') }}',
-            instructions: '{{ 'Upload the caption file of the asset in either .srt or .vtt format to Craft CMS Assets. Retrieve the URL associated with this input.'|t('mux') }}',
+            label: '{{ 'Track URL'|t('mux') }}',
+            instructions: '{{ 'Enter the URL of the track file. Mux will automatically detect the file type and format. Ensure the URL is publicly accessible.'|t('mux') }}',
             value: '',
-            maxLength: 200,
-            placeholder: '{{ 'Enter url of .srt or .vtt file'|t('mux') }}',
+            maxLength: 500,
+            placeholder: '{{ 'Enter URL of track file'|t('mux') }}',
             autofocus: true,
             required: true,
             validateOnBlur: true,
@@ -101,19 +135,31 @@
             width: '100%'
         }).appendTo($body);
 
-        let $trackType = $('<input>').attr({
-            type: 'hidden',
-            id: 'mux-track-type',
-            name: 'track[type]',
-            value: 'text'
-        }).appendTo($body);
+        // URL validation function - simplified to only check for valid URL format
+        function validateTrackUrl(url, trackType) {
+            if (!url || url.trim() === '') {
+                return '{{ 'URL is required'|t('mux') }}';
+            }
+            
+            try {
+                new URL(url);
+            } catch (e) {
+                return '{{ 'Please enter a valid URL'|t('mux') }}';
+            }
+            
+            // Let Mux determine if the file type is correct
+            return null;
+        }
+
+        // Text Track Specific Fields Container
+        let $textTrackFields = $('<div id="text-track-fields" class="track-fields">').appendTo($body);
 
         let $trackTextType = $('<input>').attr({
             type: 'hidden',
-            id: 'mux-track-type',
+            id: 'mux-track-text-type',
             name: 'track[text_type]',
             value: 'subtitles'
-        }).appendTo($body);
+        }).appendTo($textTrackFields);
 
         let $trackName = Craft.ui.createTextField({
             id: 'mux-track-name',
@@ -122,30 +168,115 @@
             label: '{{ 'Language Name'|t('mux') }}',
             maxLength: 200,
             placeholder: '{{ 'US English'|t('mux') }}',
-            autofocus: true,
             required: true,
             validateOnBlur: true,
             validationError: '{{ 'Please enter a title for the track'|t('mux') }}',
             class: '',
             width: '30%'
-        }).appendTo($body);
+        }).appendTo($textTrackFields);
 
         let $trackLanguageCode = Craft.ui.createSelectField({
             label: Craft.t("mux",'Language Code'),
             options: {{ langCodes|json_encode|raw }},
             value: 'en-us',
             required: true,
-            instructions: '{{ 'Please select an language code.'|t('mux') }}',
+            instructions: '{{ 'Please select a language code.'|t('mux') }}',
             id: 'mux-track-language-code',
             name: 'track[language_code]'
-        }).appendTo($body);
+        }).appendTo($textTrackFields);
 
         let $trackClosedCaptions = Craft.ui.createLightswitchField({
             id: 'mux-track-closed-captions',
             label: '{{ 'Closed Captions'|t('mux') }}',
             name: 'track[closed_captions]',
             value: true
-        }).appendTo($body);
+        }).appendTo($textTrackFields);
+
+        // Audio Track Specific Fields Container
+        let $audioTrackFields = $('<div id="audio-track-fields" class="track-fields" style="display: none;">').appendTo($body);
+
+        let $audioTrackName = Craft.ui.createTextField({
+            id: 'mux-audio-track-name',
+            name: 'track[name]',
+            value: '',
+            label: '{{ 'Audio Track Name'|t('mux') }}',
+            maxLength: 200,
+            placeholder: '{{ 'e.g., Commentary, Alternative Audio'|t('mux') }}',
+            required: true,
+            validateOnBlur: true,
+            validationError: '{{ 'Please enter a name for the audio track'|t('mux') }}',
+            class: '',
+            width: '100%'
+        }).appendTo($audioTrackFields);
+
+        let $audioTrackLanguageCode = Craft.ui.createSelectField({
+            label: Craft.t("mux",'Audio Language Code'),
+            options: {{ langCodes|json_encode|raw }},
+            value: 'en-us',
+            required: false,
+            instructions: '{{ 'Optional: Select the language code for this audio track (useful for multi-language audio or commentary tracks).'|t('mux') }}',
+            id: 'mux-audio-track-language-code',
+            name: 'track[audio_language_code]'
+        }).appendTo($audioTrackFields);
+
+        // Handle track type change - use event delegation and proper selectors
+        function handleTrackTypeChange() {
+            // Try multiple ways to get the track type value
+            let trackType = $trackTypeSelector.find('select').val() || 
+                           $trackTypeSelector.find('input[type="hidden"]').val() ||
+                           'text'; // fallback to text
+            
+            const $urlField = $trackUrl.find('input');
+            
+            console.log('Track type changed to:', trackType); // Debug log
+            
+            if (trackType === 'text') {
+                $textTrackFields.removeClass('hidden').show();
+                $audioTrackFields.addClass('hidden').hide();
+                $urlField.attr('placeholder', '{{ 'Enter URL of subtitle/caption (.srt, .vtt) file'|t('mux') }}');
+                
+                // Update instructions
+                const $instructions = $trackUrl.find('.instructions p');
+                if ($instructions.length) {
+                    $instructions.text('{{ 'Enter the URL of your subtitle or caption file. Supports various formats and cloud storage links.'|t('mux') }}');
+                }
+                
+                // Enable/disable fields
+                $trackName.find('input').prop('disabled', false).prop('required', true);
+                $audioTrackName.find('input').prop('disabled', true).prop('required', false);
+                $audioTrackLanguageCode.find('select').prop('disabled', true);
+                
+            } else if (trackType === 'audio') {
+                $textTrackFields.addClass('hidden').hide();
+                $audioTrackFields.removeClass('hidden').show();
+                $urlField.attr('placeholder', '{{ 'Enter URL of audio file'|t('mux') }}');
+                
+                // Update instructions
+                const $instructions = $trackUrl.find('.instructions p');
+                if ($instructions.length) {
+                    $instructions.text('{{ 'Enter the URL of your audio file. For cloud storage (Google Drive, Dropbox), ensure sharing is set to "Anyone with the link can view".'|t('mux') }}');
+                }
+                
+                // Enable/disable fields
+                $trackName.find('input').prop('disabled', true).prop('required', false);
+                $audioTrackName.find('input').prop('disabled', false).prop('required', true);
+                $audioTrackLanguageCode.find('select').prop('disabled', false);
+            }
+            
+            // Clear any previous validation errors when switching types
+            $urlField.removeClass('error');
+            $trackUrl.find('.errors').remove();
+        }
+
+        // Bind the change event using multiple approaches for reliability
+        $trackTypeSelector.on('change', 'select', handleTrackTypeChange);
+        $trackTypeSelector.find('select').on('change', handleTrackTypeChange);
+        
+        // Use a more robust event binding that works with Craft's UI components
+        setTimeout(function() {
+            $('body').on('change', '#mux-track-type-selector select', handleTrackTypeChange);
+            handleTrackTypeChange(); // Initialize
+        }, 100);
 
         let $footer = $("<div/>",{
             class: "so-footer"
@@ -184,17 +315,51 @@
 
         $form.submit(function(evt) {
             evt.preventDefault();
-            $submitBtn.toggleClass('loading');
-    
+            
             let formData = Object.fromEntries(new FormData($slideout.$container[0]));
+            let trackType = formData['track[type]'];
+            let trackUrl = formData['track[url]'];
+            
+            console.log('Form data:', formData); // Debug log
+            console.log('Track type:', trackType); // Debug log
+            
+            // Validate URL before submission
+            const urlError = validateTrackUrl(trackUrl, trackType);
+            if (urlError) {
+                const $urlField = $('#mux-track-url');
+                $urlField.addClass('error');
+                $urlField.siblings('.errors').remove();
+                $urlField.after('<ul class="errors"><li>' + urlError + '</li></ul>');
+                return false;
+            }
+            
+            $submitBtn.toggleClass('loading');
+            
+            // Show processing message for audio tracks
+            if (trackType === 'audio') {
+                Craft.cp.displayNotice('{{ 'Submitting audio track... This may take a moment to process.'|t('mux') }}');
+            }
+            
             let track = {
-                url: formData['track[url]'],
-                type: formData['track[type]'],
-                text_type: formData['track[text_type]'],
-                language_code: formData['track[language_code]'],
-                name: formData['track[name]'],
-                closed_captions: formData['track[closed_captions]'] == 1 ? true : false,
+                url: trackUrl,
+                type: trackType
             };
+
+            // Add type-specific fields and name
+            if (trackType === 'text') {
+                track.name = formData['track[name]']; // Use text track name
+                track.text_type = formData['track[text_type]'];
+                track.language_code = formData['track[language_code]'];
+                track.closed_captions = formData['track[closed_captions]'] == 1 ? true : false;
+            } else if (trackType === 'audio') {
+                // For audio tracks, use the audio-specific name field and language code
+                track.name = $audioTrackName.find('input').val();
+                const audioLanguageCode = formData['track[audio_language_code]'];
+                if (audioLanguageCode && audioLanguageCode !== '') {
+                    track.language_code = audioLanguageCode;
+                }
+            }
+            // For audio tracks, Mux will handle the audio-specific properties automatically
     
             let body = { id: "{{ muxAsset.asset_id }}", track: track };
             body[Craft.csrfTokenName] = Craft.csrfTokenValue;
@@ -213,8 +378,16 @@
                     }
                     return res.json();
                 }).then(json => {
+                    $submitBtn.toggleClass('loading');
+                    
                     if(json.success) {
-                        $submitBtn.toggleClass('loading');
+                        // Show success message with processing note for audio tracks
+                        if (trackType === 'audio') {
+                            Craft.cp.displayNotice('{{ 'Audio track submitted successfully. Processing may take a few minutes.'|t('mux') }}');
+                        } else {
+                            Craft.cp.displayNotice('{{ 'Track added successfully'|t('mux') }}');
+                        }
+                        
                         if(Craft.elementIndex == undefined) {
                             location.reload();
                         } else {
@@ -228,10 +401,73 @@
                                 // Reinitialize events for tracks & add tracks button
                             });
                         }
+                        
+                        // Close the slideout
+                        $slideout.close();
+                    } else {
+                        // Enhanced error handling with specific messages
+                        let errorMessage = '{{ 'Failed to add track'|t('mux') }}';
+                        
+                        if (json.error) {
+                            // Parse common Mux API errors
+                            const error = json.error.toLowerCase();
+                            if (error.includes('invalid url') || error.includes('url not accessible')) {
+                                errorMessage = '{{ 'The URL is not accessible. Please check the URL and ensure it is publicly accessible.'|t('mux') }}';
+                            } else if (error.includes('unsupported format') || error.includes('invalid file')) {
+                                errorMessage = trackType === 'audio' 
+                                    ? '{{ 'Unsupported audio format. Please use a standard audio format (MP3, WAV, AAC, etc.).'|t('mux') }}'
+                                    : '{{ 'Unsupported subtitle format. Please use SRT or VTT format.'|t('mux') }}';
+                            } else if (error.includes('file too large')) {
+                                errorMessage = '{{ 'File is too large. Please use a smaller file.'|t('mux') }}';
+                            } else if (error.includes('processing')) {
+                                errorMessage = '{{ 'File processing error. Please try again or use a different file.'|t('mux') }}';
+                            } else if (json.message) {
+                                errorMessage = json.message;
+                            }
+                        }
+                        
+                        Craft.cp.displayError(errorMessage);
+                        
+                        // Show additional help for audio tracks
+                        if (trackType === 'audio' && (json.error && json.error.toLowerCase().includes('processing'))) {
+                            setTimeout(() => {
+                                Craft.cp.displayNotice('{{ 'Tip: For audio tracks, ensure the file is publicly accessible and in a standard format. Cloud storage links should have proper sharing permissions.'|t('mux') }}');
+                            }, 2000);
+                        }
                     }
                 }).catch((err) => {
-                    console.log(err);
+                    console.error('Error adding track:', err);
                     $submitBtn.toggleClass('loading');
+                    
+                    // Network or other errors
+                    let errorMessage = '{{ 'Network error occurred while adding the track'|t('mux') }}';
+                    if (err.message.includes('HTTP error')) {
+                        const statusCode = err.message.match(/\d+/);
+                        if (statusCode) {
+                            switch(statusCode[0]) {
+                                case '400':
+                                    errorMessage = '{{ 'Invalid request. Please check your input and try again.'|t('mux') }}';
+                                    break;
+                                case '401':
+                                    errorMessage = '{{ 'Authentication error. Please refresh the page and try again.'|t('mux') }}';
+                                    break;
+                                case '403':
+                                    errorMessage = '{{ 'Permission denied. You may not have access to add tracks.'|t('mux') }}';
+                                    break;
+                                case '404':
+                                    errorMessage = '{{ 'Asset not found. Please refresh the page and try again.'|t('mux') }}';
+                                    break;
+                                case '429':
+                                    errorMessage = '{{ 'Too many requests. Please wait a moment and try again.'|t('mux') }}';
+                                    break;
+                                case '500':
+                                    errorMessage = '{{ 'Server error. Please try again later.'|t('mux') }}';
+                                    break;
+                            }
+                        }
+                    }
+                    
+                    Craft.cp.displayError(errorMessage);
                 });
             }
         });
@@ -241,7 +477,13 @@
         });
 
         $("#{{ ns }}mux-track-add").on('click', function() {
+            console.log('Opening slideout...'); // Debug log
             $slideout.open();
+            
+            // Ensure the initial state is set after slideout opens
+            setTimeout(function() {
+                handleTrackTypeChange();
+            }, 100);
         });
     });
 {% endjs %}

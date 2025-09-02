@@ -51,6 +51,7 @@ return [
 
     // UI/UX
     'Are you sure you want to delete this track?' => 'Are you sure you want to delete this track?',
+    'This track has processing errors. Are you sure you want to delete it?' => 'This track has processing errors. Are you sure you want to delete it?',
     'Download Text Track' => 'Download Text Track',
     'Delete Text Track' => 'Delete Text Track',
     'Mux Asset Track URL' => 'Mux Asset Track URL',
@@ -61,10 +62,6 @@ return [
     'Please select an language code.' => 'Please select an language code.',
     'Add Track' => 'Add Track',
     'Add Mux Track' => 'Add Mux Track',
-    'Language Name' => 'Language Name',
-    'Language Code' => 'Language Code',
-    'Closed Captions' => 'Closed Captions',
-    'Create Track' => 'Create Track',
     "This asset doesn't have any fields assigned to it in its field layout." => "This asset doesn't have any fields assigned to it in its field layout.",
     'Enable static MP4 renditions on your video assets for offline viewing and other use cases. (DEPRECATED)' => 'Enable static MP4 renditions on your video assets for offline viewing and other use cases. (DEPRECATED)',
     'Enable static renditions on your video assets for offline viewing and other use cases.' => 'Enable static renditions on your video assets for offline viewing and other use cases.',
@@ -74,6 +71,55 @@ return [
     'Turn on static MP4, M4A, or both. (DEPRECATED). Use Static Renditions instead.' => 'Turn on static MP4, M4A, or both. (DEPRECATED). Use Static Renditions instead.',
     'Turn on static renditions for offline viewing and other use cases.' => 'Turn on static renditions for offline viewing and other use cases.',
     'Must create Signed Keys to playback this video and view thumbnails.' => 'Must create Signed Keys to playback this video and view thumbnails.',
+
+    // Track Management
+    'Track Type' => 'Track Type',
+    'Text (Subtitles/Captions)' => 'Text (Subtitles/Captions)',
+    'Select the type of track to add.' => 'Select the type of track to add.',
+    'Track URL' => 'Track URL',
+    'Enter the URL of the track file. Mux will automatically detect the file type and format. Ensure the URL is publicly accessible.' => 'Enter the URL of the track file. Mux will automatically detect the file type and format. Ensure the URL is publicly accessible.',
+    'Enter URL of track file' => 'Enter URL of track file',
+    'URL is required' => 'URL is required',
+    'Please enter a valid URL' => 'Please enter a valid URL',
+    'Audio Track Name' => 'Audio Track Name',
+    'e.g., Commentary, Alternative Audio' => 'e.g., Commentary, Alternative Audio',
+    'Please enter a name for the audio track' => 'Please enter a name for the audio track',
+    'Audio Language Code' => 'Audio Language Code',
+    'Optional: Select the language code for this audio track (useful for multi-language audio or commentary tracks).' => 'Optional: Select the language code for this audio track (useful for multi-language audio or commentary tracks).',
+    'Enter URL of subtitle/caption (.srt, .vtt) file' => 'Enter URL of subtitle/caption (.srt, .vtt) file',
+    'Enter the URL of your subtitle or caption file. Supports various formats and cloud storage links.' => 'Enter the URL of your subtitle or caption file. Supports various formats and cloud storage links.',
+    'Enter URL of audio file' => 'Enter URL of audio file',
+    'Enter the URL of your audio file. For cloud storage (Google Drive, Dropbox), ensure sharing is set to "Anyone with the link can view".' => 'Enter the URL of your audio file. For cloud storage (Google Drive, Dropbox), ensure sharing is set to "Anyone with the link can view".',
+
+    // Track Status and Errors
+    'Error Message' => 'Error Message',
+    'Error Type' => 'Error Type',
+    'Error' => 'Error',
+    'Track processing failed' => 'Track processing failed',
+    'This track failed to process. You can delete it and try uploading again with a different file or URL.' => 'This track failed to process. You can delete it and try uploading again with a different file or URL.',
+    'For audio tracks, ensure the file is publicly accessible and in a standard format.' => 'For audio tracks, ensure the file is publicly accessible and in a standard format.',
+    'Type' => 'Type',
+    'Text_Track' => 'Text Track',
+
+    // Track Actions
+    'Failed to delete track' => 'Failed to delete track',
+    'Submitting audio track... This may take a moment to process.' => 'Submitting audio track... This may take a moment to process.',
+    'Audio track submitted successfully. Processing may take a few minutes.' => 'Audio track submitted successfully. Processing may take a few minutes.',
+    'Track added successfully' => 'Track added successfully',
+    'Failed to add track' => 'Failed to add track',
+    'The URL is not accessible. Please check the URL and ensure it is publicly accessible.' => 'The URL is not accessible. Please check the URL and ensure it is publicly accessible.',
+    'Unsupported audio format. Please use a standard audio format (MP3, WAV, AAC, etc.).' => 'Unsupported audio format. Please use a standard audio format (MP3, WAV, AAC, etc.).',
+    'Unsupported subtitle format. Please use SRT or VTT format.' => 'Unsupported subtitle format. Please use SRT or VTT format.',
+    'File is too large. Please use a smaller file.' => 'File is too large. Please use a smaller file.',
+    'File processing error. Please try again or use a different file.' => 'File processing error. Please try again or use a different file.',
+    'Tip: For audio tracks, ensure the file is publicly accessible and in a standard format. Cloud storage links should have proper sharing permissions.' => 'Tip: For audio tracks, ensure the file is publicly accessible and in a standard format. Cloud storage links should have proper sharing permissions.',
+    'Network error occurred while adding the track' => 'Network error occurred while adding the track',
+    'Invalid request. Please check your input and try again.' => 'Invalid request. Please check your input and try again.',
+    'Authentication error. Please refresh the page and try again.' => 'Authentication error. Please refresh the page and try again.',
+    'Permission denied. You may not have access to add tracks.' => 'Permission denied. You may not have access to add tracks.',
+    'Asset not found. Please refresh the page and try again.' => 'Asset not found. Please refresh the page and try again.',
+    'Too many requests. Please wait a moment and try again.' => 'Too many requests. Please wait a moment and try again.',
+    'Server error. Please try again later.' => 'Server error. Please try again later.',
 
     // Notifications, errors, and flashes
     "Couldn't save asset." => "Couldn't save asset.",
@@ -90,11 +136,10 @@ return [
     "Asset mp4 support updated." => "Asset mp4 support updated.",
     "Couldn't update MUX asset static rendition." => "Couldn't update MUX asset static rendition.",
     "Asset static rendition updated." => "Asset static rendition updated.",
-    'Settings' => 'Settings',
     'Plugin settings saved.' => 'Plugin settings saved.',
     "Couldn't save plugin settings." => "Couldn't save plugin settings.",
 
-    // New translations found in code
+    // Settings
     'Plugin name' => 'Plugin name',
     'The public-facing name of the plugin' => 'The public-facing name of the plugin',
     'MUX Token Id' => 'MUX Token Id',
@@ -110,6 +155,8 @@ return [
     'View Documentation' => 'View Documentation',
     'Warning: MP4 Support is deprecated and should be set to "None" when using Static Renditions. Please set MP4 Support to "None" to use Static Renditions.' => 'Warning: MP4 Support is deprecated and should be set to "None" when using Static Renditions. Please set MP4 Support to "None" to use Static Renditions.',
     'Warning' => 'Warning',
+
+    // Navigation and UI
     'New Asset' => 'New Asset',
     'Create a new Mux asset' => 'Create a new Mux asset',
     'Title' => 'Title',
@@ -117,12 +164,54 @@ return [
     'Save' => 'Save',
     'Mux Assets' => 'Mux Assets',
     'Choose' => 'Choose',
+    'List' => 'List',
+    'Playback Restrictions' => 'Playback Restrictions',
+    'Signed Keys' => 'Signed Keys',
+
+    // Data and Metrics
     'Metrics' => 'Metrics',
     'Clear Cache' => 'Clear Cache',
     'Data will be available once the asset is processed.' => 'Data will be available once the asset is processed.',
+    'Data' => 'Data',
+    'Total Views' => 'Total Views',
+    'Total Unique Viewers' => 'Total Unique Viewers',
+    'Total Playing Time' => 'Total Playing Time',
+    'Avg Playing Time' => 'Avg Playing Time',
+    'Avg Completion' => 'Avg Completion',
+    'Views Over Last 7 Days' => 'Views Over Last 7 Days',
+    'Loading chart data...' => 'Loading chart data...',
+    'Date' => 'Date',
+    'Clearing...' => 'Clearing...',
+    'Cache cleared successfully' => 'Cache cleared successfully',
+    'm' => 'm',
+    's' => 's',
+    '%' => '%',
+
+    // Time periods
+    '1 Week' => '1 Week',
+    '1 Month' => '1 Month',
+    '3 Months' => '3 Months',
+    '6 Months' => '6 Months',
+    '1 Year' => '1 Year',
+
+    // File Upload
     'Invalid parameters provided.' => 'Invalid parameters provided.',
     'Assets moved successfully.' => 'Assets moved successfully.',
     'Mux Asset Uploaded.' => 'Mux Asset Uploaded.',
+    'Please select only one file.' => 'Please select only one file.',
+    'Please select a valid file type.' => 'Please select a valid file type.',
+    'Please select a file under 100MB.' => 'Please select a file under 100MB.',
+    'Unknown error uploading files.' => 'Unknown error uploading files.',
+    'Network response was not ok' => 'Network response was not ok',
+    'There was a problem with the fetch operation:' => 'There was a problem with the fetch operation:',
+    'Adding asset track failed!' => 'Adding asset track failed!',
+    'Delete Asset Track Failed!' => 'Delete Asset Track Failed!',
+    'Upload a video' => 'Upload a video',
+    'Upload videos' => 'Upload videos',
+    'The selected file is not a valid video.' => 'The selected file is not a valid video.',
+    'The selected file is too large.' => 'The selected file is too large.',
+
+    // Volume Management
     'Add New Volume' => 'Add New Volume',
     'Delete Selected Volume' => 'Delete Selected Volume',
     'Enter volume name:' => 'Enter volume name:',
@@ -132,9 +221,17 @@ return [
     'Delete this volume with all folders and assets in it?' => 'Delete this volume with all folders and assets in it?',
     'Volume deleted.' => 'Volume deleted.',
     'Could not delete volume.' => 'Could not delete volume.',
+    'Volume not found.' => 'Volume not found.',
     'Search in subfolders' => 'Search in subfolders',
+    'Select volume' => 'Select volume',
+    'Root' => 'Root',
+    'Unknown Folder' => 'Unknown Folder',
+
+    // Static Renditions
     'Capped 1080p' => 'Capped 1080p',
     'Capped 1080p,Audio Only' => 'Capped 1080p,Audio Only',
+
+    // Asset Status
     'ready' => 'ready',
     'preparing' => 'preparing',
     'errored' => 'errored',
@@ -143,6 +240,8 @@ return [
     'error' => 'error',
     'deleting' => 'deleting',
     'deleted' => 'deleted',
+
+    // Console Commands
     'Operation cancelled.' => 'Operation cancelled.',
     'This will clear all MUX data cache. Are you sure?' => 'This will clear all MUX data cache. Are you sure?',
     'Clearing MUX data cache for all assets...' => 'Clearing MUX data cache for all assets...',
@@ -171,13 +270,48 @@ return [
     '✗ Error clearing cache for asset {asset_id}: {error}' => '✗ Error clearing cache for asset {asset_id}: {error}',
     'Syncing MUX Assets…' => 'Syncing MUX Assets…',
     'Finished Syncing Mux Assets' => 'Finished Syncing Mux Assets',
-    'Please select only one file.' => 'Please select only one file.',
-    'Please select a valid file type.' => 'Please select a valid file type.',
-    'Please select a file under 100MB.' => 'Please select a file under 100MB.',
-    'Unknown error uploading files.' => 'Unknown error uploading files.',
-    'Network response was not ok' => 'Network response was not ok',
-    'There was a problem with the fetch operation:' => 'There was a problem with the fetch operation:',
-    'Adding asset track failed!' => 'Adding asset track failed!',
-    'Delete Asset Track Failed!' => 'Delete Asset Track Failed!',
-    'Could not generate a valid handle from the volume name.' => 'Could not generate a valid handle from the volume name.',
+
+    // Jobs and Actions
+    'Handling Mux Webhook' => 'Handling Mux Webhook',
+    'Sync MUX Assets' => 'Sync MUX Assets',
+    'All pending MUX assets have been synced' => 'All pending MUX assets have been synced',
+    'Cleanup Mux assets' => 'Cleanup Mux assets',
+    'Move…' => 'Move…',
+    'Move to folder' => 'Move to folder',
+    'No assets moved.' => 'No assets moved.',
+    'Asset moved.' => 'Asset moved.',
+    '{num} assets moved.' => '{num} assets moved.',
+
+    // Field Settings
+    'Allow uploading directly to the field' => 'Allow uploading directly to the field',
+    'Whether authors should be able to upload videos directly to the field, rather than requiring them to select/upload assets via the selection modal.' => 'Whether authors should be able to upload videos directly to the field, rather than requiring them to select/upload assets via the selection modal.',
+
+    // Webhook Messages
+    'This Mux asset has been updated by a webhook. Please reload to see the latest changes.' => 'This Mux asset has been updated by a webhook. Please reload to see the latest changes.',
+
+    // Static Rendition Messages
+    'Static renditions can only be set if MP4 Support is set to "None".' => 'Static renditions can only be set if MP4 Support is set to "None".',
+    'MP4 Support updated.' => 'MP4 Support updated.',
+    'Failed to update MP4 Support.' => 'Failed to update MP4 Support.',
+    'Static Rendition removed.' => 'Static Rendition removed.',
+    'Failed to remove Static Rendition.' => 'Failed to remove Static Rendition.',
+    'Static Rendition cleared.' => 'Static Rendition cleared.',
+    'Static Rendition already set to none.' => 'Static Rendition already set to none.',
+    'Static Rendition Support updated.' => 'Static Rendition Support updated.',
+    'Failed to update Static Rendition Support.' => 'Failed to update Static Rendition Support.',
+    'Couldn\'t delete MUX asset static rendition.' => 'Couldn\'t delete MUX asset static rendition.',
+    'MUX asset static rendition deleted.' => 'MUX asset static rendition deleted.',
+
+    // Signed Keys
+    'Private Key Deleted.' => 'Private Key Deleted.',
+    'Private Key Copied.' => 'Private Key Copied.',
+    'Private Key Created.' => 'Private Key Created.',
+
+    // Playback Restrictions
+    'Playback Restriction Deleted.' => 'Playback Restriction Deleted.',
+    'Playback Restriction Updated.' => 'Playback Restriction Updated.',
+    'Playback Restriction Created.' => 'Playback Restriction Created.',
+
+    // Edit Asset
+    'Edit Mux Asset' => 'Edit Mux Asset',
 ];
