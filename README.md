@@ -1,26 +1,47 @@
-# MUX plugin for Craft CMS 5.x
+<p align="center"><img src="https://rocetpark.com/media/plugins/mux/mux-icon.svg" width="100" height="100" alt="Mux icon"></p>
+<h1 align="center">Mux for Craft CMS</h1>
 
-MUX is a Craft CMS plugin used to upload and manage videos using the MUX API.
+MUX is a Craft CMS plugin used to upload and manage videos using the [MUX](https://www.mux.com/) service.
 
-## Requirements
+## Features
 
-This plugin requires Craft CMS 5.0.0 or later.
+### Video Management
+- Upload and manage videos directly from Craft CMS
+- Organize videos in custom volumes and folders
+- Sync assets between Mux and Craft CMS
 
-## Installation
+### Analytics Dashboard
+- Real-time video performance metrics
+- Interactive charts and data visualization
+- Track views, unique viewers, and engagement
+- Multiple timespan options (1 week to 1 year)
 
-To install MUX, follow these steps:
+### Security & Access Control
+- Secure video playback with JWT tokens
+- Domain and geographic restrictions
+- Granular user permissions
+- Signed keys management
 
-1. Open your terminal and go to your Craft project:
+### Video Processing
+- Static renditions for offline viewing
+- Automatic closed caption generation
+- Multiple resolution and encoding options
+- Track management (subtitles, audio)
 
-        cd /path/to/project
+### Developer Integration
+- GraphQL API support
+- Custom Mux Asset field type
+- Webhook integration for real-time updates
+- Template variables for frontend use
 
-2. Then tell Composer to load the plugin:
+### Console Commands
+- Asset synchronization: `php craft mux/sync/all`
+- Cache management: `php craft mux/cache/clear`
+- Background job processing
 
-        composer require rocket-park/mux
-
-3. Install the plugin via `./craft install/plugin mux` via the CLI, or in the Control Panel, go to Settings → Plugins and click the “Install” button for MUX.
-
-MUX works on Craft 5.x.
+### Frontend Ready
+- Template variables for video display
+- Player integration support
 
 ## MUX configuration
 
@@ -28,25 +49,11 @@ Signup For [MUX Account](https://mux.com/)
 
 You must obtain a MUX Token ID & Token Secret from your MUX environment access tokens page.
  
-"An environment represents the highest grouping of data you want to combine and compare within. Multiple websites/apps or video platforms can use the same environment, but we suggest not combining staging and production data." - MUX
 
-## SYNC
-The plugin has a console command to sync data from MUX to CRAFT.
+## Documentation
+Visit the [Mux Plugin page](https://rocketpark.com/craft-plugins/mux) for all documentation, pricing and developer resources.
 
-`php craft mux/sync/all`
-
-### Webhooks
-In the MUX settings a webhook can be added to inform the plugin of asset updates. 
-Include the following endbpoint in the MUX webhook control pannel.
-
-`https://site.com/actions/mux/webhooks/mux-webhooks`
-
-## MUX Roadmap
-
-Some things to do, and ideas for potential features:
-
-* **Organization of video** - Allow for folders or sections to organize videos.
-* **Webhook verification** - Verify the webhook is coming from MUX via their Webhook Signing Secret.
-* **Integration of MUX Data** - Allow for the integration of MUX data into the Craft CMS.
+## Support
+Get in touch with us via the [Mux Support page](https://rocketpark.com/craft-plugins/mux/support) or by [creating a Github issue](https://github.com/rocketpark/craft-mux/issues)
 
 Brought to you by [Rocket Park](https://rocketpark.com/)
