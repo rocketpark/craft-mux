@@ -1,6 +1,34 @@
 # MUX Changelog
 
 All notable changes to this project will be documented in this file.
+## 2.4.0 - September 2, 2025
+
+### Added
+- **Analytics Dashboard**: Added comprehensive analytics and data visualization system with Mux Data API integration
+- **Data Service**: New `Data` service for fetching and caching analytics data from Mux API
+- **Analytics Field Layout**: New "Data" tab in Mux Asset field layout with interactive charts and metrics
+- **Cache Management**: Console commands for managing analytics data cache (`mux/cache/clear`, `mux/cache/clear-all`, `mux/cache/stats`)
+- **Data Controller**: New controller for handling analytics data requests via AJAX
+- **Interactive Charts**: Built-in chart functionality using Craft's internal chart system (replacing Chart.js dependency)
+- **Multiple Metrics Support**: Views, unique viewers, playing time, average playing time, and completion percentage
+- **Timespan Selection**: Support for 1 week, 1 month, 3 months, 6 months, and 1 year data ranges
+- **Smart Caching**: Context-aware caching system with different TTL strategies for edit screens, dashboards, frontend, and API
+- **Real-time Data Updates**: Force refresh capability for getting latest analytics data
+- **Console Sync Commands**: New sync controller for managing Mux asset synchronization
+
+### Updated
+- **Schema Version**: Updated to 1.0.3 to support new analytics features
+- **Field Layout System**: Enhanced Mux Asset field layout with dedicated Data and Tracks tabs
+- **Service Architecture**: Added Data service to plugin configuration alongside existing services
+- **Cache Integration**: Automatic cache clearing when assets are deleted or updated
+- **Translation Support**: Added analytics-related translations for the new Data service
+
+### Technical Improvements
+- **Performance Optimization**: Intelligent caching reduces API calls while maintaining data freshness
+- **Error Handling**: Comprehensive error handling for analytics API failures
+- **Memory Management**: Efficient data processing and caching strategies
+- **API Integration**: Full integration with Mux Data API for real-time analytics
+- **User Experience**: Seamless analytics integration within existing Mux Asset editing workflow
 
 ## 2.1.2 - July 9, 2025
 ### Fixed

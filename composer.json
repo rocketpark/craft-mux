@@ -1,7 +1,7 @@
 {
     "name": "rocket-park/craft-mux",
-    "version": "2.1.2",
-    "description": "Connection to the Mux video API to upload and use Mux video assets.",
+    "version": "2.4.0-beta.1",
+    "description": "MUX is a Craft CMS plugin used to upload and manage videos using the MUX service.",
     "type": "craft-plugin",
     "license": "proprietary",
     "support": {
@@ -28,7 +28,7 @@
         "handle": "mux",
         "name": "Mux",
         "developer": "Rocket Park",
-        "documentationUrl": "",
+        "documentationUrl": "https://rocketpark.com/craft-plugins/mux",
         "class": "rocketpark\\mux\\Mux"
     },
     "scripts": {
