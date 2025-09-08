@@ -47,6 +47,9 @@ class SyncAssets extends ElementAction
                 //     \$element.attr('data-mux-asset-status') === 'ready') {
                 //     return false;
                 // }
+                if (Garnish.hasAttr(\$element, 'data-is-folder')) {
+                    return false;
+                }
             }
 
             return true;

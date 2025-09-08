@@ -88,6 +88,14 @@ class AssetsController extends Controller
                     }
                 }
             }
+        } else {
+            // Add default volume selection when no specific volume is provided
+            $volumes = Mux::$plugin->volumes->getAllVolumes();
+            if (!empty($volumes)) {
+                // Use the first volume as default, or you could implement more sophisticated logic
+                $defaultVolume = $volumes[0];
+                $variables['defaultSource'] = "volume:$defaultVolume->uid";
+            }
         }
         
         return $this->renderTemplate('mux/elements/_index', $variables);

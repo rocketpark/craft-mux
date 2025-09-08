@@ -1,4 +1,4 @@
-<p align="center"><img src="https://rocetpark.com/media/plugins/mux/mux-icon.svg" width="100" height="100" alt="Mux icon"></p>
+<p align="center"><img src="https://rocketpark.com/assets/plugins/mux/mux-icon.svg" width="100" height="100" alt="Mux icon"></p>
 <h1 align="center">Mux for Craft CMS</h1>
 
 MUX is a Craft CMS plugin used to upload and manage videos using the [MUX](https://www.mux.com/) service.
