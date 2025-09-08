@@ -45,6 +45,9 @@ use craft\helpers\Json;
 use craft\helpers\StringHelper;
 use Illuminate\Support\Collection;
 use rocketpark\mux\fieldlayoutelements\MuxAssetFieldDataTab;
+use craft\base\Thumbable;
+use craft\helpers\Cp;
+
 
 /**
  * Mux Asset element type
@@ -56,7 +59,7 @@ use rocketpark\mux\fieldlayoutelements\MuxAssetFieldDataTab;
  * @property-read string $pluralLowerDisplayName Plural lowercase display name
  * @property-read string|null $refHandle Reference handle
  */
-class MuxAsset extends Element
+class MuxAsset extends Element implements Thumbable
 {
     public const TABLE = '{{%mux_assets}}';
     public const TABLE_STD = 'mux_assets';
@@ -416,7 +419,7 @@ class MuxAsset extends Element
                 return UrlHelper::urlWithParams("https://image.mux.com/{$this->playback_ids[0]['id']}/thumbnail.webp", $options);
             }
         } else {
-            return '';
+            return Craft::$app->assetManager->getPublishedUrl('@rocketpark/mux/web/dist/img/default-thumb.svg', true);
         }
     }
 
@@ -430,6 +433,9 @@ class MuxAsset extends Element
         if($this->isFolder) {
             return parent::getThumbHtml($size);
         }
+
+        // size must be min of 200px
+        $size = max($size, 200);
 
         $height = round($size * 9 / 16);
         $url = $this->getThumbUrl($size);
@@ -539,6 +545,11 @@ class MuxAsset extends Element
             array_unshift($path, $parent->getSourcePathInfo());
             $folder = $parent;
         }
+
+        // Filter out any null values that might have been added
+        $path = array_filter($path, function($item) {
+            return $item !== null;
+        });
 
         return $path;
     }
@@ -672,6 +683,9 @@ class MuxAsset extends Element
     public function getCardBodyHtml(): ?string
     {
         $duration = $this->duration;
+        if(!$duration) {
+            return null;
+        }
         $hours = floor($duration / 3600);
         $minutes = floor(($duration % 3600) / 60);
         $seconds = $duration % 60;
@@ -1049,8 +1063,8 @@ class MuxAsset extends Element
         }
 
         $userSession = Craft::$app->getUser();
-        $canMoveTo = true; //$canUpload && $userSession->checkPermission("deleteAssets:$volume->uid");
-        $canMovePeerFilesTo = true; // (
+        $canMoveTo = $userSession->checkPermission('mux:assets-edit'); //$canUpload && $userSession->checkPermission("deleteAssets:$volume->uid");
+        $canMovePeerFilesTo = $userSession->checkPermission('mux:assets-edit'); // (
         //     $canMoveTo &&
         //     $userSession->checkPermission("savePeerAssets:$volume->uid") &&
         //     $userSession->checkPermission("deletePeerAssets:$volume->uid")
@@ -1060,7 +1074,7 @@ class MuxAsset extends Element
 
         $source = [
             'key' => $folder->parentId ? "folder:$folder->uid" : "volume:$volume->uid",
-            'label' => $folder->parentId ? $folder->name : Craft::t('site', $folder->name),
+            'label' => $folder->parentId ? $folder->name : $folder->name,
             'hasThumbs' => true,
             'criteria' => ['folderId' => $folder->id],
             'defaultSort' => ['dateCreated', 'desc'],
@@ -1120,7 +1134,7 @@ class MuxAsset extends Element
         $crumbs = [
             [
                 'label' => Craft::t('mux', 'Mux Assets'),
-                'url' => UrlHelper::cpUrl('mux/assets'),
+                'url' => 'mux/assets',
             ],
             [
                 'menu' => [
@@ -1128,7 +1142,7 @@ class MuxAsset extends Element
                     'items' => Collection::make(Mux::$plugin->volumes->getAllVolumes())
                         ->map(fn(MuxVolume $v) => [
                             'label' => Craft::t('site', $v->name),
-                            'url' => "mux/$v->handle",
+                            'url' => "mux/assets/$v->handle",
                             'selected' => $v->id === $this->volumeId,
                         ])
                         ->all(),
@@ -1138,19 +1152,46 @@ class MuxAsset extends Element
 
         $uri = "mux/assets/$volume->handle";
 
-        if ($this->folderPath !== null) {
-            $subfolders = ArrayHelper::filterEmptyStringsFromArray(explode('/', $this->folderPath));
-            foreach ($subfolders as $subfolder) {
-                $uri .= "/$subfolder";
-                $crumbs[] = [
-                    'label' => $subfolder,
-                    'url' => UrlHelper::cpUrl($uri),
-                ];
+        // Build folder path from the folder hierarchy
+        if ($this->folderId) {
+            $folder = $this->getFolder();
+            if ($folder && $folder->parentId) {
+                // Build the folder path by walking up the hierarchy
+                $folderPath = [];
+                $currentFolder = $folder;
+                
+                while ($currentFolder && $currentFolder->parentId) {
+                    $folderPath[] = $currentFolder->name;
+                    $currentFolder = $currentFolder->getParent();
+                }
+                
+                // Reverse to get the correct order (root to current)
+                $folderPath = array_reverse($folderPath);
+                
+                foreach ($folderPath as $folderName) {
+                    $uri .= "/$folderName";
+                    $crumbs[] = [
+                        'label' => $folderName,
+                        'url' => UrlHelper::cpUrl($uri),
+                    ];
+                }
             }
         }
 
+        // Use Craft's elementChipHtml for the final breadcrumb
+        $crumbs[] = [
+            'html' => Cp::elementChipHtml($this, [
+                'showDraftName' => false,
+                'showThumb' => false,
+                'showLabel' => true,
+                'size' => 'small',
+                'class' => 'chromeless',
+            ]),
+        ];
+
         return $crumbs;
     }
+
 
     /**
      * @inheritdoc

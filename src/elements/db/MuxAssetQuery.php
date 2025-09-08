@@ -6,6 +6,7 @@ use Craft;
 use craft\elements\db\ElementQuery;
 use craft\helpers\Db;
 use yii\db\Expression;
+use rocketpark\mux\Mux;
 
 /**
  * Mux Asset query
@@ -538,8 +539,27 @@ class MuxAssetQuery extends ElementQuery
         }
 
         if ($this->folderId) {
-            $this->subQuery->andWhere(['mux_assets.folderId' => $this->folderId]);
+            if ($this->includeSubfolders) {
+                // Get the folder to find all its subfolders
+                $foldersService = Mux::$plugin->folders;
+                $folder = $foldersService->getFolderById($this->folderId);
+                if ($folder) {
+                    // Get all descendant folder IDs (including the current folder)
+                    $descendantFolders = $foldersService->getAllDescendantFolders($folder, 'id', true);
+                    $folderIds = array_keys($descendantFolders);
+                    
+                    // Include assets in the current folder and all its subfolders
+                    $this->subQuery->andWhere(['mux_assets.folderId' => $folderIds]);
+                } else {
+                    // Fallback to just the current folder if folder not found
+                    $this->subQuery->andWhere(['mux_assets.folderId' => $this->folderId]);
+                }
+            } else {
+                // Only search in the specific folder
+                $this->subQuery->andWhere(['mux_assets.folderId' => $this->folderId]);
+            }
         }
+        
         if ($this->volumeId) {
             $this->subQuery->andWhere(['mux_assets.volumeId' => $this->volumeId]);
         }

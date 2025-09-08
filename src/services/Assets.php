@@ -208,6 +208,8 @@ class Assets extends Component
         // $validRequestParams = $this->getValidRequestParams($requestParams);
         // $params = array_merge($this->defaultAttributes, $validRequestParams);
 
+        $passthrough = [];
+
         // Handle title (Craft element field)
         if (isset($requestParams['title'])) {
             $asset->title = $requestParams['title'];
@@ -217,11 +219,13 @@ class Assets extends Component
         if (isset($requestParams['volumeUid'])) {
             $volume = MuxVolumeRecord::findOne(['uid' => $requestParams['volumeUid']]);
             $asset->volumeId = $volume ? $volume->id : null;
+            $passthrough['volumeId'] = $volume ? (int)$volume->id : null;
         }
 
         // Handle folderId separately since it's not in defaultAttributes
         if (isset($requestParams['folderId'])) {
             $asset->folderId = is_null($requestParams['folderId']) ? null : (int)$requestParams['folderId'];
+            $passthrough['folderId'] = is_null($requestParams['folderId']) ? null : (int)$requestParams['folderId'];
         }
 
         if(isset($requestParams['static_renditions']) && $requestParams['static_renditions'] !== 'none') {
@@ -232,6 +236,7 @@ class Assets extends Component
             $asset->mp4_support = $requestParams['mp4_support'];
         }
 
+        $asset->passthrough = json_encode($passthrough);
         $asset->meta = $this->createMetaData($requestParams['title'] ?? '', is_null($asset->id) ? $requestParams['id'] ?? '' : $asset->id, '');
 
         return $asset;
@@ -930,7 +935,7 @@ class Assets extends Component
      * @throws Throwable
      * @throws \craft\errors\ElementNotFoundException
      */
-    public function createOrUpdateMuxAsset(Asset $asset): bool
+    public function createOrUpdateMuxAsset(Asset $asset, bool $isWebhookUpdate = false): bool
     {
         
         $attributes = [
@@ -1043,6 +1048,11 @@ class Assets extends Component
                 'external_id' => $asset['id'],
                 'creator_id' => '',
             ];
+        }
+
+        // Mark as webhook update to prevent sync back to Mux
+        if ($isWebhookUpdate) {
+            $muxAssetElement->isWebhookUpdate = true;
         }
 
         // Set attributes on the element to emulate it having been loaded with JOINed data:
@@ -1229,13 +1239,7 @@ class Assets extends Component
             }
 
             foreach ($assets as $asset) {
-                $this->createOrUpdateMuxAsset($asset);
-                // Craft::$app->getQueue()->push(new UpdateMuxAssetElement([
-                //     'description' => Craft::t('mux', 'Updating MUX asset “{id}”', [
-                //     'id' => $asset->getId(),
-                //     ]),
-                //     'asset_id' => $asset->getId(),
-                // ]));
+                $this->createOrUpdateMuxAsset($asset, true);
             }
 
             // Remove any mux assets elements that are no longer in MUX just in case.
@@ -1359,6 +1363,19 @@ class Assets extends Component
         foreach ($elements as $element) {
             $element->folderId = $targetFolderId;
             $element->volumeId = $volumeId;
+
+            $passthrough = [];
+
+            if($volumeId) {
+                $passthrough['volumeId'] = $volumeId;
+            }
+
+            if($targetFolderId) {
+                $passthrough['folderId'] = $targetFolderId;
+            }
+
+            $element->passthrough = json_encode($passthrough);
+
             if (!Craft::$app->getElements()->saveElement($element)) {
                 return false;
             }

@@ -353,6 +353,10 @@
             return settings;
         },
         
+        /**
+         * Get the view params
+         * @returns {Object}
+         */
         getViewParams: function () {
             const data = Object.assign(this.base(), {
                 showFolders: this.settings.showFolders && !this.trashed,
@@ -369,6 +373,10 @@
             return data;
         },
         
+        /**
+         * Get the source actions
+         * @returns {Object[]}
+         */
         getSourceActions: function () {
             let actions = this.base();
             actions.push({
@@ -389,6 +397,10 @@
             return actions;
         },
         
+        /**
+         * Show the create volume modal
+         * @private
+         */
         showCreateVolumeModal: function () {
             // Use browser prompt to get the volume name
             const volumeName = prompt(Craft.t('mux', 'Enter volume name:'));
@@ -646,22 +658,6 @@
             return actions;
         },
 
-        /**
-         * Get the view params
-         * @returns {Object}
-         */
-        getViewParams: function () {
-            var params = this.base();
-            // console.log('MuxAssetIndex getViewParams called');
-            // console.log('this.settings.showFolders:', this.settings.showFolders);
-            // console.log('this.trashed:', this.trashed);
-
-            params.showFolders = this.settings.showFolders && !this.trashed;
-            params.foldersOnly = this.settings.foldersOnly;
-
-            //console.log('Final params:', params);
-            return params;
-        },
 
         /**
          * Create a subfolder

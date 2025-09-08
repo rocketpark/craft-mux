@@ -113,14 +113,12 @@ class Mux extends Plugin
         self::$settings = $this->getSettings();
         $this->name = self::$settings->pluginName;
 
-
         if (Craft::$app->getRequest()->getIsCpRequest()) {
             $this->registerCpRoutes();
         }
 
-        if (Craft::$app->getEdition() === Craft::Pro) {
-            $this->_registerPermissions();
-        }
+        // Register permissions
+        $this->_registerPermissions();
 
         // Register the asset bundle for the Control Panel
         if (Craft::$app->getRequest()->getIsCpRequest()) {
@@ -172,16 +170,6 @@ class Mux extends Plugin
                 $event->types[] = MuxAssetInterface::class;
             }
         );
-
-        // Craft::$app->getElements()->on(
-        //     Elements::EVENT_BEFORE_SAVE_ELEMENT,
-        //     function (ElementEvent $e) {
-        //         if ($e->element instanceof MuxAssetElement) {
-        //             $element = $e->element;
-        //             Mux::info('Before saving asset with attributes: ' . json_encode($element->getAttributes()), 'mux');
-        //         }
-        //     }
-        // );
 
         Craft::$app->getElements()->on(
             Elements::EVENT_AFTER_SAVE_ELEMENT,
@@ -441,8 +429,7 @@ class Mux extends Plugin
      */
     protected function customAdminCpPermissions(): array
     {
-        $permissions = [];
-        $permissions[] = [
+        return [
             'mux:assets' => [
                 'label' => Craft::t('mux', 'View Assets'),
                 'info' => Craft::t('mux', 'This user will be able to view Mux assets.'),
@@ -463,10 +450,7 @@ class Mux extends Plugin
             ],
             'mux:settings' => [
                 'label' => Craft::t('mux', 'Settings'),
-            ],
+            ]
         ];
-
-
-        return $permissions;
     }
 }

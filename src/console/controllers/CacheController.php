@@ -183,29 +183,6 @@ class CacheController extends Controller
         return ExitCode::OK;
     }
 
-    /**
-     * Clear all general cache (not just MUX)
-     */
-    public function actionFlushAll(): int
-    {
-        if (!$this->force) {
-            if (!$this->confirm('This will clear ALL application cache. Are you sure?')) {
-                $this->stdout('Operation cancelled.' . PHP_EOL, Console::FG_YELLOW);
-                return ExitCode::OK;
-            }
-        }
-
-        $this->stdout('Flushing all application cache...' . PHP_EOL, Console::FG_GREEN);
-        
-        try {
-            Craft::$app->getCache()->flush();
-            $this->stdout('✓ All cache flushed successfully' . PHP_EOL, Console::FG_GREEN);
-            return ExitCode::OK;
-        } catch (\Exception $e) {
-            $this->stdout("✗ Error flushing cache: {$e->getMessage()}" . PHP_EOL, Console::FG_RED);
-            return ExitCode::UNSPECIFIED_ERROR;
-        }
-    }
 
     /**
      * Clear cache for a specific asset

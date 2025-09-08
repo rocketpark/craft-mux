@@ -21,20 +21,15 @@ class SyncController extends Controller
 {
     public $defaultAction = 'mux assets';
 
+    /**
+     * Sync all MUX assets
+     */
     public function actionAll()
     {
         $this->_syncMuxAssets();
         return ExitCode::OK;
     }
 
-    /**
-     * Reset Mux Asset data.
-     */
-    public function actionMuxAssets(): int
-    {
-        $this->_syncMuxAssets();
-        return ExitCode::OK;
-    }
 
     private function _syncMuxAssets(): void
     {
