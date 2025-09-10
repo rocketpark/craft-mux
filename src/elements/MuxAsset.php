@@ -64,24 +64,6 @@ class MuxAsset extends Element implements Thumbable
     public const TABLE = '{{%mux_assets}}';
     public const TABLE_STD = 'mux_assets';
 
-    // Scenario constants
-    // const SCENARIO_WEBHOOK_UPDATE = 'webhook-update';
-    // const SCENARIO_USER_UPDATE = 'user-update';
-    // const SCENARIO_BULK_IMPORT = 'bulk-import';
-
-    // /**
-    //  * @inheritdoc
-    //  */
-    // public function scenarios()
-    // {
-    //     $scenarios = parent::scenarios();
-    //     // Get all available attributes for this model
-    //     $allAttributes = array_keys($this->getAttributes());
-    //     $scenarios[self::SCENARIO_WEBHOOK_UPDATE] = $allAttributes;
-    //     $scenarios[self::SCENARIO_USER_UPDATE] = $allAttributes;
-    //     $scenarios[self::SCENARIO_BULK_IMPORT] = $allAttributes;
-    //     return $scenarios;
-    // }
 
 
     public static function tableName(): string
@@ -419,7 +401,7 @@ class MuxAsset extends Element implements Thumbable
                 return UrlHelper::urlWithParams("https://image.mux.com/{$this->playback_ids[0]['id']}/thumbnail.webp", $options);
             }
         } else {
-            return Craft::$app->assetManager->getPublishedUrl('@rocketpark/mux/web/dist/img/default-thumb.svg', true);
+            return 'data:image/svg+xml;base64,iVBORw0KGgoAAAANSUhEUgAAAE0AAABNCAAAAADGYrZsAAABU0lEQVR4Ae3VhXLDMAwA0P3/H6rMDHEtD0JarUSBgpfB0U4+sui14Rf4y6Waaqr9Q0011VRTTbX+yQyrYMTBzq7bieV+Xg/s7OK5diL6EG4UE1kYEVG/zBifGCPiSvoPXH2scX9uhhVGDuZEJP/F+YTXmGPsSw2ZYyw/tbRzmpwA1gUn2AHCmucKzB1b2hHxCDVXY0ENzbTA8JEmnGBBLTWILiOi+IKPNOE+BAtq8cAgY8PjY425BhbWYHBhDAIaWI9Z6KDBMPZYSDt4LMZVFw1g3pfhCRHt5A8h7psYChfWmn8lu6b6HK8QcV7fZ/V911njUT7u/hIRzaBx0wrXTTsnyfmqxH74zaFf6wbG3Hu66aghkQOACXOUl9hcMM+9BZ/TEwM1zcHIFZpdgsdrDGAb1EbGDh8E85Nz+2U5trO7euDAgX5lVFMtpKmmmmqqqabaJw622lG0jNePAAAAAElFTkSuQmCC';
         }
     }
 
