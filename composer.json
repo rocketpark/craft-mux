@@ -1,21 +1,23 @@
 {
     "name": "rocket-park/craft-mux",
-    "version": "2.4.0-beta.2",
+    "version": "2.4.0-beta.3",
     "description": "MUX is a Craft CMS plugin used to upload and manage videos using the MUX service.",
     "type": "craft-plugin",
     "license": "proprietary",
+    "authors": [
+        {
+            "name": "Rocket Park",
+            "homepage": "https://rocketpark.com"
+        }
+    ],
     "support": {
         "email": "support@rocketpark.com"
     },
     "require": {
-        "php": ">=8.2",
+        "php": "^8.2",
         "craftcms/cms": "^5.0.0",
         "muxinc/mux-php": ">=5.0.1",
         "firebase/php-jwt": ">=v6.11.1"
-    },
-    "require-dev": {
-        "craftcms/ecs": "dev-main",
-        "craftcms/phpstan": "dev-main"
     },
     "autoload": {
         "psr-4": {
@@ -29,21 +31,7 @@
         "name": "Mux",
         "developer": "Rocket Park",
         "documentationUrl": "https://rocketpark.com/craft-plugins/mux",
+        "changelogUrl": "https://raw.githubusercontent.com/rocket-park/craft-5/craft-mux/CHANGELOG.md",
         "class": "rocketpark\\mux\\Mux"
-    },
-    "scripts": {
-        "check-cs": "ecs check --ansi",
-        "fix-cs": "ecs check --ansi --fix",
-        "phpstan": "phpstan --memory-limit=1G"
-    },
-    "config": {
-        "sort-packages": true,
-        "platform": {
-            "php": "8.2.0"
-        },
-        "allow-plugins": {
-            "yiisoft/yii2-composer": true,
-            "craftcms/plugin-installer": true
-        }
     }
 }
