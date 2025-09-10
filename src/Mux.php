@@ -183,20 +183,22 @@ class Mux extends Plugin
                     // Skip sync if this was triggered by a webhook
                     if (isset($element->isWebhookUpdate) && !$element->isWebhookUpdate) {
 
-                        $attributes = $element->getAttributes();
-                        $params = [
-                            'asset_id' => $attributes['asset_id'],
-                            'passthrough' => $attributes['passthrough'],
-                            'meta' => [
-                                'title' => $attributes['title'],
-                                'external_id' => $attributes['id'],
-                                'creator_id' => $attributes['meta']['creator_id'] ?? ''
-                            ]
-                        ];
+                        if (!$e->isNew) {
+                            $attributes = $element->getAttributes();
+                            $params = [
+                                'asset_id' => $attributes['asset_id'],
+                                'passthrough' => $attributes['passthrough'],
+                                'meta' => [
+                                    'title' => $attributes['title'],
+                                    'external_id' => $attributes['id'],
+                                    'creator_id' => $attributes['meta']['creator_id'] ?? ''
+                                ]
+                            ];
 
-                        Mux::info("Updating Asset in MUX: ". $params['asset_id']);
+                            Mux::info("Updating Asset in MUX: ". $params['asset_id']);
 
-                        Mux::$plugin->assets->updateMuxAsset($params);
+                            Mux::$plugin->assets->updateMuxAsset($params);
+                        }
                     }
 
                 }

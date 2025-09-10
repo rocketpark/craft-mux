@@ -215,6 +215,11 @@ class Assets extends Component
             $asset->title = $requestParams['title'];
         }
 
+        // Handle asset_id - this was missing!
+        if (isset($requestParams['asset_id'])) {
+            $asset->asset_id = $requestParams['asset_id'];
+        }
+
         // Handle volumeUid separately since it's not in defaultAttributes
         if (isset($requestParams['volumeUid'])) {
             $volume = MuxVolumeRecord::findOne(['uid' => $requestParams['volumeUid']]);

@@ -59,7 +59,17 @@ const Helpers = {
      */
     createUploadEvent: function(type, detail) {
         return new CustomEvent(type, { detail });
-    }
+    },
+
+    /**
+     * Get the current volume UID
+     */
+    getCurrentVolumeUid: function(sourceKey) {
+        if (typeof sourceKey === 'string' && sourceKey.indexOf('volume:') === 0) {
+            return sourceKey.replace('volume:', '');
+        }
+        return sourceKey;
+    },
 };
 
 // Add this class before the main MuxElementSelectInput class
@@ -338,7 +348,7 @@ export const MuxElementSelectInput = Craft.BaseElementSelectInput.extend({
             return;
         }
 
-        console.log(element);
+        //console.log(element);
 
         var $newElement = element.$element;
 
@@ -429,6 +439,9 @@ export const MuxElementSelectInput = Craft.BaseElementSelectInput.extend({
         
         const uploadPromises = Array.from(files).map(async (file, index) => {
             const uploadUrl = await this._getUploadUrl(file);
+            // Store volumeUid and folderId for later use
+            uploadUrl.volumeUid = Helpers.getCurrentVolumeUid(this.settings.defaultUploadLocationSource);
+            uploadUrl.folderId = this.settings.defaultFolderId;
             return this._uploadFile(file, uploadUrl, index);
         });
         
@@ -460,6 +473,9 @@ export const MuxElementSelectInput = Craft.BaseElementSelectInput.extend({
             });
     
             upload.on('success', (data) => {
+                // Store volumeUid and folderId from the upload response
+                res.volumeUid = res.volumeUid || Helpers.getCurrentVolumeUid(this.settings.defaultUploadLocationSource);
+                res.folderId = res.folderId || this.settings.defaultFolderId;
                 this._processUploadSuccess(file, res, fileIndex, data, resolve);
             });
         });
@@ -470,6 +486,9 @@ export const MuxElementSelectInput = Craft.BaseElementSelectInput.extend({
             .then((data) => this._getAssetById(data.asset_id))
             .then((data) => {
                 data.title = file.name;
+                // Pass volumeUid and folderId from the upload response
+                data.volumeUid = Helpers.getCurrentVolumeUid(this.settings.defaultUploadLocationSource);
+                data.folderId = res.folderId;
                 return this._createAsset(data);
             })
             .then((data) => {
@@ -522,10 +541,11 @@ export const MuxElementSelectInput = Craft.BaseElementSelectInput.extend({
     _getUploadUrl: function (file) {
         const uploadSource = this.settings.defaultUploadLocationSource;
         const defaultFolderId = this.settings.defaultFolderId;
-        
+        const volumeUid = Helpers.getCurrentVolumeUid(uploadSource);
+
         return Helpers.apiRequest(CONSTANTS.API_ENDPOINTS.UPLOAD_ASSET, { 
             title: file.name,
-            volumeUid: uploadSource,
+            volumeUid: volumeUid,
             folderId: defaultFolderId,
         });
     },
