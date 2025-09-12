@@ -51,7 +51,7 @@
             errors: settings.getErrors("muxTokenSecret"),
         }) }}
 
-        {{ forms.radioGroupField({
+        {{ forms.selectizeField({
             label: "Max Resolution Tier"|t("mux"),
             id: 'maxResolutionTier',
             name: 'maxResolutionTier',
@@ -64,6 +64,8 @@
             value: settings.maxResolutionTier,
             toggle: true,
             tip: 'Max resolution tier can be used to control the maximum `resolution_tier` your asset is encoded, stored, and streamed at. Defaults to `1080p`.'|t('mux'),
+            includeEnvVars: true,
+            allowedEnvValues: null,
         }) }}
 
         {% set mp4Instructions %}
@@ -71,7 +73,7 @@
             <a href="https://docs.mux.com/guides/enable-static-mp4-renditions" target="_blank">View Documentation</a>
         {% endset %}
 
-        {{  forms.selectField({
+        {{  forms.selectizeField({
             label: 'Default MP4 Support <div class="info">%s</div>'|format(mp4Instructions),
             id: 'mp4Support',
             name: 'mp4Support',
@@ -82,15 +84,17 @@
                 { label: 'Capped 1080p, Audio Only', value: 'capped-1080p,audio-only' }
             ],
             value: settings.mp4Support,
+            includeEnvVars: true,
+            allowedEnvValues: null,
             errors: settings.getErrors('mp4Support')
         }) }}
 
         {% set staticRenditionsInstructions %}
-            {{ "Enable static renditions on your video assets for offline viewing and other use cases."|t('mux') }}
+            {{ "Enable static renditions on your video assets for offline viewing and other use cases. Set MP4 Support to \"None\" to use Static Renditions."|t('mux') }}
             <a href="https://docs.mux.com/guides/enable-static-mp4-renditions" target="_blank">View Documentation</a>
         {% endset %}
 
-        {{  forms.selectField({
+        {{  forms.selectizeField({
             label: 'Default Static Renditions Support <div class="info">%s</div>'|format(staticRenditionsInstructions),
             id: 'staticRenditions',
             name: 'staticRenditions',
@@ -100,6 +104,8 @@
                 { label: 'Audio Only', value: 'audio-only' }
             ],
             value: settings.staticRenditions,
+            includeEnvVars: true,
+            allowedEnvValues: null,
             errors: settings.getErrors('staticRenditions')
         }) }}
 
@@ -109,17 +115,110 @@
             <a href="https://docs.mux.com/guides/video/secure-video-playback#6-include-the-json-web-token-jwt-in-the-media-url" target="_blank">View Documentation</a>
         {% endset %}
 
-        {{ forms.lightswitchField({
+        {# {{ forms.lightswitchField({
             id: 'muxSecurePlayback',
             name: 'muxSecurePlayback',
             label: 'Secure Playback <div class="info">%s</div>'|format(instructions),
             onLabel: 'Secure'|t('mux'),
             offLabel: 'Public'|t('mux'),
+            suggestEnvVars: true,
             value: settings.muxSecurePlayback,
             on: settings.muxSecurePlayback,
-        }) }}
-<hr>
+        }) }} #}
 
+        {{ forms.booleanMenuField({
+            label: 'Secure Playback <div class="info">%s</div>'|format(instructions),
+            id: 'muxSecurePlayback',
+            name: 'muxSecurePlayback',
+            yesLabel: 'Secure'|t('mux'),
+            noLabel: 'Public'|t('mux'),
+            includeEnvVars: true,
+            value: settings.muxSecurePlayback,
+        }) }}
+
+<hr>
+        <h3>{{ "Overlay/Watermark"|t('mux') }}</h3>
+
+        {{ forms.autosuggestField({
+            label: 'Watermark URL <div class="info">The URL of the watermark/overlay image. Valid file types for watermarks are <strong>.png</strong> and <strong>.jpg</strong>. Other file types such as <strong>.gif</strong>, <strong>.webp</strong>, and <strong>.svg</strong> are not supported at this time.</div>'|t('mux'),
+            id: 'watermark_url',
+            name: 'watermark_url',
+            value: settings.watermark_url,
+            suggestEnvVars: true,
+        }) }}
+
+        {{  forms.selectizeField({
+            label: 'Vertical Align <div class="info">Where the vertical positioning of the overlay/watermark should begin from.</div>'|t('mux'),
+            id: 'vertical_align',
+            name: 'vertical_align',
+            options: [
+                { label: 'Top', value: 'top' },
+                { label: 'Center', value: 'center' },
+                { label: 'Bottom', value: 'bottom' }
+            ],
+            includeEnvVars: true,
+            allowedEnvValues: null,
+            value: settings.vertical_align,
+            errors: settings.getErrors('vertical_align')
+        }) }}
+
+        {{ forms.autosuggestField({
+            label: 'Vertical Margin <div class="info">The distance from the vertical_align starting point and the image\'s closest edge. Can be expressed as a percent (10%) or as a pixel value (100px). Negative values will move the overlay offscreen. In the case of \'middle\', a positive value will shift the overlay towards the bottom and and a negative value will shift it towards the top.</div>'|t('mux'),
+            id: 'vertical_margin',
+            name: 'vertical_margin',
+            suggestEnvVars: true,
+            value: settings.vertical_margin,
+        }) }}
+        
+        {{  forms.selectizeField({
+            label: 'Horizontal Align <div class="info">Where the horizontal positioning of the overlay/watermark should begin from.</div>'|t('mux'),
+            id: 'horizontal_align',
+            name: 'horizontal_align',
+            options: [
+                { label: 'Left', value: 'left' },
+                { label: 'Middle', value: 'middle' },
+                { label: 'Right', value: 'right' }
+            ],
+            includeEnvVars: true,
+            allowedEnvValues: null,
+            value: settings.horizontal_align,
+            errors: settings.getErrors('horizontal_align')
+        }) }}
+
+        {{ forms.autosuggestField({
+            label: 'Horizontal Margin <div class="info">The distance from the horizontal_align starting point and the image\'s closest edge. Can be expressed as a percent (10%) or as a pixel value (100px). Negative values will move the overlay offscreen. In the case of \'center\', a positive value will shift the image towards the right and and a negative value will shift it towards the left.</div>'|t('mux'),
+            id: 'horizontal_margin',
+            name: 'horizontal_margin',
+            suggestEnvVars: true,
+            value: settings.horizontal_margin,
+        }) }}
+        
+
+        {{ forms.autosuggestField({
+            label: 'Width <div class="info">How wide the overlay should appear. Can be expressed as a percent (10%) or as a pixel value (100px). If both width and height are left blank the width will be the true pixels of the image, applied as if the video has been scaled to fit a 1920x1080 frame. If height is supplied with no width, the width will scale proportionally to the height.</div>'|t('mux'),
+            id: 'width',
+            name: 'width',
+            suggestEnvVars: true,
+            value: settings.width,
+        }) }}
+
+        {{ forms.autosuggestField({
+            label: 'Height <div class="info">How tall the overlay should appear. Can be expressed as a percent (10%) or as a pixel value (100px). If both width and height are left blank the height will be the true pixels of the image, applied as if the video has been scaled to fit a 1920x1080 frame. If width is supplied with no height, the height will scale proportionally to the width.</div>'|t('mux'),
+            id: 'height',
+            name: 'height',
+            suggestEnvVars: true,
+            value: settings.height,
+        }) }}
+
+        {{ forms.autosuggestField({
+            label: 'Opacity <div class="info">How opaque the overlay should appear, expressed as a percent. (Default 100%)</div>'|t('mux'),
+            id: 'opacity',
+            name: 'opacity',
+            suggestEnvVars: true,
+            value: settings.opacity,
+        }) }}
+
+<hr>
     {% set webhookinfo %}
         Mux uses webhooks to let your application know when things happen asynchronously, outside of an API request cycle.
         <a href="https://docs.mux.com/guides/system/listen-for-webhooks" target="_blank">View Documentation</a>

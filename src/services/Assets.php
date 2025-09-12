@@ -428,14 +428,79 @@ class Assets extends Component
         );
 
         $policy = Mux::$plugin->assets->getPlaybackPolicy();
-        
-        $subtitles = new MuxPhp\Models\AssetGeneratedSubtitleSettings(["language_code" => "en", "name" => "English CC"]);
-        $inputSettings = new MuxPhp\Models\InputSettings(["generated_subtitles" => [$subtitles]]);
+
+        $inputSettings = [];
+
+        // Create the main input object (no URL for direct uploads, but with subtitles)
+        $inputSettings[] = new MuxPhp\Models\InputSettings([
+            "generated_subtitles" => [
+                new MuxPhp\Models\AssetGeneratedSubtitleSettings([
+                    "language_code" => "en", 
+                    "name" => "English CC"
+                ])
+            ]
+        ]);
+
+        // Add watermark/overlay as a separate input if configured
+        $watermarkUrl = App::parseEnv($settings->watermark_url ?? '');
+        if (!empty($watermarkUrl)) {
+            $overlayParams = [];
+            
+            // Parse environment variables for each setting with null coalescing
+            $verticalAlign = App::parseEnv($settings->vertical_align ?? '');
+            $verticalMargin = App::parseEnv($settings->vertical_margin ?? '');
+            $horizontalAlign = App::parseEnv($settings->horizontal_align ?? '');
+            $horizontalMargin = App::parseEnv($settings->horizontal_margin ?? '');
+            $width = App::parseEnv($settings->width ?? '');
+            $height = App::parseEnv($settings->height ?? '');
+            $opacity = App::parseEnv($settings->opacity ?? '');
+            
+            // Only add overlay parameters if they have meaningful values
+            if (!empty($verticalAlign)) {
+                $overlayParams["vertical_align"] = $verticalAlign;
+            }
+            if (!empty($verticalMargin)) {
+                $overlayParams["vertical_margin"] = $verticalMargin;
+            }
+            if (!empty($horizontalAlign)) {
+                $overlayParams["horizontal_align"] = $horizontalAlign;
+            }
+            if (!empty($horizontalMargin)) {
+                $overlayParams["horizontal_margin"] = $horizontalMargin;
+            }
+            if (!empty($width)) {
+                $overlayParams["width"] = $width;
+            }
+            if (!empty($height)) {
+                $overlayParams["height"] = $height;
+            }
+            if (!empty($opacity)) {
+                $overlayParams["opacity"] = $opacity;
+            }
+
+            // Only create overlay settings if we have parameters
+            if (!empty($overlayParams)) {
+                $overlaySettings = new MuxPhp\Models\InputSettingsOverlaySettings($overlayParams);
+                
+                $watermarkInput = new MuxPhp\Models\InputSettings([
+                    "url" => $watermarkUrl,
+                    "overlay_settings" => $overlaySettings
+                ]);
+            } else {
+                // Just the URL without overlay settings
+                $watermarkInput = new MuxPhp\Models\InputSettings([
+                    "url" => $watermarkUrl
+                ]);
+            }
+            
+            $inputSettings[] = $watermarkInput;
+        }
+
         $staticRenditions = [];
 
-        if ($settings->staticRenditions !== 'none') {
+        if (App::parseEnv($settings->staticRenditions) !== 'none') {
             $staticRenditions[] = new MuxPhp\Models\CreateStaticRenditionRequest([
-                'resolution' => $settings->staticRenditions,
+                'resolution' => App::parseEnv($settings->staticRenditions),
             ]);
         }
 
@@ -451,11 +516,11 @@ class Assets extends Component
         }
 
         $createAssetRequest = new MuxPhp\Models\CreateAssetRequest([
-            "inputs" => [$inputSettings],
+            "inputs" => $inputSettings,
             "playback_policy" => [$policy],
-            "max_resolution_tier" => $settings->maxResolutionTier,
-            "mp4_support" => $settings->mp4Support, //-- DEPRECATED
-            "static_renditions" => $staticRenditions,
+            "max_resolution_tier" => App::parseEnv($settings->maxResolutionTier),
+            "mp4_support" => App::parseEnv($settings->mp4Support), //-- DEPRECATED
+            "static_renditions" =>  $staticRenditions,
             "passthrough" => json_encode($passthrough),
             "meta" => new MuxPhp\Models\AssetMetadata([
                 "title" => $title,
@@ -1307,7 +1372,7 @@ class Assets extends Component
     public function getPlaybackPolicy(): string
     {
         $settings = Mux::$settings;
-        return $settings->muxSecurePlayback
+        return App::parseEnv($settings->muxSecurePlayback)
             ? MuxPhp\Models\PlaybackPolicy::SIGNED 
             : MuxPhp\Models\PlaybackPolicy::_PUBLIC;
     }

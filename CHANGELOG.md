@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 - **Timespan Selection**: Support for 1 week, 1 month, 3 months, 6 months, and 1 year data ranges
 - **Real-time Data Updates**: Force refresh capability for getting latest analytics data
 - **Console Sync Commands**: New sync controller for managing Mux asset synchronization
+- **Watermarks**: New settings to add watermark to videos
 
 ### Updated
 - **Schema Version**: Updated to 1.0.3 to support new analytics features

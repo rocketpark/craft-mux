@@ -56,6 +56,67 @@ class Settings extends Model
      */
     public string $staticRenditions = '';
 
+    /**
+     * @var string URL of the watermark/overlay image.
+     */
+    public string $watermark_url = '';
+
+    /**
+     * @var string Vertical alignment of the overlay/watermark.
+     * @example top
+     * @example center
+     * @example bottom
+     */
+    public string $vertical_align = '';
+
+    /**
+     * @var string Vertical margin of the overlay/watermark.
+     * @example 10%
+     * @example 100px
+     * @example 0
+     */
+    public string $vertical_margin = '';
+
+    /**
+     * @var string Horizontal alignment of the overlay/watermark.
+     * @example left
+     * @example middle
+     * @example right
+     */
+    public string $horizontal_align = '';
+
+    /**
+     * @var string Horizontal margin of the overlay/watermark.
+     * @example 10%
+     * @example 100px
+     * @example 0
+     */
+    public string $horizontal_margin = '';
+
+    /**
+     * @var string Width of the overlay/watermark.
+     * @example 10%
+     * @example 100px
+     * @example 0
+     */
+    public string $width = '';
+
+    /**
+     * @var string Height of the overlay/watermark.
+     * @example 10%
+     * @example 100px
+     * @example 0
+     */
+    public string $height = '';
+
+    /**
+     * @var string Opacity of the overlay/watermark.
+     * @example 100%
+     * @example 50%
+     * @example 0
+     */
+    public string $opacity = '';
+
 
     /**
      * @inheritdoc
@@ -74,7 +135,21 @@ class Settings extends Model
             ['mp4Support', 'string'],
             ['mp4Support', 'default', 'value' => 'none'],
             ['staticRenditions', 'string'],
-            ['staticRenditions', 'default', 'value' => 'none']
+            ['staticRenditions', 'default', 'value' => 'none'],
+            ['watermark_url', 'string'],
+            ['watermark_url', 'default', 'value' => ''],
+            ['vertical_align', 'string'],
+            ['vertical_align', 'default', 'value' => 'top'],
+            ['vertical_margin', 'string'],
+            ['vertical_margin', 'default', 'value' => '0'],
+            ['horizontal_align', 'string'],
+            ['horizontal_align', 'default', 'value' => 'left'],
+            ['horizontal_margin', 'string'],
+            ['horizontal_margin', 'default', 'value' => '0'],
+            ['width', 'string'],
+            ['height', 'string'],
+            ['opacity', 'string'],
+            ['opacity', 'default', 'value' => '100']
         ];
     }
 
