@@ -94,8 +94,17 @@
         defaultUploadLocationSubpath: defaultUploadLocationSubpath ?? null,
         defaultFolderId: defaultFolderId ?? null,
     } %}
-
+    {% js at head %}
+        window.RocketPark = window.RocketPark || {};
+        window.RocketPark.Mux = window.RocketPark.Mux || {};
+        window.RocketPark.Mux.Settings = {
+            maxUploadFileSize: {{ craft.muxSettings.maxUploadFileSize|json_encode|raw }},
+            uploadChunkSize: {{ craft.muxSettings.uploadChunkSize|json_encode|raw }},
+            defaultExtensions: "MP4,MOV,MKV,WEBM,M4V",
+        };
+    {% endjs %}
     {% js %}
+
         document.addEventListener('DOMContentLoaded', function() {
             function initMuxElementSelectInput() {
                 if (window.RocketPark && window.RocketPark.Mux && window.RocketPark.Mux.MuxElementSelectInput) {

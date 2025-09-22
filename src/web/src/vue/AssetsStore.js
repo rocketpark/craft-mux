@@ -377,7 +377,10 @@ const uploadFile = (file, res) => {
         const upload = UpChunk.createUpload({
             endpoint: res.url,
             file,
-            chunkSize: 30720, // Uploads the file in ~30 MB chunks
+            chunkSize: (Number.isInteger(Number(window.RocketPark?.Mux?.Settings?.uploadChunkSize)) 
+            && Number(window.RocketPark.Mux.Settings.uploadChunkSize) > 0)
+            ? Number(window.RocketPark.Mux.Settings.uploadChunkSize)
+            : 8192, // Uploads the file in ~8 MB chunks
         });
 
         // subscribe to events

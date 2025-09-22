@@ -7,9 +7,15 @@ import * as UpChunk from '@mux/upchunk';
 
 // Constants
 const CONSTANTS = {
-    CHUNK_SIZE: 30720, // 30MB chunks
-    DEFAULT_MAX_FILE_SIZE: 700 * 1024 * 1024, // 700MB
-    DEFAULT_EXTENSIONS: '.mp4,.mov,.avi,.mkv,.webm,.m4v',
+    CHUNK_SIZE: (Number.isInteger(Number(window.RocketPark?.Mux?.Settings?.uploadChunkSize)) 
+    && Number(window.RocketPark.Mux.Settings.uploadChunkSize) > 0)
+    ? Number(window.RocketPark.Mux.Settings.uploadChunkSize)
+    : 8192, // 8MB chunks
+    DEFAULT_MAX_FILE_SIZE: (Number.isInteger(Number(window.RocketPark?.Mux?.Settings?.maxUploadFileSize)) 
+    && Number(window.RocketPark.Mux.Settings.maxUploadFileSize) > 0)
+    ? Number(window.RocketPark.Mux.Settings.maxUploadFileSize) * 1024
+    : 700 * 1024 * 1024, // 700MB
+    DEFAULT_EXTENSIONS: (window.RocketPark?.Mux?.Settings?.defaultExtensions || '').trim() || 'mp4,webm,mov,m4v,mkv',
     API_ENDPOINTS: {
         UPLOAD_ASSET: '/actions/mux/assets/upload-asset',
         CREATE_ASSET: '/actions/mux/assets/create',

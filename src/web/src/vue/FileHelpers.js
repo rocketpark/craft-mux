@@ -1,5 +1,8 @@
-const accept_extensions = 'mp4,webm,mov,m4v,mkv';
-const max_file_size = 50000 * 1024 * 1024; // 52GB
+const accept_extensions = (window.RocketPark?.Mux?.Settings?.defaultExtensions || '').trim() || 'mp4,webm,mov,m4v,mkv';
+const max_file_size = (Number.isInteger(Number(window.RocketPark?.Mux?.Settings?.maxUploadFileSize)) 
+&& Number(window.RocketPark.Mux.Settings.maxUploadFileSize) > 0)
+? Number(window.RocketPark.Mux.Settings.maxUploadFileSize) * 1024
+: 700 * 1024 * 1024; // 700MB
 const multiple_files = true;
 
 export const checkFileExtensions = function(files) {

@@ -117,6 +117,22 @@ class Settings extends Model
      */
     public string $opacity = '';
 
+    /**
+     * @var string Maximum upload file size in kB.
+     * @example 1000000000
+     * @example 0
+     * @default 700MB in kB
+     */
+    public string $maxUploadFileSize = '716800'; // 700MB in kB
+
+    /**
+     * @var string Upload chunk size in kB.
+     * @example 1048576
+     * @example 0
+     * @default 30720 in kB
+     */
+    public string $uploadChunkSize = '30720'; // 30MB in kB
+
 
     /**
      * @inheritdoc
@@ -149,7 +165,11 @@ class Settings extends Model
             ['width', 'string'],
             ['height', 'string'],
             ['opacity', 'string'],
-            ['opacity', 'default', 'value' => '100']
+            ['opacity', 'default', 'value' => '100'],
+            ['maxUploadFileSize', 'string'],
+            ['maxUploadFileSize', 'default', 'value' => '716800'],
+            ['uploadChunkSize', 'string'],
+            ['uploadChunkSize', 'default', 'value' => '30720']
         ];
     }
 
@@ -161,7 +181,24 @@ class Settings extends Model
         return [
             'parser' => [
                 'class' => EnvAttributeParserBehavior::class,
-                'attributes' => [],
+                'attributes' => [
+                    'muxTokenId',
+                    'muxTokenSecret',
+                    'maxResolutionTier',
+                    'watermark_url',
+                    'vertical_align',
+                    'vertical_margin',
+                    'horizontal_align',
+                    'horizontal_margin',
+                    'width',
+                    'height',
+                    'opacity',
+                    'staticRenditions',
+                    'mp4Support',
+                    'muxSecurePlayback',
+                    'maxUploadFileSize',
+                    'uploadChunkSize',
+                ],
             ],
         ];
     }
