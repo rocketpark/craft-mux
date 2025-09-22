@@ -16,7 +16,7 @@ use yii\console\ExitCode;
 
 /**
  * Allows you to assign volumeId and folderId to MuxAsset elements
- *
+ * @example
  * Example usages:
  * 
  * # Assign volumeId 1 to all assets with null volumeId

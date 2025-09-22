@@ -217,7 +217,35 @@
             suggestEnvVars: true,
             value: settings.opacity,
         }) }}
+<hr>
+    <h3>{{ "Upload Settings"|t('mux') }}</h3>
 
+        {{ forms.autosuggestField({
+            label: 'Maximum Upload File Size <div class="info">The maximum upload file size in kB. (Default 700MB)</div>'|t('mux'),
+            id: 'maxUploadFileSize',
+            name: 'maxUploadFileSize',
+            suggestEnvVars: true,
+            value: settings.maxUploadFileSize,
+        }) }}
+
+        {{  forms.selectizeField({
+            label: 'Upload Chunk Size <div class="info">Larger chunks upload faster on stable connections, smaller chunks are more reliable on unstable networks. Must be multiples of 256KB.</div>'|t("mux"),
+            id: "uploadChunkSize",
+            name: "uploadChunkSize",
+            value: settings.uploadChunkSize,
+            options: [
+                { value: "1024", label: "1 MB (in kB) - Best for slow/unstable connections" },
+                { value: "2048", label: "2 MB (in kB) - Good for mobile connections" },
+                { value: "4096", label: "4 MB (in kB) - Balanced option" },
+                { value: "8192", label: "8 MB (in kB) - Recommended (Mux default)" },
+                { value: "16384", label: "16 MB (in kB) - Good for fast connections" },
+                { value: "32768", label: "30 MB (in kB) - Current default (fast connections only)" },
+                { value: "65536", label: "32 MB (in kB) - Maximum recommended" },
+            ],
+            errors: settings.getErrors("uploadChunkSize"),
+            includeEnvVars: true,
+            allowedEnvValues: null,
+        }) }}
 <hr>
     {% set webhookinfo %}
         Mux uses webhooks to let your application know when things happen asynchronously, outside of an API request cycle.
