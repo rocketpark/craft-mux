@@ -135,6 +135,19 @@ class Settings extends Model
 
 
     /**
+     * @var string Default generated subtitle language.
+     * @var string
+     * @example en (English)
+     * @example es (Spanish)
+     * @example fr (French)
+     * @example de (German)
+     * @example it (Italian)
+     * @example pt (Portuguese)
+     */
+    public string $defaultGeneratedSubtitleLanguage = 'en';
+
+
+    /**
      * @inheritdoc
      */
     public function rules(): array
@@ -169,7 +182,9 @@ class Settings extends Model
             ['maxUploadFileSize', 'string'],
             ['maxUploadFileSize', 'default', 'value' => '716800'],
             ['uploadChunkSize', 'string'],
-            ['uploadChunkSize', 'default', 'value' => '30720']
+            ['uploadChunkSize', 'default', 'value' => '30720'],
+            ['defaultGeneratedSubtitleLanguage', 'string'],
+            ['defaultGeneratedSubtitleLanguage', 'default', 'value' => 'en']
         ];
     }
 
@@ -198,6 +213,7 @@ class Settings extends Model
                     'muxSecurePlayback',
                     'maxUploadFileSize',
                     'uploadChunkSize',
+                    'defaultGeneratedSubtitleLanguage',
                 ],
             ],
         ];

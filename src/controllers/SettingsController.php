@@ -10,6 +10,7 @@ use craft\web\Controller;
 use rocketpark\mux\helpers\Permission as PermissionHelper;
 use rocketpark\mux\models\Settings;
 use rocketpark\mux\Mux;
+use rocketpark\mux\constants\Languages;
 use yii\base\InvalidConfigException;
 use yii\web\BadRequestHttpException;
 use yii\web\ForbiddenHttpException;
@@ -75,6 +76,7 @@ class SettingsController extends Controller
         $variables['docTitle'] = "{$pluginName} - {$templateTitle}";
         $variables['selectedSubnavItem'] = 'settings';
         $variables['settings'] = $settings;
+        $variables['subtitleLanguages'] = Languages::getSubtitleGenerationOptions();
 
         // Render the template
         return $this->renderTemplate('mux/settings/index.twig', $variables);

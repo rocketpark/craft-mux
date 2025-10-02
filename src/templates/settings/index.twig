@@ -25,6 +25,7 @@
             value: settings.pluginName,
             warning: configWarning("pluginName", "mux"),
             errors: settings.getErrors("pluginName"),
+            disabled: mux.settings.isSettingOverridden('pluginName'),
         }) }}
 
 
@@ -36,7 +37,8 @@
             suggestEnvVars: true,
             value: settings.muxTokenId,
             warning: configWarning("muxTokenId", "mux"),
-            errors: settings.getErrors("muxTokenId")
+            errors: settings.getErrors("muxTokenId"),
+            disabled: mux.settings.isSettingOverridden('muxTokenId'),
         }) }}
 
 
@@ -49,6 +51,7 @@
             value: settings.muxTokenSecret,
             warning: configWarning("muxTokenSecret", "mux"),
             errors: settings.getErrors("muxTokenSecret"),
+            disabled: mux.settings.isSettingOverridden('muxTokenSecret'),
         }) }}
 
         {{ forms.selectizeField({
@@ -66,6 +69,8 @@
             tip: 'Max resolution tier can be used to control the maximum `resolution_tier` your asset is encoded, stored, and streamed at. Defaults to `1080p`.'|t('mux'),
             includeEnvVars: true,
             allowedEnvValues: null,
+            warning: configWarning("maxResolutionTier", "mux"),
+            disabled: mux.settings.isSettingOverridden('maxResolutionTier'),
         }) }}
 
         {% set mp4Instructions %}
@@ -86,7 +91,9 @@
             value: settings.mp4Support,
             includeEnvVars: true,
             allowedEnvValues: null,
-            errors: settings.getErrors('mp4Support')
+            warning: configWarning("mp4Support", "mux"),
+            errors: settings.getErrors('mp4Support'),
+            disabled: mux.settings.isSettingOverridden('mp4Support'),
         }) }}
 
         {% set staticRenditionsInstructions %}
@@ -106,7 +113,9 @@
             value: settings.staticRenditions,
             includeEnvVars: true,
             allowedEnvValues: null,
-            errors: settings.getErrors('staticRenditions')
+            warning: configWarning("staticRenditions", "mux"),
+            errors: settings.getErrors('staticRenditions'),
+            disabled: mux.settings.isSettingOverridden('staticRenditions'),
         }) }}
 
 <hr>
@@ -134,6 +143,8 @@
             noLabel: 'Public'|t('mux'),
             includeEnvVars: true,
             value: settings.muxSecurePlayback,
+            warning: configWarning("muxSecurePlayback", "mux"),
+            disabled: mux.settings.isSettingOverridden('muxSecurePlayback'),
         }) }}
 
 <hr>
@@ -145,6 +156,8 @@
             name: 'watermark_url',
             value: settings.watermark_url,
             suggestEnvVars: true,
+            warning: configWarning("watermark_url", "mux"),
+            disabled: mux.settings.isSettingOverridden('watermark_url'),
         }) }}
 
         {{  forms.selectizeField({
@@ -159,7 +172,9 @@
             includeEnvVars: true,
             allowedEnvValues: null,
             value: settings.vertical_align,
-            errors: settings.getErrors('vertical_align')
+            errors: settings.getErrors('vertical_align'),
+            warning: configWarning("vertical_align", "mux"),
+            disabled: mux.settings.isSettingOverridden('vertical_align'),
         }) }}
 
         {{ forms.autosuggestField({
@@ -168,6 +183,8 @@
             name: 'vertical_margin',
             suggestEnvVars: true,
             value: settings.vertical_margin,
+            warning: configWarning("vertical_margin", "mux"),
+            disabled: mux.settings.isSettingOverridden('vertical_margin'),
         }) }}
         
         {{  forms.selectizeField({
@@ -182,7 +199,9 @@
             includeEnvVars: true,
             allowedEnvValues: null,
             value: settings.horizontal_align,
-            errors: settings.getErrors('horizontal_align')
+            errors: settings.getErrors('horizontal_align'),
+            warning: configWarning("horizontal_align", "mux"),
+            disabled: mux.settings.isSettingOverridden('horizontal_align'),
         }) }}
 
         {{ forms.autosuggestField({
@@ -191,6 +210,8 @@
             name: 'horizontal_margin',
             suggestEnvVars: true,
             value: settings.horizontal_margin,
+            warning: configWarning("horizontal_margin", "mux"),
+            disabled: mux.settings.isSettingOverridden('horizontal_margin'),
         }) }}
         
 
@@ -200,6 +221,8 @@
             name: 'width',
             suggestEnvVars: true,
             value: settings.width,
+            warning: configWarning("width", "mux"),
+            disabled: mux.settings.isSettingOverridden('width'),
         }) }}
 
         {{ forms.autosuggestField({
@@ -208,6 +231,8 @@
             name: 'height',
             suggestEnvVars: true,
             value: settings.height,
+            warning: configWarning("height", "mux"),
+            disabled: mux.settings.isSettingOverridden('height'),
         }) }}
 
         {{ forms.autosuggestField({
@@ -216,6 +241,8 @@
             name: 'opacity',
             suggestEnvVars: true,
             value: settings.opacity,
+            warning: configWarning("opacity", "mux"),
+            disabled: mux.settings.isSettingOverridden('opacity'),
         }) }}
 <hr>
     <h3>{{ "Upload Settings"|t('mux') }}</h3>
@@ -226,6 +253,8 @@
             name: 'maxUploadFileSize',
             suggestEnvVars: true,
             value: settings.maxUploadFileSize,
+            warning: configWarning("maxUploadFileSize", "mux"),
+            disabled: mux.settings.isSettingOverridden('maxUploadFileSize'),
         }) }}
 
         {{  forms.selectizeField({
@@ -245,6 +274,22 @@
             errors: settings.getErrors("uploadChunkSize"),
             includeEnvVars: true,
             allowedEnvValues: null,
+            warning: configWarning("uploadChunkSize", "mux"),
+            disabled: mux.settings.isSettingOverridden('uploadChunkSize'),
+        }) }}
+
+
+        {{  forms.selectizeField({
+            label: 'Default Generated Subtitle Language <div class="info">The language to auto generate subtitles in. (Default English)</div>'|t("mux"),
+            id: "defaultGeneratedSubtitleLanguage",
+            name: "defaultGeneratedSubtitleLanguage",
+            value: settings.defaultGeneratedSubtitleLanguage,
+            options: subtitleLanguages,
+            errors: settings.getErrors("defaultGeneratedSubtitleLanguage"),
+            includeEnvVars: true,
+            allowedEnvValues: null,
+            warning: configWarning("defaultGeneratedSubtitleLanguage", "mux"),
+            disabled: mux.settings.isSettingOverridden('defaultGeneratedSubtitleLanguage'),
         }) }}
 <hr>
     {% set webhookinfo %}

@@ -21,7 +21,13 @@ return [
     'Upload ID' => 'Upload ID',
     'Duration' => 'Duration',
     'ID' => 'ID',
+    'ID:' => 'ID:',
     'Status:' => 'Status:',
+    'Duration:' => 'Duration:',
+    'Playback IDs:' => 'Playback IDs:',
+    'Aspect Ratio:' => 'Aspect Ratio:',
+    'Upload ID:' => 'Upload ID:',
+    'Tracks:' => 'Tracks:',
     'Playback IDs' => 'Playback IDs',
     'MP4 Support' => 'MP4 Support',
     'MP4 Support Status' => 'MP4 Support Status',
@@ -65,6 +71,7 @@ return [
     "This asset doesn't have any fields assigned to it in its field layout." => "This asset doesn't have any fields assigned to it in its field layout.",
     'Enable static MP4 renditions on your video assets for offline viewing and other use cases. (DEPRECATED)' => 'Enable static MP4 renditions on your video assets for offline viewing and other use cases. (DEPRECATED)',
     'Enable static renditions on your video assets for offline viewing and other use cases.' => 'Enable static renditions on your video assets for offline viewing and other use cases.',
+    'Enable static renditions on your video assets for offline viewing and other use cases. Set MP4 Support to "None" to use Static Renditions.' => 'Enable static renditions on your video assets for offline viewing and other use cases. Set MP4 Support to "None" to use Static Renditions.',
     'Secure playback requires you use a signed key in your playback url.' => 'Secure playback requires you use a signed key in your playback url.',
     'Public' => 'Public',
     'Secure' => 'Secure',
@@ -146,6 +153,8 @@ return [
     'Mux Token Id generated in your [Mux account](https://docs.mux.com/guides/video/stream-video-files#1-get-an-api-access-token).' => 'Mux Token Id generated in your [Mux account](https://docs.mux.com/guides/video/stream-video-files#1-get-an-api-access-token).',
     'MUX Token Secret' => 'MUX Token Secret',
     'MUX Token Secret generated in your [Mux account](https://docs.mux.com/guides/video/stream-video-files#1-get-an-api-access-token).' => 'MUX Token Secret generated in your [Mux account](https://docs.mux.com/guides/video/stream-video-files#1-get-an-api-access-token).',
+    'Max Resolution Tier' => 'Max Resolution Tier',
+    'Max resolution tier can be used to control the maximum `resolution_tier` your asset is encoded, stored, and streamed at. Defaults to `1080p`.' => 'Max resolution tier can be used to control the maximum `resolution_tier` your asset is encoded, stored, and streamed at. Defaults to `1080p`.',
     'Default Static Renditions Support' => 'Default Static Renditions Support',
     'None' => 'None',
     'Highest' => 'Highest',
@@ -155,6 +164,24 @@ return [
     'View Documentation' => 'View Documentation',
     'Warning: MP4 Support is deprecated and should be set to "None" when using Static Renditions. Please set MP4 Support to "None" to use Static Renditions.' => 'Warning: MP4 Support is deprecated and should be set to "None" when using Static Renditions. Please set MP4 Support to "None" to use Static Renditions.',
     'Warning' => 'Warning',
+    'This is being overridden by the `{setting}` setting in the `config/{file}.php` file.' => 'This is being overridden by the `{setting}` setting in the `config/{file}.php` file.',
+
+    // Overlay/Watermark Settings
+    'Overlay/Watermark' => 'Overlay/Watermark',
+    'Watermark URL <div class="info">The URL of the watermark/overlay image. Valid file types for watermarks are <strong>.png</strong> and <strong>.jpg</strong>. Other file types such as <strong>.gif</strong>, <strong>.webp</strong>, and <strong>.svg</strong> are not supported at this time.</div>' => 'Watermark URL <div class="info">The URL of the watermark/overlay image. Valid file types for watermarks are <strong>.png</strong> and <strong>.jpg</strong>. Other file types such as <strong>.gif</strong>, <strong>.webp</strong>, and <strong>.svg</strong> are not supported at this time.</div>',
+    'Vertical Align <div class="info">Where the vertical positioning of the overlay/watermark should begin from.</div>' => 'Vertical Align <div class="info">Where the vertical positioning of the overlay/watermark should begin from.</div>',
+    'Vertical Margin <div class="info">The distance from the vertical_align starting point and the image\'s closest edge. Can be expressed as a percent (10%) or as a pixel value (100px). Negative values will move the overlay offscreen. In the case of \'middle\', a positive value will shift the overlay towards the bottom and and a negative value will shift it towards the top.</div>' => 'Vertical Margin <div class="info">The distance from the vertical_align starting point and the image\'s closest edge. Can be expressed as a percent (10%) or as a pixel value (100px). Negative values will move the overlay offscreen. In the case of \'middle\', a positive value will shift the overlay towards the bottom and and a negative value will shift it towards the top.</div>',
+    'Horizontal Align <div class="info">Where the horizontal positioning of the overlay/watermark should begin from.</div>' => 'Horizontal Align <div class="info">Where the horizontal positioning of the overlay/watermark should begin from.</div>',
+    'Horizontal Margin <div class="info">The distance from the horizontal_align starting point and the image\'s closest edge. Can be expressed as a percent (10%) or as a pixel value (100px). Negative values will move the overlay offscreen. In the case of \'center\', a positive value will shift the image towards the right and and a negative value will shift it towards the left.</div>' => 'Horizontal Margin <div class="info">The distance from the horizontal_align starting point and the image\'s closest edge. Can be expressed as a percent (10%) or as a pixel value (100px). Negative values will move the overlay offscreen. In the case of \'center\', a positive value will shift the image towards the right and and a negative value will shift it towards the left.</div>',
+    'Width <div class="info">How wide the overlay should appear. Can be expressed as a percent (10%) or as a pixel value (100px). If both width and height are left blank the width will be the true pixels of the image, applied as if the video has been scaled to fit a 1920x1080 frame. If height is supplied with no width, the width will scale proportionally to the height.</div>' => 'Width <div class="info">How wide the overlay should appear. Can be expressed as a percent (10%) or as a pixel value (100px). If both width and height are left blank the width will be the true pixels of the image, applied as if the video has been scaled to fit a 1920x1080 frame. If height is supplied with no width, the width will scale proportionally to the height.</div>',
+    'Height <div class="info">How tall the overlay should appear. Can be expressed as a percent (10%) or as a pixel value (100px). If both width and height are left blank the height will be the true pixels of the image, applied as if the video has been scaled to fit a 1920x1080 frame. If width is supplied with no height, the height will scale proportionally to the width.</div>' => 'Height <div class="info">How tall the overlay should appear. Can be expressed as a percent (10%) or as a pixel value (100px). If both width and height are left blank the height will be the true pixels of the image, applied as if the video has been scaled to fit a 1920x1080 frame. If width is supplied with no height, the height will scale proportionally to the width.</div>',
+    'Opacity <div class="info">How opaque the overlay should appear, expressed as a percent. (Default 100%)</div>' => 'Opacity <div class="info">How opaque the overlay should appear, expressed as a percent. (Default 100%)</div>',
+
+    // Upload Settings
+    'Upload Settings' => 'Upload Settings',
+    'Maximum Upload File Size <div class="info">The maximum upload file size in kB. (Default 700MB)</div>' => 'Maximum Upload File Size <div class="info">The maximum upload file size in kB. (Default 700MB)</div>',
+    'Upload Chunk Size <div class="info">Larger chunks upload faster on stable connections, smaller chunks are more reliable on unstable networks. Must be multiples of 256KB.</div>' => 'Upload Chunk Size <div class="info">Larger chunks upload faster on stable connections, smaller chunks are more reliable on unstable networks. Must be multiples of 256KB.</div>',
+    'Default Generated Subtitle Language <div class="info">The language to auto generate subtitles in. (Default English)</div>' => 'Default Generated Subtitle Language <div class="info">The language to auto generate subtitles in. (Default English)</div>',
 
     // Navigation and UI
     'New Asset' => 'New Asset',
@@ -208,8 +235,13 @@ return [
     'Delete Asset Track Failed!' => 'Delete Asset Track Failed!',
     'Upload a video' => 'Upload a video',
     'Upload videos' => 'Upload videos',
+    'Upload video(s)' => 'Upload video(s)',
+    'Drop files here or click upload button' => 'Drop files here or click upload button',
+    'Preparing to upload…' => 'Preparing to upload…',
     'The selected file is not a valid video.' => 'The selected file is not a valid video.',
     'The selected file is too large.' => 'The selected file is too large.',
+    'These files are not supported. Upload video file types: ({extensions})' => 'These files are not supported. Upload video file types: ({extensions})',
+    'These files are too large. Max file size: {size} GB' => 'These files are too large. Max file size: {size} GB',
 
     // Volume Management
     'Add New Volume' => 'Add New Volume',
@@ -270,6 +302,19 @@ return [
     '✗ Error clearing cache for asset {asset_id}: {error}' => '✗ Error clearing cache for asset {asset_id}: {error}',
     'Syncing MUX Assets…' => 'Syncing MUX Assets…',
     'Finished Syncing Mux Assets' => 'Finished Syncing Mux Assets',
+
+    // Console Assign Commands
+    'Error: At least one of --volumeId or --folderId must be provided.' => 'Error: At least one of --volumeId or --folderId must be provided.',
+    'Usage: php craft mux/assign/assign --volumeId=1 --folderId=2' => 'Usage: php craft mux/assign/assign --volumeId=1 --folderId=2',
+    'Error: Volume with ID \'{volumeId}\' not found.' => 'Error: Volume with ID \'{volumeId}\' not found.',
+    'Target Volume: {name} (ID: {id})' => 'Target Volume: {name} (ID: {id})',
+    'Error: Folder with ID \'{folderId}\' not found.' => 'Error: Folder with ID \'{folderId}\' not found.',
+    'Target Folder: {name} (ID: {id})' => 'Target Folder: {name} (ID: {id})',
+    'Volumes and folders with their id and name:' => 'Volumes and folders with their id and name:',
+    'Volumes:' => 'Volumes:',
+    'Volume ID: {id} - Name: {name}' => 'Volume ID: {id} - Name: {name}',
+    'Folders:' => 'Folders:',
+    'Folder ID: {id} - Name: {name}' => 'Folder ID: {id} - Name: {name}',
 
     // Jobs and Actions
     'Handling Mux Webhook' => 'Handling Mux Webhook',
