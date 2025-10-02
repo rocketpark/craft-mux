@@ -38,6 +38,7 @@ use rocketpark\mux\events\MuxAssetEvent;
 use rocketpark\mux\events\MuxAssetUploadEvent;
 use rocketpark\mux\events\MuxAssetMoveEvent;
 use rocketpark\mux\events\MuxAssetSyncEvent;
+use rocketpark\mux\constants\Languages;
 use yii\base\Exception;
 use yii\base\InvalidArgumentException as BaseInvalidArgumentException;
 use yii\base\InvalidConfigException;
@@ -383,7 +384,9 @@ class Assets extends Component
         );
 
         $policy = Mux::$plugin->assets->getPlaybackPolicy();
-        $create_asset_request = json_decode(sprintf('{"input":[{"url":"%s","generated_subtitles": [{"language_code": "en","name": "English CC"}]}],"playback_policy":["%s"],"max_resolution_teir":"%s"}', $data['url'], $policy, App::parseEnv($settings->maxResolutionTier)), true);
+        $defaultGeneratedSubtitleLanguage = App::parseEnv($settings->defaultGeneratedSubtitleLanguage ?? 'en');
+        $languageName = Languages::TRACK_LANGUAGE_CODES[$defaultGeneratedSubtitleLanguage];
+        $create_asset_request = json_decode(sprintf('{"input":[{"url":"%s","generated_subtitles": [{"language_code": "%s","name": "%s"}]}],"playback_policy":["%s"],"max_resolution_teir":"%s"}', $data['url'], $defaultGeneratedSubtitleLanguage, $languageName, $policy, App::parseEnv($settings->maxResolutionTier)), true);
 
         try {
             $result = $apiInstance->createAsset($create_asset_request);
@@ -431,12 +434,15 @@ class Assets extends Component
 
         $inputSettings = [];
 
+        $defaultGeneratedSubtitleLanguage = App::parseEnv($settings->defaultGeneratedSubtitleLanguage ?? 'en');
+        $languageName = Languages::getSubtitleLanguageLabel($defaultGeneratedSubtitleLanguage);
+
         // Create the main input object (no URL for direct uploads, but with subtitles)
         $inputSettings[] = new MuxPhp\Models\InputSettings([
             "generated_subtitles" => [
                 new MuxPhp\Models\AssetGeneratedSubtitleSettings([
-                    "language_code" => "en", 
-                    "name" => "English CC"
+                    "language_code" => $defaultGeneratedSubtitleLanguage, 
+                    "name" => $languageName
                 ])
             ]
         ]);
@@ -610,26 +616,6 @@ class Assets extends Component
         try {
             $result = $apiInstance->getAsset($id);
             return $result->getData();
-            /*
-            if ($result->getData()->getStatus() != 'ready') {
-                //print("    waiting for asset to become ready...\n");
-                while (true) {
-                    // ------ get-asset ------
-                    $waitingAsset = $apiInstance->getAsset($result->getData()->getId());
-                    assert($waitingAsset->getData()->getId() != null);
-                    assert($waitingAsset->getData()->getId() == $result->getData()->getId());
-                    if ($waitingAsset->getData()->getStatus() != 'ready') {
-                        //print("    still waiting for asset to become ready...\n");
-                        sleep(1);
-                    } else {
-                        // ------ get-asset-input-info ------
-                        $assetInputInfo = $apiInstance->getAssetInputInfo($result->getData()->getId());
-                        assert($assetInputInfo->getData() != null);
-                        break;
-                    }
-                }
-            }*/
-            //Mux::info("Getting Mux Asset from MUX (mux\services\assets\getMuxAssetById): " . $id, 'mux');
             
         } catch (\Exception $e) {
             throw new Exception("Exception when calling AssetsApi->getAsset: {$e->getMessage()} ");
@@ -658,7 +644,6 @@ class Assets extends Component
             throw new Exception("Exception when calling AssetsApi->getAsset: {$e->getMessage()} ");
             return false;
         }
-        
     }
 
     /**

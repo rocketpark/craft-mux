@@ -41,7 +41,9 @@ use rocketpark\mux\services\SettingsService;
 use rocketpark\mux\services\SignedKeys;
 use rocketpark\mux\variables\MuxAssetBehavior;
 use yii\base\Event;
-use yii\log\Logger;
+
+use craft\events\RegisterElementActionsEvent;
+use craft\elements\actions\Duplicate;
 
 /**
  * Mux plugin
@@ -171,6 +173,36 @@ class Mux extends Plugin
             }
         );
 
+        /*
+         *Remove Duplicate action from MuxAssetElement
+        */
+        Event::on(
+            MuxAssetElement::class,
+            MuxAssetElement::EVENT_REGISTER_ACTIONS,
+            function (RegisterElementActionsEvent $event) {
+                $actions = $event->actions;
+                
+                // Remove Duplicate action
+                $actions = array_filter($actions, function($action) {
+                    if (is_string($action)) {
+                        return $action !== Duplicate::class;
+                    }
+                    if (is_array($action) && isset($action['type'])) {
+                        return $action['type'] !== Duplicate::class;
+                    }
+                    if ($action instanceof Duplicate) {
+                        return false;
+                    }
+                    return true;
+                });
+                
+                $event->actions = array_values($actions);
+            }
+        );
+
+        /*
+         * After save element event
+         */
         Craft::$app->getElements()->on(
             Elements::EVENT_AFTER_SAVE_ELEMENT,
             function (ElementEvent $e) {
@@ -265,6 +297,11 @@ class Mux extends Plugin
             'signedKeys' => \rocketpark\mux\services\SignedKeys::class,
             'data' => \rocketpark\mux\services\Data::class
         ]);
+
+        // Register Twig extension for global mux variable
+        if (Craft::$app->getRequest()->getIsCpRequest()) {
+            Craft::$app->view->registerTwigExtension(new \rocketpark\mux\twigextensions\MuxTwigExtension());
+        }
     }
 
     /**
@@ -327,7 +364,21 @@ class Mux extends Plugin
 
     protected function createSettingsModel(): ?Model
     {
-        return Craft::createObject(Settings::class);
+        $settings = Craft::createObject(Settings::class);
+        
+        // Load configuration file overrides
+        $configOverrides = Craft::$app->getConfig()->getConfigFromFile('mux');
+        
+        if (!empty($configOverrides['settings'])) {
+            // Apply configuration file overrides
+            foreach ($configOverrides['settings'] as $key => $value) {
+                if (property_exists($settings, $key)) {
+                    $settings->$key = $value;
+                }
+            }
+        }
+        
+        return $settings;
     }
 
     /**

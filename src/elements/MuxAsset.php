@@ -11,6 +11,9 @@ use craft\db\QueryAbortedException;
 use craft\elements\User;
 use craft\elements\db\ElementQueryInterface;
 use craft\elements\actions\Restore;
+use craft\elements\actions\Edit;
+use craft\elements\actions\Delete;
+use craft\elements\actions\Duplicate;
 use craft\helpers\Db;
 use craft\helpers\Html;
 use craft\helpers\UrlHelper;
@@ -47,7 +50,6 @@ use Illuminate\Support\Collection;
 use rocketpark\mux\fieldlayoutelements\MuxAssetFieldDataTab;
 use craft\base\Thumbable;
 use craft\helpers\Cp;
-
 
 /**
  * Mux Asset element type
@@ -438,6 +440,8 @@ class MuxAsset extends Element implements Thumbable
     protected static function defineActions(string $source): array
     {
         $actions = [];
+        $actions[] = Edit::class;
+        $actions[] = Delete::class;
         $actions[] = Restore::class;
 
         if (Craft::$app->getUser()->checkPermission('mux:assets-create')) {
@@ -445,7 +449,7 @@ class MuxAsset extends Element implements Thumbable
 
             // Add move action for folder support
             $actions[] = MoveMuxAssets::class;
-        }
+        }        
 
         return $actions;
     }
@@ -472,13 +476,6 @@ class MuxAsset extends Element implements Thumbable
             $folder = Mux::$plugin->folders->getRootFolderByVolumeId($volume->id);
 
             $sources[] = self::_assembleSourceInfoForFolder($folder, $user);
-            // $sources[] = [
-            //     'key' => "volume:{$volume->uid}",
-            //     'label' => $volume->name,
-            //     'hasThumbs' => true,
-            //     'criteria' => ['volumeId' => $volume->id],
-            //     'defaultSort' => ['dateCreated', 'desc'],
-            // ];
         }
 
         return $sources;

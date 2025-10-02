@@ -23,6 +23,12 @@ use MuxPhp;
 class SettingsService extends Component
 {
 
+    /**
+     * Save settings
+     * @param Plugin $plugin
+     * @param array $settings
+     * @return bool|null
+     */
     public static function saveSettings($plugin, $settings)
     {
 
@@ -32,4 +38,46 @@ class SettingsService extends Component
 
         return true;
     }
+
+    /**
+     * Get settings with configuration file overrides applied
+     */
+    public function getSettingsWithOverrides(): array
+    {
+        $settings = Mux::$settings->getAttributes();
+        
+        // Load configuration file overrides
+        $configOverrides = Craft::$app->getConfig()->getConfigFromFile('mux');
+        
+        if (!empty($configOverrides)) {
+            $settings = array_merge($settings, $configOverrides);
+        }
+        
+        return $settings;
+    }
+
+    /**
+     * Check if a setting is overridden by configuration file
+     */
+    public function isSettingOverridden(string $settingName): bool
+    {
+        $configOverrides = Craft::$app->getConfig()->getConfigFromFile('mux');
+        
+        return !empty($configOverrides[$settingName]);
+    }
+
+    /**
+     * Get the effective value of a setting (considering overrides)
+     */
+    public function getEffectiveSetting(string $settingName, $defaultValue = null)
+    {
+        $configOverrides = Craft::$app->getConfig()->getConfigFromFile('mux');
+        
+        if (!empty($configOverrides[$settingName])) {
+            return $configOverrides[$settingName];
+        }
+        
+        return Mux::$settings->$settingName ?? $defaultValue;
+    }
+
 }

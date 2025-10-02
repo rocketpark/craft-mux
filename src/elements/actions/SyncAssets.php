@@ -18,7 +18,7 @@ class SyncAssets extends ElementAction
      */
     public function getTriggerLabel(): string
     {
-        return Craft::t('mux', 'Sync MUX Assets');
+        return Craft::t('mux', 'Sync Asset Data');
     }
 
     public function getMessage(): ?string
