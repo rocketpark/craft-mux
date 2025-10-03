@@ -36,7 +36,7 @@ class DataController extends Controller
 
         try {
             // Fix: Use correct parameter order and force refresh when useCache is false
-            $data = Mux::$plugin->data->getAssetData($assetId, 'edit_screen', !$useCache);
+            $data = Mux::$plugin->data->getAssetData($assetId, 'edit_screen', !$useCache, $timespan);
             
             return $this->asJson([
                 'success' => true,
