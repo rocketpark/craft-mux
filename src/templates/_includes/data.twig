@@ -59,6 +59,7 @@
     border-radius: 4px;
     padding: 20px;
     margin-top: 20px;
+    min-height: 450px;
 }
 
 .mux-chart-header {
@@ -100,7 +101,8 @@
 .mux-chart-canvas {
     position: relative;
     width: 100%;
-    height: 300px;
+    height: 380px;
+    min-height: 100%;
 }
 
 .mux-loading {
@@ -134,9 +136,6 @@
         
         {% if availableTimespans is defined %}
         <div class="mux-cache-controls">
-            {# Debug: Show what we're working with #}
-            <!-- Debug: availableTimespans = {{ availableTimespans|json_encode }} -->
-            <!-- Debug: defaultTimespan = {{ defaultTimespan }} -->
             <div class=" select">
             <select id="mux-timespan-select-{{ muxAsset.asset_id }}" class="mux-timespan-select">
                 {% for value, label in availableTimespans %}
@@ -247,11 +246,8 @@ window.muxChartInitializers['{{ muxAsset.asset_id }}'] = function() {
     
     // Prevent duplicate initialization
     if (window.muxCharts[chartInstanceId]) {
-        console.log('Mux chart already exists for asset', assetId);
         return true;
     }
-    
-    console.log('Attempting to initialize Mux chart for asset', assetId);
     
     function initializeMuxChart() {
         // Use asset-specific selectors
@@ -259,27 +255,22 @@ window.muxChartInitializers['{{ muxAsset.asset_id }}'] = function() {
         
         // Check if this section exists
         if ($dataSection.length === 0) {
-            console.log('Mux data section not found for asset', assetId);
             return false;
         }
         
         // Check if already marked as ready
         if ($dataSection.attr('data-mux-ready') === 'true') {
-            console.log('Mux data section already initialized for asset', assetId);
             return true;
         }
         
         // Get chart canvas element using class and data attribute (more flexible than ID)
         var $canvas = $dataSection.find('.mux-chart-canvas-element[data-asset-id="' + assetId + '"]');
         if ($canvas.length === 0) {
-            console.log('Chart canvas not found for asset', assetId);
             return false;
         }
         
         var canvas = $canvas[0];
         var ctx = canvas.getContext('2d');
-        
-        console.log('Found canvas for asset', assetId, 'with ID:', canvas.id);
         
         // Use scoped selectors within the data section
         var $chartContainer = $dataSection.find('.mux-chart-canvas');
@@ -324,7 +315,6 @@ window.muxChartInitializers['{{ muxAsset.asset_id }}'] = function() {
         // Handle metric card clicks
         if (hasEnhancedFeatures) {
             $dataCards.on('click', function() {
-                console.log('Card clicked for asset', assetId, 'metric', $(this).data('metric'));
                 var metric = $(this).data('metric');
                 if (metric === currentMetric) return;
                 
@@ -344,20 +334,14 @@ window.muxChartInitializers['{{ muxAsset.asset_id }}'] = function() {
             // Handle timespan changes - use more flexible selector
             $dataSection.on('change', '.mux-timespan-select', function() {
                 var selectedTimespan = $(this).val();
-                console.log('Timespan dropdown changed. Raw value:', selectedTimespan);
-                console.log('Available options:', $(this).find('option').map(function() { return {value: this.value, text: this.text}; }).get());
                 
                 if (!selectedTimespan || selectedTimespan === '') {
-                    console.error('No timespan selected!');
                     return;
                 }
                 
                 if (selectedTimespan === currentTimespan) {
-                    console.log('Same timespan selected, no change needed');
                     return;
                 }
-                
-                console.log('Timespan changed for asset', assetId, 'from', currentTimespan, 'to', selectedTimespan);
                 
                 // Update current timespan
                 currentTimespan = selectedTimespan;
@@ -372,14 +356,11 @@ window.muxChartInitializers['{{ muxAsset.asset_id }}'] = function() {
 
             // Handle cache clearing
             $clearCacheBtn.on('click', function() {
-                console.log('Cache clear clicked for asset', assetId);
                 clearCache();
             });
         }
 
         function loadAssetData() {
-            console.log('Loading asset data for timespan:', currentTimespan);
-            
             $.ajax({
                 url: Craft.getActionUrl('mux/data/get-asset-data'),
                 type: 'POST',
@@ -394,7 +375,6 @@ window.muxChartInitializers['{{ muxAsset.asset_id }}'] = function() {
                 })
             })
             .done(function(response) {
-                console.log('Asset data response:', response);
                 if (response.success) {
                     updateDataCards(response.data);
                 } else {
@@ -402,13 +382,11 @@ window.muxChartInitializers['{{ muxAsset.asset_id }}'] = function() {
                 }
             })
             .fail(function(xhr, status, error) {
-                console.error('AJAX Error:', xhr.responseText);
                 showError('Failed to load asset data: ' + error);
             });
         }
 
         function loadChartData() {
-            console.log('Loading chart data for metric:', currentMetric, 'timespan:', currentTimespan);
             showLoading();
             
             $.ajax({
@@ -426,7 +404,6 @@ window.muxChartInitializers['{{ muxAsset.asset_id }}'] = function() {
                 })
             })
             .done(function(response) {
-                console.log('Chart data response:', response);
                 hideLoading();
                 
                 if (response.success) {
@@ -437,7 +414,6 @@ window.muxChartInitializers['{{ muxAsset.asset_id }}'] = function() {
             })
             .fail(function(xhr, status, error) {
                 hideLoading();
-                console.error('AJAX Error:', xhr.responseText);
                 showError('Failed to load chart data: ' + error);
             });
         }
@@ -601,10 +577,7 @@ window.muxChartInitializers['{{ muxAsset.asset_id }}'] = function() {
                 // Don't call updateChartTitle here since it's already been called
                 // updateChartTitle(metric);
                 
-                console.log('Chart.js chart created successfully for asset', assetId);
-                
             } catch (error) {
-                console.error('Error drawing chart for asset', assetId, ':', error);
                 showError('Error rendering chart: ' + error.message);
             }
         }
@@ -613,8 +586,6 @@ window.muxChartInitializers['{{ muxAsset.asset_id }}'] = function() {
             var metricLabel = metricLabels[metric] || 'Views';
             var timespanLabel = timespanLabels[currentTimespan] || 'Last 7 Days';
             var newTitle = metricLabel + ' Over ' + timespanLabel;
-            
-            console.log('Updating chart title to:', newTitle, 'for metric:', metric, 'timespan:', currentTimespan);
             
             $chartTitle.text(newTitle);
         }
@@ -670,7 +641,6 @@ window.muxChartInitializers['{{ muxAsset.asset_id }}'] = function() {
                 }
             })
             .fail(function(xhr, status, error) {
-                console.error('AJAX Error:', xhr.responseText);
                 showError('Failed to clear cache: ' + error);
             })
             .always(function() {
@@ -712,13 +682,11 @@ window.muxChartInitializers['{{ muxAsset.asset_id }}'] = function() {
             drawChart(null, currentMetric);
         {% endif %}
         
-        console.log('Mux Chart.js initialized successfully for asset', assetId);
         return true;
     }
     
     // Wait for Chart.js to load
     if (typeof Chart === 'undefined') {
-        console.log('Chart.js not available yet for asset', assetId);
         return false;
     }
     
@@ -738,7 +706,6 @@ $(document).ready(function() {
     function checkVisibilityAndInit() {
         var $dataSection = $('.mux-data-section[data-asset-id="{{ muxAsset.asset_id }}"]');
         if ($dataSection.length > 0 && $dataSection.is(':visible') && $dataSection.attr('data-mux-ready') !== 'true') {
-            console.log('Data section became visible, initializing chart for asset {{ muxAsset.asset_id }}');
             setTimeout(function() {
                 window.muxChartInitializers['{{ muxAsset.asset_id }}']();
             }, 50);
