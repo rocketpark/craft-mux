@@ -51,9 +51,9 @@ You must obtain a MUX Token ID & Token Secret from your MUX environment access t
  
 
 ## Documentation
-Visit the [Mux Plugin page](https://rocketpark.com/craft-plugins/mux) for all documentation, pricing and developer resources.
+Visit the [Mux Plugin page](https://rocketpark.com/mux-plugin) for all documentation, pricing and developer resources.
 
 ## Support
-Get in touch with us via the [Mux Support page](https://rocketpark.com/craft-plugins/mux/support) or by [creating a Github issue](https://github.com/rocketpark/craft-mux/issues)
+Get in touch with us via the [Mux Support page](https://rocketpark.com/mux-plugin/support/) or by [creating a Github issue](https://github.com/rocketpark/craft-mux/issues)
 
 Brought to you by [Rocket Park](https://rocketpark.com/)
