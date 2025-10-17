@@ -1,7 +1,7 @@
 # MUX Changelog
 
 All notable changes to this project will be documented in this file.
-## [2.4.0] - September 2, 2025
+## [2.4.0] - October 17, 2025
 
 ### Added
 - **Analytics Dashboard**: Added comprehensive analytics and data visualization system with Mux Data API integration
