@@ -985,12 +985,15 @@ class Assets extends Component
     /**
      * Create or Update MUX Asset
      * @param Asset $asset
+     * @param bool $isWebhookUpdate
+     * @param int|null $defaultVolumeId Default volume ID for new assets without passthrough volumeId
+     * @param int|null $defaultFolderId Default folder ID for new assets without passthrough folderId
      * @return bool
      * @throws Exception
      * @throws Throwable
      * @throws \craft\errors\ElementNotFoundException
      */
-    public function createOrUpdateMuxAsset(Asset $asset, bool $isWebhookUpdate = false): bool
+    public function createOrUpdateMuxAsset(Asset $asset, bool $isWebhookUpdate = false, ?int $defaultVolumeId = null, ?int $defaultFolderId = null): bool
     {
         
         $attributes = [
@@ -1081,21 +1084,94 @@ class Assets extends Component
                 'external_id' => $asset->getId(),
                 'creator_id' => '',
             ];
+            
+            // Handle volume and folder assignment
             $volumeId = null;
             $folderId = null;
             $passthrough = $asset->getPassthrough();
+            $passthroughData = [];
+            $needsPassthroughUpdate = false;
+            
             if (!empty($passthrough)) {
                 $decoded = json_decode($passthrough, true);
-                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && array_key_exists('volumeId', $decoded)) {
-                    $volumeId = $decoded['volumeId'];
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $passthroughData = $decoded;
+                    
+                    // Check if passthrough has volumeId
+                    if (array_key_exists('volumeId', $decoded)) {
+                        $volumeId = $decoded['volumeId'];
+                        
+                        // Validate that the volume exists
+                        $volume = MuxVolumeRecord::findOne(['id' => $volumeId]);
+                        if (!$volume) {
+                            // Volume doesn't exist - use default if provided
+                            Mux::warning("Volume ID {$volumeId} from passthrough data doesn't exist for asset {$asset->getId()}", 'mux');
+                            if ($defaultVolumeId) {
+                                $volumeId = $defaultVolumeId;
+                                $passthroughData['volumeId'] = $defaultVolumeId;
+                                $needsPassthroughUpdate = true;
+                            } else {
+                                $volumeId = null;
+                            }
+                        }
+                    }
+                    
+                    // Check if passthrough has folderId
+                    if (array_key_exists('folderId', $decoded)) {
+                        $folderId = $decoded['folderId'];
+                        
+                        // Validate that the folder exists
+                        $folder = MuxFolderRecord::findOne(['id' => $folderId]);
+                        if (!$folder) {
+                            // Folder doesn't exist - use default if provided
+                            Mux::warning("Folder ID {$folderId} from passthrough data doesn't exist for asset {$asset->getId()}", 'mux');
+                            if ($defaultFolderId) {
+                                $folderId = $defaultFolderId;
+                                $passthroughData['folderId'] = $defaultFolderId;
+                                $needsPassthroughUpdate = true;
+                            } else {
+                                $folderId = null;
+                            }
+                        }
+                    }
                 }
-                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && array_key_exists('folderId', $decoded)) {
-                    $folderId = $decoded['folderId'];
-                }
+            }
+            
+            // If no volumeId from passthrough, use the provided default
+            if ($volumeId === null && $defaultVolumeId !== null) {
+                $volumeId = $defaultVolumeId;
+                $passthroughData['volumeId'] = $defaultVolumeId;
+                $needsPassthroughUpdate = true;
+            }
+            
+            // If no folderId from passthrough, use the provided default
+            if ($folderId === null && $defaultFolderId !== null) {
+                $folderId = $defaultFolderId;
+                $passthroughData['folderId'] = $defaultFolderId;
+                $needsPassthroughUpdate = true;
             }
 
             $muxAssetElement->volumeId = $volumeId;
             $muxAssetElement->folderId = $folderId;
+            
+            // Update passthrough in Mux if needed
+            if ($needsPassthroughUpdate && !empty($passthroughData)) {
+                try {
+                    $updateParams = [
+                        'asset_id' => $asset->getId(),
+                        'passthrough' => json_encode($passthroughData),
+                        'meta' => [
+                            'title' => $title,
+                            'external_id' => $asset->getId(),
+                            'creator_id' => '',
+                        ]
+                    ];
+                    $this->updateMuxAsset($updateParams);
+                    Mux::info("Updated passthrough for asset {$asset->getId()} with volumeId: {$volumeId}, folderId: {$folderId}", 'mux');
+                } catch (\Exception $e) {
+                    Mux::error("Failed to update passthrough for asset {$asset->getId()}: {$e->getMessage()}", 'mux');
+                }
+            }
         } else {
             $muxAssetElement->title = $title;
             $muxAssetElement->meta = [
@@ -1227,6 +1303,13 @@ class Assets extends Component
         }
     }
 
+    /**
+     * Delete MUX Asset Static Rendition By ID
+     * @param string|int $assetId 
+     * @param string $staticRenditionId 
+     * @return bool 
+     * @throws InvalidConfigException 
+     */
     public function deleteMuxAssetStaticRenditionById(string|int $assetId, string $staticRenditionId): bool
     {
         // Validate inputs
@@ -1261,6 +1344,8 @@ class Assets extends Component
 
     /**
      * Sync All Mux Assets
+     * @param int|null $defaultVolumeId Default volume ID for new assets without passthrough volumeId
+     * @param int|null $defaultFolderId Default folder ID for new assets without passthrough folderId
      * @return void 
      * @throws ApiException 
      * @throws InvalidArgumentException 
@@ -1271,7 +1356,7 @@ class Assets extends Component
      * @throws Throwable 
      * @throws ElementNotFoundException 
      */
-    public function syncAllMuxAssets() :void
+    public function syncAllMuxAssets(?int $defaultVolumeId = null, ?int $defaultFolderId = null) :void
     {
         $limit = 50;
         $page = 1;
@@ -1294,7 +1379,7 @@ class Assets extends Component
             }
 
             foreach ($assets as $asset) {
-                $this->createOrUpdateMuxAsset($asset, true);
+                $this->createOrUpdateMuxAsset($asset, true, $defaultVolumeId, $defaultFolderId);
             }
 
             // Remove any mux assets elements that are no longer in MUX just in case.
