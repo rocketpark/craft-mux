@@ -1,6 +1,14 @@
 # MUX Changelog
 
 All notable changes to this project will be documented in this file.
+## [2.4.0.1] - October 20, 2025
+
+### Fixed
+ - **Install Migration**: Fixed missing volumeId param for table setup
+
+### Updated
+- **Sync All Mux Assets**: Updated syncAllMuxAssets to include volumes and folders. 
+
 ## [2.4.0] - October 17, 2025
 
 ### Added
