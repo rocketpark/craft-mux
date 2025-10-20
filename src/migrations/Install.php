@@ -107,6 +107,7 @@ class Install extends Migration
             $this->createTable('{{%mux_volumefolders}}', [
                 'id' => $this->primaryKey(),
                 'parentId' => $this->integer()->null(),
+                'volumeId' => $this->integer()->null(),
                 'name' => $this->string()->notNull(),
                 'path' => $this->string()->null(),
                 'dateCreated' => $this->dateTime()->notNull(),
