@@ -1303,38 +1303,6 @@ class Assets extends Component
         }
     }
 
-    public function deleteMuxAssetStaticRenditionById(string|int $assetId, string $staticRenditionId): bool
-    {
-        // Validate inputs
-        if (empty($assetId) || empty($staticRenditionId)) {
-            Mux::error('Invalid input provided for assetId or staticRenditionId.'. __METHOD__, 'mux');
-            return false;
-        }
-
-        try {
-            // Initialize the API instance with configuration
-            $config = Mux::$plugin->assets->muxConf();
-            $apiInstance = new MuxPhp\Api\AssetsApi(new Client(), $config);
-
-            //Mux::info("Deleting static rendition for asset ID: {$assetId} and static rendition ID: {$staticRenditionId}. ". __METHOD__, 'mux');
-
-            // Call the API to delete the static rendition
-            $apiInstance->deleteAssetStaticRendition($assetId, $staticRenditionId);
-            
-            //Mux::info("Successfully deleted static rendition for asset ID: {$assetId}. ". __METHOD__, 'mux');
-            return true;
-            
-        } catch (\MuxPhp\ApiException $apiException) {
-            // Handle specific API exceptions
-            Mux::error("Mux API Exception: {$apiException->getMessage()}: ". __METHOD__, 'mux');
-            return false;
-        } catch (\Exception $e) {
-            // Handle generic exceptions
-            Mux::error("Exception when calling deleteMuxAssetStaticRenditionById: {$e->getMessage()}: ". __METHOD__, 'mux');
-            return false;
-        }
-    }
-
     /**
      * Delete MUX Asset Static Rendition By ID
      * @param string|int $assetId 
