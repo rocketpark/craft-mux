@@ -27,7 +27,10 @@
         "name": "Mux",
         "developer": "Rocket Park",
         "documentationUrl": "",
-        "class": "rocketpark\\mux\\Mux"
+        "class": "rocketpark\\mux\\Mux",
+        "branch-alias": {
+            "dev-craft-4": "1.x-dev"
+        }
     },
     "scripts": {
         "check-cs": "ecs check --ansi",

@@ -16,7 +16,7 @@ To install MUX, follow these steps:
 
 2. Then tell Composer to load the plugin:
 
-        composer require rocket-park/mux
+        composer require rocket-park/mux:^1.0@dev
 
 3. Install the plugin via `./craft install/plugin mux` via the CLI, or in the Control Panel, go to Settings → Plugins and click the “Install” button for MUX.
 
