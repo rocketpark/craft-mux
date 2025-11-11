@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.4.0.5 - 2025-11-11
+
+### Fixed
+- **Mux Asset Element Input**: Fixed Mux asset element input to work within matrix blocks
+
+## Updated
+- **Mux Field": Updated Mux field icon to Mux icon instead of default
+
+## 2.4.0.3 - 2025-10-24
+
+### Fixed
+- **Changelog**: Fixed change log to adhear to Craft standards
+
 ## 2.4.0.1 - 2025-10-20
 
 ### Fixed
