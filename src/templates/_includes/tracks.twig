@@ -228,8 +228,6 @@
             
             const $urlField = $trackUrl.find('input');
             
-            console.log('Track type changed to:', trackType); // Debug log
-            
             if (trackType === 'text') {
                 $textTrackFields.removeClass('hidden').show();
                 $audioTrackFields.addClass('hidden').hide();
@@ -319,9 +317,6 @@
             let formData = Object.fromEntries(new FormData($slideout.$container[0]));
             let trackType = formData['track[type]'];
             let trackUrl = formData['track[url]'];
-            
-            console.log('Form data:', formData); // Debug log
-            console.log('Track type:', trackType); // Debug log
             
             // Validate URL before submission
             const urlError = validateTrackUrl(trackUrl, trackType);
@@ -477,7 +472,6 @@
         });
 
         $("#{{ ns }}mux-track-add").on('click', function() {
-            console.log('Opening slideout...'); // Debug log
             $slideout.open();
             
             // Ensure the initial state is set after slideout opens

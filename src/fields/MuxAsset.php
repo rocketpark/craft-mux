@@ -90,6 +90,14 @@ class MuxAsset extends BaseRelationField
     }
 
     /**
+     * @inheritdoc
+     */
+    public static function icon(): string
+    {
+        return '@mux/icon';
+    }
+
+    /**
      * @var bool Whether assets should be restricted to a single location.
      */
     public bool $restrictLocation = false;
@@ -207,6 +215,16 @@ class MuxAsset extends BaseRelationField
     protected function inputTemplateVariables(null|array|ElementQueryInterface $value = null, ?ElementInterface $element = null): array
     {
         $variables = parent::inputTemplateVariables($value, $element);
+
+        // Ensure element is valid before using it
+        if ($element === null) {
+            // Return early with safe defaults if element is null
+            $variables['canUpload'] = false;
+            $variables['defaultFolderId'] = null;
+            $variables['defaultSource'] = null;
+            $variables['defaultSourcePath'] = null;
+            return $variables;
+        }
         
         $uploadVolume = $this->_uploadVolume();
         $variables['showFolders'] = !$this->restrictLocation || $this->allowSubfolders;
@@ -244,15 +262,21 @@ class MuxAsset extends BaseRelationField
         }
 
         if (!$this->restrictLocation || $this->allowSubfolders) {
-            $uploadFolder = $this->_uploadFolder($element, false);
-            if ($uploadFolder->volumeId) {
-                // If the location is restricted, don't go passed the base source folder
-                $baseUploadFolder = $this->restrictLocation ? $this->_uploadFolder($element, false, false) : null;
-                $folders = $this->_folderWithAncestors($uploadFolder, $baseUploadFolder);
-                $variables['defaultSource'] = $this->_sourceKeyByFolder($folders[0]);
-                $variables['defaultSourcePath'] = array_map(function(MuxFolder $folder) {
-                    return $folder->getSourcePathInfo();
-                }, $folders);
+            try {
+                $uploadFolder = $this->_uploadFolder($element, false);
+                if ($uploadFolder->volumeId) {
+                    // If the location is restricted, don't go passed the base source folder
+                    $baseUploadFolder = $this->restrictLocation ? $this->_uploadFolder($element, false, false) : null;
+                    $folders = $this->_folderWithAncestors($uploadFolder, $baseUploadFolder);
+                    $variables['defaultSource'] = $this->_sourceKeyByFolder($folders[0]);
+                    $variables['defaultSourcePath'] = array_map(function(MuxFolder $folder) {
+                        return $folder->getSourcePathInfo();
+                    }, $folders);
+                }
+            } catch (\Exception $e) {
+                // If folder resolution fails (e.g., during draft operations), set safe defaults
+                $variables['defaultSource'] = null;
+                $variables['defaultSourcePath'] = null;
             }
         }
 

@@ -109,61 +109,65 @@
             observer.observe(player);
         });
 
-        /* Mux asset update checker */
+        // Only run update checker if we're on the full edit screen, not in a slideout
+        const isInSlideout = $("#{{ ns }}title").closest('.cp-screen.slideout, .so-body').length > 0;
 
-        // Store initial dateUpdated in UTC format
-        window.muxLastDateUpdated = new Date("{{ muxAsset.dateUpdated.format('c') }}").toISOString();
-        
-        // Check for element updates every 5 seconds
-        const muxUpdateInterval = setInterval(async function() {
-            try {
-                const response = await fetch("/actions/mux/assets/use-asset-element-by-id?id={{ muxAsset.id }}", {
-                    headers: {
-                        "Accept": "application/json",
-                        "X-Requested-With": "XMLHttpRequest",
-                        "X-CSRF-Token": "{{ craft.app.request.csrfToken }}"
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    const currentDateUpdated = data.dateUpdated;
-                    const lastDateUpdated = window.muxLastDateUpdated;
+        if (!isInSlideout) {
+            /* Mux asset update checker */
+
+            // Store initial dateUpdated in UTC format
+            window.muxLastDateUpdated = new Date("{{ muxAsset.dateUpdated.format('c') }}").toISOString();
+            
+            // Check for element updates every 5 seconds
+            const muxUpdateInterval = setInterval(async function() {
+                try {
+                    const response = await fetch("/actions/mux/assets/use-asset-element-by-id?id={{ muxAsset.id }}", {
+                        headers: {
+                            "Accept": "application/json",
+                            "X-Requested-With": "XMLHttpRequest",
+                            "X-CSRF-Token": "{{ craft.app.request.csrfToken }}"
+                        }
+                    });
                     
-                    // Normalize both dates to UTC for comparison
-                    const currentUTC = new Date(currentDateUpdated).toISOString();
-                    const lastUTC = new Date(lastDateUpdated).toISOString();
-                    
-                    if (currentUTC !== lastUTC) {
-                        window.muxLastDateUpdated = currentUTC;
+                    if (response.ok) {
+                        const data = await response.json();
+                        const currentDateUpdated = data.dateUpdated;
+                        const lastDateUpdated = window.muxLastDateUpdated;
                         
-                        // Create the Reload button using Craft's UI components
-                        const $reloadBtn = Craft.ui.createButton({
-                            label: Craft.t('app', 'Reload'),
-                            spinner: true,
-                        });
+                        // Normalize both dates to UTC for comparison
+                        const currentUTC = new Date(currentDateUpdated).toISOString();
+                        const lastUTC = new Date(lastDateUpdated).toISOString();
+                        
+                        if (currentUTC !== lastUTC) {
+                            window.muxLastDateUpdated = currentUTC;
+                            
+                            // Create the Reload button using Craft's UI components
+                            const $reloadBtn = Craft.ui.createButton({
+                                label: Craft.t('app', 'Reload'),
+                                spinner: true,
+                            });
 
-                        Craft.cp.displayNotice(Craft.t('mux', 'This Mux asset has been updated by a webhook. Please reload to see the latest changes.'), {
-                            details: $reloadBtn,
-                        });
+                            Craft.cp.displayNotice(Craft.t('mux', 'This Mux asset has been updated by a webhook. Please reload to see the latest changes.'), {
+                                details: $reloadBtn,
+                            });
 
-                        $reloadBtn.on('click', () => {
-                            window.location.reload();
-                        });
+                            $reloadBtn.on('click', () => {
+                                window.location.reload();
+                            });
 
+                        }
                     }
+                } catch (error) {
+                    // Silent error handling
                 }
-            } catch (error) {
-                // Silent error handling
-            }
-        }, 5000);
-        
-        // Clean up interval when page unloads
-        window.addEventListener("beforeunload", function() {
-            if (muxUpdateInterval) {
-                clearInterval(muxUpdateInterval);
-            }
-        });
-
+            }, 5000);
+            
+            // Clean up interval when page unloads
+            window.addEventListener("beforeunload", function() {
+                if (muxUpdateInterval) {
+                    clearInterval(muxUpdateInterval);
+                }
+            });
+        }
     });
 {% endjs %}

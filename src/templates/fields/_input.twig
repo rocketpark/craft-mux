@@ -5,7 +5,7 @@
 {% set id = id ?? "elementselect#{random()}" -%}
 {% set elements = elements ?? [] -%}
 {# Craft.BaseElementSelectInput #}
-{% set jsClass = jsClass ?? 'RocketPark.Mux.MuxElementSelectInput' -%}
+{# {% set jsClass = jsClass ?? 'RocketPark.Mux.MuxElementSelectInput' -%} #}
 {% set sources = sources ?? null -%}
 {% set condition = condition ?? null -%}
 {% set criteria = criteria ?? null -%}
@@ -20,50 +20,27 @@
 {% set disabled = (disabled ?? false) ? true : false %}
 {% set maintainHierarchy = maintainHierarchy ?? false %}
 
-{% set containerAttributes = {
-    id: id,
-    class: ['elementselect']|merge((class ?? [])|explodeClass),
-}|merge(containerAttributes ?? [], recursive=true) %}
-
-{%- if block('attr') is defined %}
-    {%- set containerAttributes = containerAttributes|merge(('<div ' ~ block('attr') ~ '>')|parseAttr, recursive=true) %}
-{% endif %}
-
-{% tag 'div' with containerAttributes %}
-
-    {{ include('_elements/list.twig', { elements, viewMode, disabled }) }}
-
-    <div class="flex flex-nowrap">
-        {{ tag('button', {
-            type: 'button',
-            class: [
-                'btn',
-                'add',
-                'icon',
-                'dashed',
-                disabled ? 'disabled',
-                limit and elements|length >= limit ? 'hidden',
-            ]|filter,
-            text: selectionLabel ?? 'Choose'|t('app'),
-            disabled: disabled,
-            aria: {
-                label: selectionLabel ?? 'Choose'|t('app'),
-                describedby: describedBy ?? false,
-            }
-        }) }}
-        <div class="spinner hidden"></div>
-    </div>
-{% endtag %}
-
 {% if not disabled %}
+    {# Global config, only defined once #}
+    {% js at head %}
+        window.RocketPark = window.RocketPark || {};
+        window.RocketPark.Mux = window.RocketPark.Mux || {};
+        window.RocketPark.Mux.Settings = window.RocketPark.Mux.Settings || {
+            maxUploadFileSize: {{ craft.muxSettings.maxUploadFileSize|json_encode|raw }},
+            uploadChunkSize: {{ craft.muxSettings.uploadChunkSize|json_encode|raw }},
+            defaultExtensions: "MP4,MOV,MKV,WEBM,M4V",
+        };
+    {% endjs %}
+
+    {# Per-instance init settings #}
     {% set jsSettings = {
         id: id|namespaceInputId,
-        name: name|namespaceInputName,
+        name: name ? name|namespaceInputName : null,
         elementType: elementType,
         sources: sources,
         condition: condition ? condition.getConfig() : null,
-        referenceElementId: referenceElement.id ?? null,
-        referenceElementSiteId: referenceElement.siteId ?? null,
+        referenceElementId: (referenceElement ?? null) ? (referenceElement.id ?? null) : null,
+        referenceElementSiteId: (referenceElement ?? null) ? (referenceElement.siteId ?? null) : null,
         criteria: criteria,
         allowSelfRelations: allowSelfRelations ?? false,
         maintainHierarchy: false,
@@ -94,27 +71,47 @@
         defaultUploadLocationSubpath: defaultUploadLocationSubpath ?? null,
         defaultFolderId: defaultFolderId ?? null,
     } %}
-    {% js at head %}
-        window.RocketPark = window.RocketPark || {};
-        window.RocketPark.Mux = window.RocketPark.Mux || {};
-        window.RocketPark.Mux.Settings = {
-            maxUploadFileSize: {{ craft.muxSettings.maxUploadFileSize|json_encode|raw }},
-            uploadChunkSize: {{ craft.muxSettings.uploadChunkSize|json_encode|raw }},
-            defaultExtensions: "MP4,MOV,MKV,WEBM,M4V",
-        };
-    {% endjs %}
-    {% js %}
 
-        document.addEventListener('DOMContentLoaded', function() {
-            function initMuxElementSelectInput() {
-                if (window.RocketPark && window.RocketPark.Mux && window.RocketPark.Mux.MuxElementSelectInput) {
-                    new {{ jsClass }}({{ jsSettings|json_encode|raw }});
-                } else {
-                    setTimeout(initMuxElementSelectInput, 50);
-                }
-            }
-            initMuxElementSelectInput();
-        });
-    {% endjs %}
+    {# {% js at endBody %}
+        
+        RocketPark.Mux.initElementSelectField({{ jsSettings|json_encode|raw }});
+        
+    {% endjs %} #}
 
 {% endif %}
+
+{% set containerAttributes = {
+    id: id,
+    class: ['elementselect']|merge((class ?? [])|explodeClass),
+    'data-mux-field-settings': jsSettings|json_encode,
+}|merge(containerAttributes ?? [], recursive=true) %}
+
+{%- if block('attr') is defined %}
+    {%- set containerAttributes = containerAttributes|merge(('<div ' ~ block('attr') ~ '>')|parseAttr, recursive=true) %}
+{% endif %}
+
+{% tag 'div' with containerAttributes %}
+    {{ include('_elements/list.twig', { elements, viewMode, disabled }) }}
+
+    <div class="flex flex-nowrap">
+        {{ tag('button', {
+            type: 'button',
+            class: [
+                'btn',
+                'add',
+                'icon',
+                'dashed',
+                'wrap',
+                disabled ? 'disabled',
+                limit and elements|length >= limit ? 'hidden',
+            ]|filter,
+            text: selectionLabel ?? 'Choose'|t('app'),
+            disabled: disabled,
+            aria: {
+                label: selectionLabel ?? 'Choose'|t('app'),
+                describedby: describedBy ?? false,
+            }
+        }) }}
+        <div class="spinner hidden"></div>
+    </div>
+{% endtag %}

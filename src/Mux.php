@@ -115,6 +115,9 @@ class Mux extends Plugin
         self::$settings = $this->getSettings();
         $this->name = self::$settings->pluginName;
 
+        Craft::setAlias('@mux', __DIR__);
+        Craft::setAlias('@mux/icon', __DIR__ . '/icon.svg');
+
         if (Craft::$app->getRequest()->getIsCpRequest()) {
             $this->registerCpRoutes();
         }

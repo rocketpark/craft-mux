@@ -41,6 +41,7 @@
 }
 
 .mux-thumb-figure > .mux-base-thumb {
+    position: relative;
     display: block;
     visibility: visible;
     width: fit-content;
@@ -48,9 +49,21 @@
     object-fit: cover;
     object-position: center;
     aspect-ratio: 16 / 9;
+    z-index: 2;
+}
+
+.mux-thumb-figure > canvas {
+    position: relative;
+    display: block;
+    visibility: visible;
+    width: fit-content;
+    height: 100%;
+    aspect-ratio: 16 / 9;
+    z-index: 1;
 }
 
 .mux-thumb-figure > .mux-animated-thumb {
+    position: relative;
     display: hidden;
     visibility: hidden;
     width: fit-content;
@@ -58,14 +71,17 @@
     object-fit: cover;
     object-position: center;
     aspect-ratio: 16 / 9;
+    z-index: 2;
 }
 
 .mux-thumb-figure:hover .mux-base-thumb {
     visibility: hidden;
     display: none;
+    z-index: 1;
 }
 
 .mux-thumb-figure:hover .mux-animated-thumb {
     visibility: visible;
     display: block;
+    z-index: 2;
 }

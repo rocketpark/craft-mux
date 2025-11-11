@@ -57,7 +57,7 @@ const Helpers = {
      * Get file extension from filename
      */
     getFileExtension: function(filename) {
-        return `.${filename.toLowerCase().split('.').pop()}`;
+        return `${filename.toLowerCase().split('.').pop()}`;
     },
 
     /**
