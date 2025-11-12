@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+### 1.2.9 - November 12, 2025
+### Added
+- Added download button for text tracks
+
 ### 1.2.8 - June 2, 2025
 ### Added
 - Added Restore Element Action for Trashed items

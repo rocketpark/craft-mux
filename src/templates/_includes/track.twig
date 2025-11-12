@@ -44,18 +44,46 @@
         {% endswitch %}
     </div>
     
-    {% if track.type == "text" %}    
-        <button 
-            class="error" 
-            id="mux-track-delete-{{ track.id }}" 
-            data-asset-id="{{ asset_id }}"
-            data-track-id="{{ track.id }}"
-            data-confirm-message="{{ confirmMessage }}">
-            <svg class="xcircleicon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div class="spinner hidden"></div>
-            <span class="sr-only">{{ "Delete Track"|t('mux') }} {{ track.name  }}</span>
-        </button>
+    {% if track.type == "text" %}
+        <div class="mux-track-actions">
+            {% if track.type == "text" %}
+                {#  Download Track #}
+                {% set useToken = muxAsset.securePlayback and muxAsset.securePlaybackTokens|length >= 1 %}
+                {% set playbackId = muxAsset.playbackId() %}
+                {% set videoToken = useToken ? muxAsset.getSecurePlaybackJWT(muxAsset.securePlaybackTokens[0]['key_id']) : null %}
+                {% set downloadUrl = "https://stream.mux.com/#{playbackId}/text/#{track.id}.vtt" ~ (useToken ? "?token=#{videoToken}" : "") %}
+                <a
+                    class="error"
+                    id="mux-track-download-{{ track.id }}"
+                    href="{{ downloadUrl }}"
+                    target="_blank"
+                    rel="noopener"
+                    title="{{ "Download Text Track"|t('mux') }}"
+                    download="{{ muxAsset.title }}_{{ 'Text_Track'|t('mux') }}.vtt">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="xcircleicon">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    <span class="sr-only">{{ "Download Text Track"|t('mux') }} {{ track.name  }}</span>
+                </a>
+            {% endif %}
+            
+            {# Delete Track - Available for all track types #}
+            <button
+                class="error"
+                id="mux-track-delete-{{ track.id }}"
+                data-asset-id="{{ asset_id }}"
+                data-track-id="{{ track.id }}"
+                data-confirm-message="{{ confirmMessage }}"
+                title="{{ "Delete #{track.type|title} Track"|t('mux') }}"
+                type="button"
+                aria-label="{{ "Delete #{track.type|title} Track"|t('mux') }}"
+            >
+                <svg class="xcircleicon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div class="spinner hidden"></div>
+                <span class="sr-only">{{ "Delete #{track.type|title} Track"|t('mux') }} {{ track.name is defined and track.name is not empty ? track.name : '' }}</span>
+            </button>
+        </div>
     {% endif %}
 </div>
