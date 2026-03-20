@@ -119,45 +119,73 @@
                 </div>
             {% endif %}
 
-            <h5 class="heading">{{ "Static Renditions"|t('mux') }} 
-                <span class="info">{{ "Turn on static renditions for offline viewing and other use cases."|t('mux') }}</span>
+            <h5 class="heading">{{ "Static Renditions"|t('mux') }}
+                <span class="info">{{ "Enable static renditions for offline viewing and direct downloads. Select one or more resolutions. \"Highest\" is mutually exclusive with specific resolutions. To switch types (e.g. Highest to 1080p), first uncheck and save to delete, then select the new resolution and save again. Note static renditions will not upscale."|t('mux') }}</span>
             </h5>
             <div class="value flex">
-                <div class="select">
-                    <select id="{{ ns }}mux-static-renditions" name="static_renditions">
-                        <option value="none" {% if muxAsset.static_renditions is empty or muxAsset.static_renditions == 'none' %}selected{% endif %}>None</option>
-                        <option value="highest" 
-                            {% if muxAsset.static_renditions is defined 
-                                and muxAsset.static_renditions.files is defined 
-                                and muxAsset.static_renditions.files|length > 0 
-                                and (muxAsset.static_renditions.files[0].resolution ?? '') == 'highest' 
-                            %}selected{% endif %}>
-                            Highest
-                        </option>
-                        <option value="audio-only" 
-                            {% if muxAsset.static_renditions is defined 
-                                and muxAsset.static_renditions.files is defined 
-                                and muxAsset.static_renditions.files|length > 0 
-                                and (muxAsset.static_renditions.files[0].resolution ?? '') == 'audio-only' 
-                            %}selected{% endif %}>
-                            Audio Only
-                        </option>
-                    </select>
+                {% set renditionOptions = craft.muxRenditionOptions %}
+
+                {# Determine source video max_height for upscale prevention #}
+                {% set sourceMaxHeight = null %}
+                {% for track in muxAsset.tracks %}
+                    {% if track.type == 'video' and track.max_height is defined %}
+                        {% set sourceMaxHeight = track.max_height %}
+                    {% endif %}
+                {% endfor %}
+
+                {% set resolutionHeights = {
+                    '2160p': 2160, '1440p': 1440, '1080p': 1080,
+                    '720p': 720, '540p': 540, '480p': 480, '360p': 360, '270p': 270
+                } %}
+
+                {# Build a resolution => file-object map for all currently active renditions #}
+                {% set activeRenditions = {} %}
+                {% if muxAsset.static_renditions.files is defined %}
+                    {% for file in muxAsset.static_renditions.files %}
+                        {% if file.status != 'deleted' %}
+                            {% set activeRenditions = activeRenditions|merge({ (file.resolution): file }) %}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+
+                {# Hidden sentinel ensures the key is always present in POST, even when nothing is checked #}
+                <input type="hidden" name="static_renditions" value="">
+
+                <div class="checkbox-group" id="{{ ns }}mux-static-renditions">
+                    {% for value, label in renditionOptions %}
+                        {% set isUpscale = sourceMaxHeight is not null and resolutionHeights[value] is defined and resolutionHeights[value] > sourceMaxHeight %}
+                        <div class="checkboxfield">
+                            <input type="checkbox"
+                                   id="{{ ns }}mux-static-rendition-{{ value }}"
+                                   name="static_renditions[]"
+                                   value="{{ value }}"
+                                   {% if value in activeRenditions|keys %}checked{% endif %}
+                                   {% if isUpscale %}disabled title="{{ 'Upscaling not allowed — source is %sp'|t('mux', {'%s': sourceMaxHeight}) }}"{% endif %}>
+                            <label for="{{ ns }}mux-static-rendition-{{ value }}"{% if isUpscale %} style="opacity:0.4"{% endif %}>{{ label }}</label>
+                        </div>
+                    {% endfor %}
                 </div>
             </div>
 
-            {% if muxAsset.static_renditions != null and (muxAsset.static_renditions != 'none' and muxAsset.static_renditions != null and muxAsset.static_renditions.files is defined and muxAsset.static_renditions.files|length > 0) %}
+            {% if activeRenditions|length > 0 %}
                 <h5 class="heading">{{ "Static Renditions Status"|t('mux') }}</h5>
-                <div class="value flex" id="{{ ns }}static-rendition-status" data-static-rendition-id="{{ muxAsset.static_renditions.files[0].id }}">
+                <div class="value flex" id="{{ ns }}static-rendition-status">
                     {% set colors = {
-                        'ready': 'teal',
+                        'ready':     'teal',
                         'preparing': 'purple',
-                        'errored': 'red',
-                        'disabled': 'gray'
+                        'errored':   'red',
+                        'disabled':  'gray',
                     } %}
-                    {% set status = muxAsset.static_renditions.files[0].status %}
-                    {% set color = colors[status] ?? 'gray' %}
-                    <span class="status-label {{ color }}"><span class="status {{ color }}"></span><span class="status-label-text">{{ status }}</span></span>
+                    {% for resolution, file in activeRenditions %}
+                        <div data-static-rendition-id="{{ file.id ?? '' }}" data-resolution="{{ resolution }}" style="margin-bottom:4px;">
+                            <span style="margin-right:6px;">{{ renditionOptions[resolution] ?? resolution }}:</span>
+                            {% set color = colors[file.status] ?? 'gray' %}
+                            <span class="status-label {{ color }}">
+                                <span class="status {{ color }}"></span>
+                                <span class="status-label-text">{{ file.status }}</span>
+                            </span>
+                        </div>
+                    {% endfor %}
                 </div>
             {% endif %}
 
@@ -179,35 +207,95 @@
 {% js at endBody %}
 
     $(function() {
-        const mp4SupportSelect = $("#{{ ns }}mux-mp4-support");
-        const staticRenditionsSelect = $("#{{ ns }}mux-static-renditions");
+        var mp4SupportSelect = $("#{{ ns }}mux-mp4-support");
+        var staticRenditionsGroup = $("#{{ ns }}mux-static-renditions");
+        var specificResolutions = {{ craft.muxSpecificResolutions|json_encode|raw }};
+        var sourceMaxHeight = {{ sourceMaxHeight is not null ? sourceMaxHeight : 'null' }};
+        var resolutionHeights = { '2160p': 2160, '1440p': 1440, '1080p': 1080, '720p': 720, '540p': 540, '480p': 480, '360p': 360, '270p': 270 };
 
-        // Validation function to check if static renditions can be set
-        function validateStaticRenditions() {
-            const mp4SupportValue = mp4SupportSelect.val();
-            const staticRenditionsValue = staticRenditionsSelect.val();
-            
-            // Only allow static renditions if mp4Support is 'none'
-            if (mp4SupportValue !== 'none' && mp4SupportValue !== undefined && staticRenditionsValue !== 'none') {
-                Craft.cp.displayError(Craft.t("mux", "Static renditions can only be set if MP4 Support is set to 'None'."));
-                staticRenditionsSelect.val('none');
-                return false;
-            }
-            return true;
+        function getCheckbox(value) {
+            return staticRenditionsGroup.find('input[type="checkbox"][value="' + value + '"]');
         }
 
-        // Validate on change of either select
+        function isUpscaleDisabled(value) {
+            return sourceMaxHeight !== null && resolutionHeights[value] !== undefined && resolutionHeights[value] > sourceMaxHeight;
+        }
+
+        function anySpecificChecked() {
+            return specificResolutions.some(function(r) { return getCheckbox(r).is(':checked'); });
+        }
+
+        // Resolutions confirmed active in the DB right now (not just checked this session)
+        var activeFromDB = {{ activeRenditions|keys|json_encode|raw }};
+        var highestActiveFromDB = activeFromDB.indexOf('highest') !== -1;
+        var specificActiveFromDB = specificResolutions.some(function(r) {
+            return activeFromDB.indexOf(r) !== -1;
+        });
+
+        function enforceHighestMutualExclusivity(changedValue) {
+            if (changedValue === 'highest') {
+                var highestChecked = getCheckbox('highest').is(':checked');
+                specificResolutions.forEach(function(r) {
+                    var cb = getCheckbox(r);
+                    if (highestChecked) {
+                        // Highest just checked — disable all specific
+                        cb.prop('checked', false).prop('disabled', true);
+                    } else if (highestActiveFromDB) {
+                        // Highest came FROM DB — two-step required, keep specific disabled
+                        cb.prop('disabled', true);
+                    } else {
+                        // Highest was checked this session then unchecked — re-enable specific (unless upscale-disabled)
+                        cb.prop('disabled', isUpscaleDisabled(r));
+                    }
+                });
+            } else if (specificResolutions.indexOf(changedValue) !== -1) {
+                var highestCb = getCheckbox('highest');
+                if (anySpecificChecked()) {
+                    highestCb.prop('checked', false).prop('disabled', true);
+                } else if (specificActiveFromDB) {
+                    // A specific came FROM DB — two-step required, keep highest disabled
+                    highestCb.prop('disabled', true);
+                } else {
+                    highestCb.prop('disabled', false);
+                }
+            }
+        }
+
+        // Apply correct disabled state on page load based on asset's current renditions
+        function initMutualExclusivity() {
+            if (getCheckbox('highest').is(':checked')) {
+                specificResolutions.forEach(function(r) { getCheckbox(r).prop('disabled', true); });
+            } else if (anySpecificChecked()) {
+                getCheckbox('highest').prop('disabled', true);
+            }
+        }
+        initMutualExclusivity();
+
+        staticRenditionsGroup.on('change', 'input[type="checkbox"]', function() {
+            enforceHighestMutualExclusivity($(this).val());
+
+            // MP4 Support mutual exclusivity
+            var mp4Val = mp4SupportSelect.val();
+            if (mp4Val && mp4Val !== 'none' && staticRenditionsGroup.find('input[type="checkbox"]:checked').length > 0) {
+                Craft.cp.displayError(Craft.t("mux", "Static renditions can only be set if MP4 Support is set to 'None'."));
+                staticRenditionsGroup.find('input[type="checkbox"]').prop('checked', false);
+                initMutualExclusivity();
+            }
+        });
+
+        // When MP4 Support changes to a non-'none' value, reset it if renditions are checked
         mp4SupportSelect.on('change', function() {
-            validateStaticRenditions();
+            if (mp4SupportSelect.val() !== 'none' && staticRenditionsGroup.find('input[type="checkbox"]:checked').length > 0) {
+                Craft.cp.displayError(Craft.t("mux", "Static renditions can only be set if MP4 Support is set to 'None'. MP4 Support has been reset."));
+                mp4SupportSelect.val('none');
+            }
         });
 
-        staticRenditionsSelect.on('change', function() {
-            validateStaticRenditions();
-        });
-
-        // Validate before form submission
+        // Final guard on form submission
         $('form').on('submit', function(e) {
-            if (!validateStaticRenditions()) {
+            var mp4Val = mp4SupportSelect.val();
+            if (mp4Val && mp4Val !== 'none' && staticRenditionsGroup.find('input[type="checkbox"]:checked').length > 0) {
+                Craft.cp.displayError(Craft.t("mux", "Static renditions can only be set if MP4 Support is set to 'None'."));
                 e.preventDefault();
                 return false;
             }

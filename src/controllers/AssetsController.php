@@ -157,7 +157,7 @@ class AssetsController extends Controller
             fn(array $item) => !str_starts_with($item['id'] ?? '', 'action-edit-'),
         ) : []);
 
-        $response->registerAssetBundle(MuxDashboardAsset::class);
+        Craft::$app->getView()->registerAssetBundle(MuxDashboardAsset::class);
 
         return $response;
     }
@@ -182,8 +182,8 @@ class AssetsController extends Controller
         // Build asset from POST data
         $asset = Mux::$plugin->assets->buildAssetElementFromPost();
 
-        // Handle MP4 support and static renditions updates
-        $this->_handleMuxAssetUpdates($asset, $request);
+        // Mux API–backed fields (MP4 support + static renditions) are applied in
+        // Elements::EVENT_BEFORE_SAVE_ELEMENT via Assets::applyMuxAssetMuxApiFieldsFromRequest().
 
         // Try saving the asset
         if(Craft::$app->getElements()->saveElement($asset)) {
@@ -941,104 +941,5 @@ class AssetsController extends Controller
         // Add all nested permissions according to top-level permissions set
 
         Craft::$app->getUserPermissions()->saveUserPermissions($currentUser->id, $permissions);
-    }
-
-    /**
-     * Handle MP4 support and static renditions updates
-     *
-     * @param MuxAssetElement $asset
-     * @param Request $request
-     * @return void
-     */
-    private function _handleMuxAssetUpdates(MuxAssetElement $asset, Request $request): void
-    {
-        $params = $request->getBodyParams();
-        $assetsService = Mux::$plugin->assets;
-        $session = Craft::$app->getSession();
-
-        // Get the values from the form
-        $mp4Support = $params['mp4_support'] ?? $asset->mp4_support;
-        $staticRenditions = $params['static_renditions'] ?? 'none';
-
-        // Server-side validation: static renditions can only be set if MP4 support is 'none'
-        if ($staticRenditions !== 'none' && $mp4Support !== 'none') {
-            $session->setError(Craft::t('mux', 'Static renditions can only be set if MP4 Support is set to "None".'));
-            return;
-        }
-
-        // Handle MP4 support update
-        if (isset($params['mp4_support'])) {
-            $newMp4Support = $params['mp4_support'];
-            if ($newMp4Support !== $asset->mp4_support) {
-                if ($assetsService->updateMuxAssetMP4Support($asset->asset_id, $newMp4Support)) {
-                    $asset->mp4_support = $newMp4Support;
-                    $session->setNotice(Craft::t('mux', 'MP4 Support updated.'));
-                } else {
-                    $session->setError(Craft::t('mux', 'Failed to update MP4 Support.'));
-                }
-            }
-        }
-
-        // Handle static renditions update
-        if (isset($params['static_renditions'])) {
-            $newStaticRenditions = $params['static_renditions'];
-            $currentStaticRenditions = $asset->static_renditions;
-            
-            // FIXED: Better logic for determining current static rendition value
-            $currentValue = 'none';
-            if (!empty($currentStaticRenditions)) {
-                // Check if it's an array with files
-                if (is_array($currentStaticRenditions) && isset($currentStaticRenditions['files']) && !empty($currentStaticRenditions['files'])) {
-                    $currentValue = $currentStaticRenditions['files'][0]['resolution'] ?? 'none';
-                }
-                // Check if it's a string value
-                elseif (is_string($currentStaticRenditions)) {
-                    $currentValue = $currentStaticRenditions;
-                }
-            }
-
-            Mux::info("Static renditions update: current='{$currentValue}', new='{$newStaticRenditions}'", 'mux');
-
-            // Only update if the value has changed
-            if ($newStaticRenditions !== $currentValue) {
-                if ($newStaticRenditions === 'none') {
-                    // Delete existing static rendition
-                    if ($currentValue !== 'none' && !empty($currentStaticRenditions)) {
-                        $staticRenditionId = null;
-                        
-                        // Extract the static rendition ID
-                        if (is_array($currentStaticRenditions) && isset($currentStaticRenditions['files']) && !empty($currentStaticRenditions['files'])) {
-                            $staticRenditionId = $currentStaticRenditions['files'][0]['id'] ?? null;
-                        }
-                        
-                        if ($staticRenditionId) {
-                            Mux::info("Deleting static rendition ID: {$staticRenditionId} for asset: {$asset->asset_id}", 'mux');
-                            if ($assetsService->deleteMuxAssetStaticRenditionById($asset->asset_id, $staticRenditionId)) {
-                                $asset->static_renditions = [];
-                                $session->setNotice(Craft::t('mux', 'Static Rendition removed.'));
-                            } else {
-                                $session->setError(Craft::t('mux', 'Failed to remove Static Rendition.'));
-                            }
-                        } else {
-                            // No static rendition ID found, just clear the local data
-                            $asset->static_renditions = [];
-                            $session->setNotice(Craft::t('mux', 'Static Rendition cleared.'));
-                        }
-                    } else {
-                        // Already set to none, no action needed
-                        $session->setNotice(Craft::t('mux', 'Static Rendition already set to none.'));
-                    }
-                } else {
-                    // Create new static rendition
-                    if ($assetsService->updateMuxAssetStaticRenditions($asset->asset_id, $newStaticRenditions)) {
-                        // Note: The actual static_renditions data will be updated via webhook
-                        // or manual sync, so we don't update it here
-                        $session->setNotice(Craft::t('mux', 'Static Rendition Support updated.'));
-                    } else {
-                        $session->setError(Craft::t('mux', 'Failed to update Static Rendition Support.'));
-                    }
-                }
-            }
-        }
     }
 }

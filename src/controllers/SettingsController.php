@@ -11,6 +11,7 @@ use rocketpark\mux\helpers\Permission as PermissionHelper;
 use rocketpark\mux\models\Settings;
 use rocketpark\mux\Mux;
 use rocketpark\mux\constants\Languages;
+use rocketpark\mux\constants\StaticRenditions;
 use yii\base\InvalidConfigException;
 use yii\web\BadRequestHttpException;
 use yii\web\ForbiddenHttpException;
@@ -77,6 +78,8 @@ class SettingsController extends Controller
         $variables['selectedSubnavItem'] = 'settings';
         $variables['settings'] = $settings;
         $variables['subtitleLanguages'] = Languages::getSubtitleGenerationOptions();
+        $variables['renditionOptions'] = StaticRenditions::getCheckboxOptions();
+        $variables['specificResolutions'] = StaticRenditions::SPECIFIC_RESOLUTIONS;
 
         // Render the template
         return $this->renderTemplate('mux/settings/index.twig', $variables);

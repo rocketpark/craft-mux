@@ -72,6 +72,7 @@ return [
     'Enable static MP4 renditions on your video assets for offline viewing and other use cases. (DEPRECATED)' => 'Enable static MP4 renditions on your video assets for offline viewing and other use cases. (DEPRECATED)',
     'Enable static renditions on your video assets for offline viewing and other use cases.' => 'Enable static renditions on your video assets for offline viewing and other use cases.',
     'Enable static renditions on your video assets for offline viewing and other use cases. Set MP4 Support to "None" to use Static Renditions.' => 'Enable static renditions on your video assets for offline viewing and other use cases. Set MP4 Support to "None" to use Static Renditions.',
+    'Enable static renditions for offline viewing and direct downloads. Select one or more resolutions. "Highest" is mutually exclusive with specific resolutions. To switch types (e.g. Highest to 1080p), first uncheck and save to delete, then select the new resolution and save again. Note static renditions will not upscale.' => 'Enable static renditions for offline viewing and direct downloads. Select one or more resolutions. "Highest" is mutually exclusive with specific resolutions. To switch types (e.g. Highest to 1080p), first uncheck and save to delete, then select the new resolution and save again. Note static renditions will not upscale.',
     'Secure playback requires you use a signed key in your playback url.' => 'Secure playback requires you use a signed key in your playback url.',
     'Public' => 'Public',
     'Secure' => 'Secure',

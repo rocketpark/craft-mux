@@ -101,18 +101,12 @@
             <a href="https://docs.mux.com/guides/enable-static-mp4-renditions" target="_blank">View Documentation</a>
         {% endset %}
 
-        {{  forms.selectizeField({
-            label: 'Default Static Renditions Support <div class="info">%s</div>'|format(staticRenditionsInstructions),
+        {{ forms.checkboxGroupField({
+            label: 'Default Static Renditions <div class="info">%s</div>'|format(staticRenditionsInstructions),
             id: 'staticRenditions',
             name: 'staticRenditions',
-            options: [
-                { label: 'None', value: 'none' },
-                { label: 'Highest', value: 'highest' },
-                { label: 'Audio Only', value: 'audio-only' }
-            ],
-            value: settings.staticRenditions,
-            includeEnvVars: true,
-            allowedEnvValues: null,
+            options: renditionOptions,
+            values: settings.staticRenditions,
             warning: configWarning("staticRenditions", "mux"),
             errors: settings.getErrors('staticRenditions'),
             disabled: mux.settings.isSettingOverridden('staticRenditions'),
@@ -319,44 +313,106 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const mp4SupportField = document.getElementById('settings-mp4Support');
-            const staticRenditionsField = document.getElementById('settings-staticRenditions');
-            
-            if (mp4SupportField && staticRenditionsField) {
-                // Function to check and show notification when static renditions is changed
-                function checkStaticRenditionsSelection() {
-                    const mp4Value = mp4SupportField.value;
-                    const staticValue = staticRenditionsField.value;
-                    
-                    if (mp4Value !== 'none' && staticValue !== 'none') {
-                        Craft.cp.displayNotification('notice', '{{ "Warning: MP4 Support is deprecated and should be set to \"None\" when using Static Renditions. Please set MP4 Support to \"None\" to use Static Renditions."|t("mux")|raw }}', {
-                            icon: 'alert',
-                            iconLabel: '{{ "Warning"|t("app") }}'
-                        });
-                        
-                        // Reset static renditions to 'none'
-                        staticRenditionsField.value = 'none';
+            const staticRenditionsGroup = document.getElementById('settings-staticRenditions');
+
+            if (mp4SupportField && staticRenditionsGroup) {
+                const specificResolutions = {{ specificResolutions|default([])|json_encode|raw }};
+
+                function getCheckbox(value) {
+                    return staticRenditionsGroup.querySelector('input[type="checkbox"][value="' + value + '"]');
+                }
+
+                function anyStaticRenditionsChecked() {
+                    return staticRenditionsGroup.querySelectorAll('input[type="checkbox"]:checked').length > 0;
+                }
+
+                function anySpecificChecked() {
+                    return specificResolutions.some(function(r) {
+                        const cb = getCheckbox(r);
+                        return cb && cb.checked;
+                    });
+                }
+
+                function uncheckAllStaticRenditions() {
+                    staticRenditionsGroup.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+                        cb.checked = false;
+                    });
+                }
+
+                // Highest vs specific resolutions (Audio Only can coexist with either) — same rules as asset sidebar
+                function enforceHighestMutualExclusivity(changedValue) {
+                    if (changedValue === 'highest') {
+                        const highestCb = getCheckbox('highest');
+                        if (highestCb && highestCb.checked) {
+                            specificResolutions.forEach(function(r) {
+                                const cb = getCheckbox(r);
+                                if (cb) {
+                                    cb.checked = false;
+                                    cb.disabled = true;
+                                }
+                            });
+                        } else {
+                            specificResolutions.forEach(function(r) {
+                                const cb = getCheckbox(r);
+                                if (cb) cb.disabled = false;
+                            });
+                        }
+                    } else if (specificResolutions.indexOf(changedValue) !== -1) {
+                        const highestCb = getCheckbox('highest');
+                        if (highestCb) {
+                            if (anySpecificChecked()) {
+                                highestCb.checked = false;
+                                highestCb.disabled = true;
+                            } else {
+                                highestCb.disabled = false;
+                            }
+                        }
                     }
                 }
-                
-                // Function to check and show notification when mp4 support is changed
-                function checkMp4SupportSelection() {
-                    const mp4Value = mp4SupportField.value;
-                    const staticValue = staticRenditionsField.value;
-                    
-                    if (mp4Value !== 'none' && staticValue !== 'none') {
-                        Craft.cp.displayNotification('notice', '{{ "Warning: MP4 Support is deprecated and should be set to \"None\" when using Static Renditions. Please set MP4 Support to \"None\" to use Static Renditions."|t("mux")|raw }}', {
+
+                function initMutualExclusivity() {
+                    const highestCb = getCheckbox('highest');
+                    if (highestCb && highestCb.checked) {
+                        specificResolutions.forEach(function(r) {
+                            const cb = getCheckbox(r);
+                            if (cb) cb.disabled = true;
+                        });
+                    } else if (anySpecificChecked() && highestCb) {
+                        highestCb.disabled = true;
+                    }
+                }
+                initMutualExclusivity();
+
+                // When a static rendition checkbox is toggled, ensure MP4 Support is 'none' and enforce Highest vs specific
+                staticRenditionsGroup.addEventListener('change', function(ev) {
+                    if (ev.target && ev.target.type === 'checkbox' && ev.target.name && ev.target.name.indexOf('staticRenditions') !== -1) {
+                        enforceHighestMutualExclusivity(ev.target.value);
+                    }
+                    if (mp4SupportField.value !== 'none' && anyStaticRenditionsChecked()) {
+                        Craft.cp.displayNotification('notice', '{{ "Warning: Static Renditions require MP4 Support to be set to None. Your selections have been cleared."|t("mux")|raw }}', {
                             icon: 'alert',
                             iconLabel: '{{ "Warning"|t("app") }}'
                         });
-                        
-                        // Reset mp4 support to 'none'
+                        uncheckAllStaticRenditions();
+                        specificResolutions.forEach(function(r) {
+                            const cb = getCheckbox(r);
+                            if (cb) cb.disabled = false;
+                        });
+                        const highestCb = getCheckbox('highest');
+                        if (highestCb) highestCb.disabled = false;
+                    }
+                });
+
+                // When MP4 Support is changed, warn if static renditions are already checked
+                mp4SupportField.addEventListener('change', function() {
+                    if (mp4SupportField.value !== 'none' && anyStaticRenditionsChecked()) {
+                        Craft.cp.displayNotification('notice', '{{ "Warning: MP4 Support is deprecated. Set it to None to use Static Renditions, or clear your rendition selections first."|t("mux")|raw }}', {
+                            icon: 'alert',
+                            iconLabel: '{{ "Warning"|t("app") }}'
+                        });
                         mp4SupportField.value = 'none';
                     }
-                }
-                
-                // Add event listeners
-                staticRenditionsField.addEventListener('change', checkStaticRenditionsSelection);
-                mp4SupportField.addEventListener('change', checkMp4SupportSelection);
+                });
             }
         });
     </script>

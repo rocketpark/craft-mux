@@ -203,6 +203,32 @@ class Mux extends Plugin
             }
         );
 
+        /**
+         * Before save: apply CP POST fields that update Mux (MP4 support + static renditions).
+         */
+        Craft::$app->getElements()->on(
+            Elements::EVENT_BEFORE_SAVE_ELEMENT,
+            function (ElementEvent $e) {
+                if (!$e->element instanceof MuxAssetElement) {
+                    return;
+                }
+                /** @var MuxAssetElement $element */
+                $element = $e->element;
+                if (!empty($element->isWebhookUpdate)) {
+                    return;
+                }
+                $request = Craft::$app->getRequest();
+                if (!$request->getIsCpRequest() || !$request->getIsPost()) {
+                    return;
+                }
+                $params = $request->getBodyParams();
+                if (!isset($params['static_renditions']) && !isset($params['mp4_support'])) {
+                    return;
+                }
+                Mux::$plugin->assets->applyMuxAssetMuxApiFieldsFromRequest($element, $request);
+            }
+        );
+
         /*
          * After save element event
          */

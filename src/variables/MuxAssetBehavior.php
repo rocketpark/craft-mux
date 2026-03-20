@@ -3,6 +3,7 @@ namespace rocketpark\mux\variables;
 
 use Craft;
 use craft\helpers\App;
+use rocketpark\mux\constants\StaticRenditions;
 use rocketpark\mux\Mux;
 use rocketpark\mux\elements\MuxAsset;
 use rocketpark\mux\elements\db\MuxAssetQuery;
@@ -29,13 +30,25 @@ class MuxAssetBehavior extends Behavior
         
         // Manually parse environment variables for the settings that need it
         if ($settings) {
-            // Dynamically parse all public properties of the settings object
+            // Dynamically parse all public string properties for environment variable references
             foreach (get_object_vars($settings) as $key => $value) {
-                $settings->$key = App::parseEnv($value);
+                if (is_string($value)) {
+                    $settings->$key = App::parseEnv($value);
+                }
             }
         }
         
         return $settings;
+    }
+
+    public function muxRenditionOptions(): array
+    {
+        return StaticRenditions::ALL_RENDITION_OPTIONS;
+    }
+
+    public function muxSpecificResolutions(): array
+    {
+        return StaticRenditions::SPECIFIC_RESOLUTIONS;
     }
 
     public function signedKeys(): ActiveQuery

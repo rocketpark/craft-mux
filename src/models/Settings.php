@@ -16,7 +16,7 @@ use craft\validators\ArrayValidator;
  * @property-read bool $muxSecurePlayback The MUX Asset has secure playback
  * @property-read string $maxResolutionTier The MUX Asset resolution tier
  * @property-read string $mp4Support Enable static MP4 renditions
- * @property-read string $staticRenditions Enable static renditions
+ * @property-read array $staticRenditions Default static renditions for new uploads
  */
 class Settings extends Model
 {
@@ -52,9 +52,22 @@ class Settings extends Model
     public string $mp4Support = '';
 
     /**
-     * @var string Enable static renditions on your video assets for offline viewing and other use cases.
+     * @var array Default static renditions applied to new video uploads (e.g. ['1080p', '720p']).
      */
-    public string $staticRenditions = '';
+    public array $staticRenditions = [];
+
+    /**
+     * Yii2 magic setter — called by setAttribute() during settings hydration.
+     * Handles legacy single-string values stored in older DB rows gracefully.
+     */
+    public function setStaticRenditions(mixed $value): void
+    {
+        if (is_string($value)) {
+            $this->staticRenditions = ($value !== '' && $value !== 'none') ? [$value] : [];
+        } else {
+            $this->staticRenditions = (array)($value ?? []);
+        }
+    }
 
     /**
      * @var string URL of the watermark/overlay image.
@@ -163,8 +176,8 @@ class Settings extends Model
             ['maxResolutionTier', 'default', 'value' => '1080p'],
             ['mp4Support', 'string'],
             ['mp4Support', 'default', 'value' => 'none'],
-            ['staticRenditions', 'string'],
-            ['staticRenditions', 'default', 'value' => 'none'],
+            ['staticRenditions', 'each', 'rule' => ['string']],
+            ['staticRenditions', 'default', 'value' => []],
             ['watermark_url', 'string'],
             ['watermark_url', 'default', 'value' => ''],
             ['vertical_align', 'string'],
@@ -208,7 +221,6 @@ class Settings extends Model
                     'width',
                     'height',
                     'opacity',
-                    'staticRenditions',
                     'mp4Support',
                     'muxSecurePlayback',
                     'maxUploadFileSize',

@@ -39,9 +39,11 @@ use rocketpark\mux\events\MuxAssetUploadEvent;
 use rocketpark\mux\events\MuxAssetMoveEvent;
 use rocketpark\mux\events\MuxAssetSyncEvent;
 use rocketpark\mux\constants\Languages;
+use rocketpark\mux\constants\StaticRenditions;
 use yii\base\Exception;
 use yii\base\InvalidArgumentException as BaseInvalidArgumentException;
 use yii\base\InvalidConfigException;
+use yii\web\Request;
 use function json_encode;
 
 
@@ -232,10 +234,6 @@ class Assets extends Component
         if (isset($requestParams['folderId'])) {
             $asset->folderId = is_null($requestParams['folderId']) ? null : (int)$requestParams['folderId'];
             $passthrough['folderId'] = is_null($requestParams['folderId']) ? null : (int)$requestParams['folderId'];
-        }
-
-        if(isset($requestParams['static_renditions']) && $requestParams['static_renditions'] !== 'none') {
-            $asset->static_renditions = [];
         }
 
         if(isset($requestParams['mp4_support']) && $requestParams['mp4_support'] !== 'none') {
@@ -504,10 +502,21 @@ class Assets extends Component
 
         $staticRenditions = [];
 
-        if (App::parseEnv($settings->staticRenditions) !== 'none') {
-            $staticRenditions[] = new MuxPhp\Models\CreateStaticRenditionRequest([
-                'resolution' => App::parseEnv($settings->staticRenditions),
-            ]);
+        $configuredRenditions = $settings->staticRenditions;
+
+        // Backward compatibility: handle legacy single-string values stored in older DB rows
+        if (is_string($configuredRenditions)) {
+            $configuredRenditions = ($configuredRenditions !== '' && $configuredRenditions !== 'none')
+                ? [$configuredRenditions]
+                : [];
+        }
+
+        foreach ((array)$configuredRenditions as $resolution) {
+            if (!empty($resolution) && $resolution !== 'none') {
+                $staticRenditions[] = new MuxPhp\Models\CreateStaticRenditionRequest([
+                    'resolution' => $resolution,
+                ]);
+            }
         }
 
         $passthrough = [];
@@ -953,7 +962,7 @@ class Assets extends Component
                         continue;
                     } else if($key == 'static_renditions') {
                         if (
-                            !empty($element->static_renditions) && 
+                            !empty($element->static_renditions) &&
                             (!isset($muxAsset['static_renditions']) || empty($muxAsset['static_renditions']))
                         ) {
                             // If static_renditions is missing in $muxAsset, reset to default (null)
@@ -1046,7 +1055,22 @@ class Assets extends Component
             "mp4_support" => $asset->getMp4Support(),
             "source_asset_id" => $asset->getSourceAssetId(),
             "normalize_audio" => $asset->getNormalizeAudio(),
-            "static_renditions" => !empty($asset->getStaticRenditions()) && !empty($asset->getStaticRenditions()->getFiles()) ? $asset->getStaticRenditions()->getFiles() : [],
+            "static_renditions" => !empty($asset->getStaticRenditions()) ? [
+                'status' => $asset->getStaticRenditions()->getStatus(),
+                'files'  => !empty($asset->getStaticRenditions()->getFiles()) ? array_map(function ($file) {
+                    return [
+                        'id'         => $file->getId(),
+                        'name'       => $file->getName(),
+                        'ext'        => $file->getExt(),
+                        'height'     => $file->getHeight(),
+                        'width'      => $file->getWidth(),
+                        'bitrate'    => $file->getBitrate(),
+                        'filesize'   => $file->getFilesize(),
+                        'resolution' => $file->getResolution(),
+                        'status'     => $file->getStatus(),
+                    ];
+                }, $asset->getStaticRenditions()->getFiles()) : [],
+            ] : null,
             "recording_times" => $asset->getRecordingTimes(),
             "non_standard_input_reasons" => !empty($asset->getNonStandardInputReasons()) ? json_decode($asset->getNonStandardInputReasons(), true): [],
             "test" => $asset->getTest(),
@@ -1261,6 +1285,176 @@ class Assets extends Component
     }
 
     /**
+     * Apply CP POST fields that map to Mux API state: legacy MP4 support and static renditions.
+     *
+     * Invoked from Elements::EVENT_BEFORE_SAVE_ELEMENT for any CP element save (full edit, slideout,
+     * etc.) when the request includes `static_renditions` and/or `mp4_support`.
+     */
+    public function applyMuxAssetMuxApiFieldsFromRequest(MuxAssetElement $asset, Request $request): void
+    {
+        $params = $request->getBodyParams();
+        $session = Craft::$app->getSession();
+
+        // Get the values from the form
+        $mp4Support = $params['mp4_support'] ?? $asset->mp4_support;
+
+        // Handle MP4 support update
+        if (isset($params['mp4_support'])) {
+            $newMp4Support = $params['mp4_support'];
+            if ($newMp4Support !== $asset->mp4_support) {
+                if ($this->updateMuxAssetMP4Support($asset->asset_id, $newMp4Support)) {
+                    $asset->mp4_support = $newMp4Support;
+                    $session->setNotice(Craft::t('mux', 'MP4 Support updated.'));
+                } else {
+                    $session->setError(Craft::t('mux', 'Failed to update MP4 Support.'));
+                }
+            }
+        }
+
+        // Handle static renditions update
+        if (!isset($params['static_renditions'])) {
+            return;
+        }
+
+        // Normalise the incoming POST value.
+        // The hidden sentinel sends '' (empty string); checkboxes send an array of resolution strings.
+        $rawParam = $params['static_renditions'];
+        if (is_string($rawParam)) {
+            $newResolutions = ($rawParam === '' || $rawParam === 'none') ? [] : [$rawParam];
+        } else {
+            $newResolutions = array_values(array_filter((array)$rawParam, fn($v) => $v !== '' && $v !== 'none'));
+        }
+
+        // Server-side validation: static renditions require MP4 Support to be 'none'
+        if (!empty($newResolutions) && $mp4Support !== 'none') {
+            $session->setError(Craft::t('mux', 'Static renditions can only be set if MP4 Support is set to "None".'));
+            return;
+        }
+
+        // Server-side upscale prevention
+        $sourceMaxHeight = null;
+        if (is_array($asset->tracks)) {
+            foreach ($asset->tracks as $track) {
+                if (($track['type'] ?? '') === 'video' && isset($track['max_height'])) {
+                    $sourceMaxHeight = (int)$track['max_height'];
+                    break;
+                }
+            }
+        }
+        if ($sourceMaxHeight !== null) {
+            foreach ($newResolutions as $res) {
+                $tierHeight = StaticRenditions::RESOLUTION_MAX_HEIGHTS[$res] ?? null;
+                if ($tierHeight !== null && $tierHeight > $sourceMaxHeight) {
+                    $session->setError(Craft::t('mux', '{resolution} cannot be requested — upscaling is not allowed (source is {height}p).', [
+                        'resolution' => $res,
+                        'height'     => $sourceMaxHeight,
+                    ]));
+                    return;
+                }
+            }
+        }
+
+        // Build a map of currently active renditions: resolution => rendition_id.
+        // Load from DB directly — $asset->static_renditions may not match persisted CP state.
+        $persistedElement = MuxAssetElement::findOne(['asset_id' => $asset->asset_id]);
+        $currentStaticRenditions = $persistedElement ? $persistedElement->static_renditions : null;
+        $currentMap = [];
+        if (is_array($currentStaticRenditions) && isset($currentStaticRenditions['files'])) {
+            foreach ($currentStaticRenditions['files'] as $file) {
+                if (!empty($file['resolution'])) {
+                    $currentMap[$file['resolution']] = $file['id'] ?? null; // null for preparing stubs without IDs yet
+                }
+            }
+        }
+
+        $toAdd = array_diff($newResolutions, array_keys($currentMap));
+        $toRemove = array_diff(array_keys($currentMap), $newResolutions);
+
+        // Two-step enforcement: "highest" <-> specific resolution transitions must be split
+        // across two saves because Mux processes deletions asynchronously. Attempting to
+        // add a specific resolution while "highest" is still being deleted returns HTTP 400.
+        $specificResolutions = StaticRenditions::SPECIFIC_RESOLUTIONS;
+        $removingHighest = in_array('highest', $toRemove);
+        $addingHighest = in_array('highest', $toAdd);
+        $removingSpecific = !empty(array_intersect($toRemove, $specificResolutions));
+        $addingSpecific = !empty(array_intersect($toAdd, $specificResolutions));
+
+        if (($removingHighest && $addingSpecific) || ($removingSpecific && $addingHighest)) {
+            $session->setError(Craft::t(
+                'mux',
+                'To switch between "Highest" and specific renditions, please save to remove the current selection first, then save again to add the new ones.'
+            ));
+            return;
+        }
+
+        Mux::info(sprintf(
+            "Static renditions diff for asset %s: current=[%s] new=[%s] adding=[%s] removing=[%s]",
+            $asset->asset_id,
+            implode(',', array_keys($currentMap)),
+            implode(',', $newResolutions),
+            implode(',', $toAdd),
+            implode(',', $toRemove)
+        ), 'mux');
+
+        $hadError = false;
+
+        // Delete renditions that were unchecked
+        foreach ($toRemove as $resolution) {
+            $renditionId = $currentMap[$resolution];
+            if ($renditionId !== null) {
+                Mux::info("Deleting static rendition '{$resolution}' (ID: {$renditionId}) for asset: {$asset->asset_id}", 'mux');
+                if (!$this->deleteMuxAssetStaticRenditionById($asset->asset_id, $renditionId)) {
+                    $session->setError(Craft::t('mux', 'Failed to remove static rendition: {resolution}.', ['resolution' => $resolution]));
+                    $hadError = true;
+                }
+            } else {
+                Mux::info("Removing preparing stub '{$resolution}' (no Mux ID yet) for asset: {$asset->asset_id}", 'mux');
+                // No API call — rendition has no Mux ID yet; local DB update below removes the stub.
+            }
+        }
+
+        // Add renditions that were newly checked
+        foreach ($toAdd as $resolution) {
+            Mux::info("Adding static rendition '{$resolution}' for asset: {$asset->asset_id}", 'mux');
+            if (!$this->updateMuxAssetStaticRenditions($asset->asset_id, $resolution)) {
+                $session->setError(Craft::t('mux', 'Failed to add static rendition: {resolution}.', ['resolution' => $resolution]));
+                $hadError = true;
+            }
+        }
+
+        if (!$hadError && (!empty($toAdd) || !empty($toRemove))) {
+            $session->setNotice(Craft::t('mux', 'Static renditions updated.'));
+
+            // Immediately write the expected new state to mux_assets so the CP reflects
+            // the user's intent without waiting for async webhook jobs.
+            // Webhooks will later enrich this with real file IDs and final status.
+            $existingFiles = isset($currentStaticRenditions['files']) && is_array($currentStaticRenditions['files'])
+                ? $currentStaticRenditions['files']
+                : [];
+
+            // Drop removed resolutions
+            $newFiles = array_values(array_filter(
+                $existingFiles,
+                fn(array $f) => !in_array($f['resolution'] ?? '', $toRemove, true)
+            ));
+
+            // Add 'preparing' stubs for newly requested resolutions (file IDs arrive via .ready webhook)
+            foreach ($toAdd as $resolution) {
+                $newFiles[] = ['resolution' => $resolution, 'status' => 'preparing'];
+            }
+
+            $newStaticRenditions = empty($newFiles) ? null : [
+                'status' => !empty($toAdd) ? 'preparing' : ($currentStaticRenditions['status'] ?? 'preparing'),
+                'files'  => $newFiles,
+            ];
+
+            $this->updateLocalStaticRenditions($asset->asset_id, $newStaticRenditions);
+            // Keep the element in sync so saveElement() does not overwrite the record with stale data
+            $asset->static_renditions = $newStaticRenditions;
+        }
+    }
+
+    /**
      * Update MUX Asset Static Renditions
      * @param string|int $assetId
      * @param string $staticRendition
@@ -1338,6 +1532,36 @@ class Assets extends Component
         } catch (\Exception $e) {
             // Handle generic exceptions
             Mux::error("Exception when calling deleteMuxAssetStaticRenditionById: {$e->getMessage()}: ". __METHOD__, 'mux');
+            return false;
+        }
+    }
+
+    /**
+     * Write static_renditions directly to mux_assets for a given Mux asset ID.
+     * Uses Craft's Db::update (which JSON-encodes arrays via prepareValueForDb),
+     * bypassing the element system to guarantee the write succeeds regardless of
+     * element validation or type-coercion issues.
+     *
+     * @param string     $assetId             The Mux asset ID (not the Craft element ID)
+     * @param array|null $newStaticRenditions  Null writes SQL NULL; array is JSON-encoded
+     */
+    public function updateLocalStaticRenditions(string $assetId, ?array $newStaticRenditions): bool
+    {
+        $record = MuxAssetsRecord::find()->where(['asset_id' => $assetId])->one();
+        if (!$record) {
+            Mux::warning("updateLocalStaticRenditions: no mux_assets row for asset {$assetId}", 'mux');
+            return false;
+        }
+
+        try {
+            Db::update('{{%mux_assets}}',
+                ['static_renditions' => $newStaticRenditions],
+                ['id' => $record->id]
+            );
+            Mux::info("updateLocalStaticRenditions: updated static_renditions for asset {$assetId}", 'mux');
+            return true;
+        } catch (\Throwable $e) {
+            Mux::error("updateLocalStaticRenditions failed for {$assetId}: {$e->getMessage()}", 'mux');
             return false;
         }
     }

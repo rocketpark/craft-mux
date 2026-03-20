@@ -69,6 +69,12 @@ class WebhooksController extends Controller
             //'video.upload.created',
             //'video.upload.errored',
             //'video.asset.warning',
+            // Singular (what Mux sends): video.asset.static_rendition.*
+            'video.asset.static_rendition.created',
+            'video.asset.static_rendition.preparing',
+            'video.asset.static_rendition.ready',
+            'video.asset.static_rendition.deleted',
+            // Plural (legacy, if Mux ever sends): video.asset.static_renditions.*
             'video.asset.static_renditions.preparing',
             'video.asset.static_renditions.ready',
             'video.asset.static_renditions.deleted',
