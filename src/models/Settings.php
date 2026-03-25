@@ -3,7 +3,9 @@
 namespace rocketpark\mux\models;
 
 use Craft;
+
 use craft\base\Model;
+use craft\helpers\App;
 use craft\behaviors\EnvAttributeParserBehavior;
 use craft\validators\ArrayValidator;
 
@@ -37,9 +39,9 @@ class Settings extends Model
     public string $muxTokenSecret = '';
 
     /**
-     * @var int The MUX Asset has secure playback
+     * @var bool|string The MUX Asset has secure playback
      */
-    public bool $muxSecurePlayback = false;
+    public bool|string $muxSecurePlayback = false;
 
     /**
      * @var string The MUX Asset resolution teir
@@ -159,6 +161,11 @@ class Settings extends Model
      */
     public string $defaultGeneratedSubtitleLanguage = 'en';
 
+    /**
+     * @var bool|string Whether to automatically generate captions when a new video is uploaded.
+     */
+    public bool|string $autoGenerateCaptions = true;
+
 
     /**
      * @inheritdoc
@@ -170,7 +177,6 @@ class Settings extends Model
             ['pluginName', 'default', 'value' => 'MUX'],
             ['muxTokenId', 'string'],
             ['muxTokenSecret', 'string'],
-            ['muxSecurePlayback', 'boolean'],
             ['muxSecurePlayback', 'default', 'value' => false],
             ['maxResolutionTier', 'string'],
             ['maxResolutionTier', 'default', 'value' => '1080p'],
@@ -197,7 +203,9 @@ class Settings extends Model
             ['uploadChunkSize', 'string'],
             ['uploadChunkSize', 'default', 'value' => '30720'],
             ['defaultGeneratedSubtitleLanguage', 'string'],
-            ['defaultGeneratedSubtitleLanguage', 'default', 'value' => 'en']
+            ['defaultGeneratedSubtitleLanguage', 'default', 'value' => 'en'],
+            ['autoGenerateCaptions', 'default', 'value' => true],
+            [['muxSecurePlayback', 'autoGenerateCaptions'], 'validateBooleanMenuEnvSetting'],
         ];
     }
 
@@ -226,8 +234,31 @@ class Settings extends Model
                     'maxUploadFileSize',
                     'uploadChunkSize',
                     'defaultGeneratedSubtitleLanguage',
+                    'autoGenerateCaptions',
                 ],
             ],
         ];
+    }
+
+    /**
+     * Boolean menu fields with `includeEnvVars: true` — use Craft’s boolean env parsing, not Yii’s narrow `boolean` rule.
+     *
+     * @see App::parseBooleanEnv()
+     */
+    public function validateBooleanMenuEnvSetting(string $attribute, ?array $params = null): void
+    {
+        $value = $this->$attribute;
+
+        if (App::parseBooleanEnv($value) !== null) {
+            return;
+        }
+
+        if (is_string($value) && preg_match('/^\$[A-Za-z_][A-Za-z0-9_]*$/', $value)) {
+            return;
+        }
+
+        $this->addError($attribute, Craft::t('mux', '{attribute} must be a boolean or a valid environment variable reference.', [
+            'attribute' => $this->getAttributeLabel($attribute),
+        ]));
     }
 }

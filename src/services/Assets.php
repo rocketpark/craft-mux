@@ -382,9 +382,15 @@ class Assets extends Component
         );
 
         $policy = Mux::$plugin->assets->getPlaybackPolicy();
+        $autoGenerateCaptions = (bool) App::parseEnv($settings->autoGenerateCaptions ?? true);
         $defaultGeneratedSubtitleLanguage = App::parseEnv($settings->defaultGeneratedSubtitleLanguage ?? 'en');
         $languageName = Languages::TRACK_LANGUAGE_CODES[$defaultGeneratedSubtitleLanguage];
-        $create_asset_request = json_decode(sprintf('{"input":[{"url":"%s","generated_subtitles": [{"language_code": "%s","name": "%s"}]}],"playback_policy":["%s"],"max_resolution_teir":"%s"}', $data['url'], $defaultGeneratedSubtitleLanguage, $languageName, $policy, App::parseEnv($settings->maxResolutionTier)), true);
+
+        if ($autoGenerateCaptions) {
+            $create_asset_request = json_decode(sprintf('{"input":[{"url":"%s","generated_subtitles": [{"language_code": "%s","name": "%s"}]}],"playback_policy":["%s"],"max_resolution_teir":"%s"}', $data['url'], $defaultGeneratedSubtitleLanguage, $languageName, $policy, App::parseEnv($settings->maxResolutionTier)), true);
+        } else {
+            $create_asset_request = json_decode(sprintf('{"input":[{"url":"%s"}],"playback_policy":["%s"],"max_resolution_teir":"%s"}', $data['url'], $policy, App::parseEnv($settings->maxResolutionTier)), true);
+        }
 
         try {
             $result = $apiInstance->createAsset($create_asset_request);
@@ -432,18 +438,21 @@ class Assets extends Component
 
         $inputSettings = [];
 
+        $autoGenerateCaptions = (bool) App::parseEnv($settings->autoGenerateCaptions ?? true);
         $defaultGeneratedSubtitleLanguage = App::parseEnv($settings->defaultGeneratedSubtitleLanguage ?? 'en');
         $languageName = Languages::getSubtitleLanguageLabel($defaultGeneratedSubtitleLanguage);
 
-        // Create the main input object (no URL for direct uploads, but with subtitles)
-        $inputSettings[] = new MuxPhp\Models\InputSettings([
-            "generated_subtitles" => [
+        // Create the main input object (no URL for direct uploads, optionally with subtitles)
+        $mainInput = [];
+        if ($autoGenerateCaptions) {
+            $mainInput["generated_subtitles"] = [
                 new MuxPhp\Models\AssetGeneratedSubtitleSettings([
-                    "language_code" => $defaultGeneratedSubtitleLanguage, 
+                    "language_code" => $defaultGeneratedSubtitleLanguage,
                     "name" => $languageName
                 ])
-            ]
-        ]);
+            ];
+        }
+        $inputSettings[] = new MuxPhp\Models\InputSettings($mainInput);
 
         // Add watermark/overlay as a separate input if configured
         $watermarkUrl = App::parseEnv($settings->watermark_url ?? '');

@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.5.0 - 2026-03-25
+
+### Added
+- **Default static renditions**: Multi-select in plugin settings (checkbox group) for **Highest**, individual resolutions (2160p through 270p), and **Audio Only**, with CP UI rules so **Highest** and specific resolutions stay mutually exclusive.
+- **`StaticRenditions`**: Centralized rendition labels, specific-resolution list, and nominal max heights for validation and UI.
+- **Auto-Generate Captions**: New settings control (boolean menu, env-aware). When disabled, new **URL** and **direct** ingests omit generated subtitles so Mux does not auto-create captions for those uploads.
+
+### Updated
+- **Settings**: `staticRenditions` is stored as an array; a setter normalizes legacy single-string values from older rows.
+- **Secure Playback**: Boolean menu with env support; custom validation for boolean-menu / env-backed values (`validateBooleanMenuEnvSetting`) so saves work with Craft env syntax and `$ENV_VAR` references.
+- **Ingest pipeline**: Create-asset and direct-upload flows honor the new static-rendition and auto-caption settings; related CP sidebar, controllers, webhooks/job handling, translations, and `MuxAssetBehavior` helpers aligned with the new model.
+
+### Fixed
+- **Plugin metadata**: `changelogUrl` in `composer.json` updated to a normal GitHub blob URL (replacing the raw `raw.githubusercontent.com` link).
+
+
 ## 2.4.0.5 - 2025-11-11
 
 ### Fixed

@@ -30,7 +30,7 @@
         "name": "Mux",
         "developer": "Rocket Park",
         "documentationUrl": "https://rocketpark.com/mux-plugin",
-        "changelogUrl": "https://raw.githubusercontent.com/rocket-park/craft-5/craft-mux/CHANGELOG.md",
+        "changelogUrl": "https://github.com/rocketpark/craft-mux/blob/craft-5/CHANGELOG.md",
         "class": "rocketpark\\mux\\Mux"
     }
 }

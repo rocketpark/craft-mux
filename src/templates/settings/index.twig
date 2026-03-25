@@ -285,6 +285,19 @@
             warning: configWarning("defaultGeneratedSubtitleLanguage", "mux"),
             disabled: mux.settings.isSettingOverridden('defaultGeneratedSubtitleLanguage'),
         }) }}
+
+        {{ forms.booleanMenuField({
+            label: 'Auto-Generate Captions'|t('mux'),
+            instructions: 'Automatically generate captions when a new video is uploaded.'|t('mux'),
+            id: 'autoGenerateCaptions',
+            name: 'autoGenerateCaptions',
+            yesLabel: 'Enabled'|t('mux'),
+            noLabel: 'Disabled'|t('mux'),
+            includeEnvVars: true,
+            value: settings.autoGenerateCaptions,
+            warning: configWarning("autoGenerateCaptions", "mux"),
+            disabled: mux.settings.isSettingOverridden('autoGenerateCaptions'),
+        }) }}
 <hr>
     {% set webhookinfo %}
         Mux uses webhooks to let your application know when things happen asynchronously, outside of an API request cycle.
