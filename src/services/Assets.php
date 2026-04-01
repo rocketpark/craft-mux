@@ -403,6 +403,23 @@ class Assets extends Component
     }
 
     /**
+     * Mux Video API expects overlay opacity as a percentage string (e.g. "80%").
+     * Bare integer strings like "80" are rejected with invalid_parameters.
+     */
+    private static function normalizeMuxOverlayOpacityForMux(string $opacity): string
+    {
+        $opacity = trim($opacity);
+        if ($opacity === '' || str_ends_with($opacity, '%')) {
+            return $opacity;
+        }
+        if (preg_match('/^\d+$/', $opacity)) {
+            return $opacity . '%';
+        }
+
+        return $opacity;
+    }
+
+    /**
      * Upload Asset to MUX
      * @param null|string $passthrough
      * @return string|false 
@@ -488,7 +505,9 @@ class Assets extends Component
                 $overlayParams["height"] = $height;
             }
             if (!empty($opacity)) {
-                $overlayParams["opacity"] = $opacity;
+                $opacityForMux = self::normalizeMuxOverlayOpacityForMux($opacity);
+                
+                $overlayParams["opacity"] = $opacityForMux;
             }
 
             // Only create overlay settings if we have parameters

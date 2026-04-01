@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 - **Default static renditions**: Multi-select in plugin settings (checkbox group) for **Highest**, individual resolutions (2160p through 270p), and **Audio Only**, with CP UI rules so **Highest** and specific resolutions stay mutually exclusive.
 - **`StaticRenditions`**: Centralized rendition labels, specific-resolution list, and nominal max heights for validation and UI.
 - **Auto-Generate Captions**: New settings control (boolean menu, env-aware). When disabled, new **URL** and **direct** ingests omit generated subtitles so Mux does not auto-create captions for those uploads.
+- **Watermark Opacity Normalization**: Implemented automatic normalization of watermark opacity values to ensure a percentage character is included as required by Mux.
 
 ### Updated
 - **Settings**: `staticRenditions` is stored as an array; a setter normalizes legacy single-string values from older rows.

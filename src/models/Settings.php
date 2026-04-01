@@ -197,7 +197,7 @@ class Settings extends Model
             ['width', 'string'],
             ['height', 'string'],
             ['opacity', 'string'],
-            ['opacity', 'default', 'value' => '100'],
+            ['opacity', 'default', 'value' => '100%'],
             ['maxUploadFileSize', 'string'],
             ['maxUploadFileSize', 'default', 'value' => '716800'],
             ['uploadChunkSize', 'string'],
