@@ -5,3 +5,8 @@
 .env
 /node_modules
 /vendor
+CLAUDE.md
+.idea/*
+.vscode/*
+.cursor/*
+.claude/*

@@ -272,6 +272,17 @@
             disabled: mux.settings.isSettingOverridden('uploadChunkSize'),
         }) }}
 
+        {{ forms.autosuggestField({
+            label: 'Upload CORS Origin' | t('mux'),
+            instructions: 'The origin Mux will allow for direct uploads. Defaults to the CP host. Override this if your CP is behind a reverse proxy that changes the Host header.' | t('mux'),
+            id: 'uploadCorsOrigin',
+            name: 'uploadCorsOrigin',
+            value: settings.uploadCorsOrigin,
+            suggestEnvVars: true,
+            warning: configWarning('uploadCorsOrigin', 'mux'),
+            disabled: mux.settings.isSettingOverridden('uploadCorsOrigin'),
+        }) }}
+
         <hr>
         <h3>{{ "Captions"|t('mux') }}</h3>
 
