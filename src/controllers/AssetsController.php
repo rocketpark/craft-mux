@@ -364,7 +364,8 @@ class AssetsController extends Controller
         $folderId = $request->getBodyParam('folderId');
 
         if ($request->getAcceptsJson()) {
-            return MUX::$plugin->assets->uploadMuxAsset($title, $volumeUid, $folderId);
+            $result = MUX::$plugin->assets->uploadMuxAsset($title, $volumeUid, $folderId);
+            return $this->asJson(\craft\helpers\Json::decode($result));
         };
     }
 

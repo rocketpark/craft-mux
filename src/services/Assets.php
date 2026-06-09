@@ -572,7 +572,8 @@ class Assets extends Component
             ])
         ]);
 
-        $createUploadRequest = new MuxPhp\Models\CreateUploadRequest(["timeout" => 3600, "new_asset_settings" => $createAssetRequest, "cors_origin" => UrlHelper::siteUrl()]);
+        $corsOrigin = App::parseEnv($settings->uploadCorsOrigin) ?: Craft::$app->getRequest()->getHostInfo();
+        $createUploadRequest = new MuxPhp\Models\CreateUploadRequest(["timeout" => 3600, "new_asset_settings" => $createAssetRequest, "cors_origin" => $corsOrigin]);
 
         $upload = $apiInstance->createDirectUpload($createUploadRequest);
         $uploadData = json_encode($upload->getData());

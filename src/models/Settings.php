@@ -166,6 +166,11 @@ class Settings extends Model
      */
     public bool|string $autoGenerateCaptions = true;
 
+    /**
+     * @var string Override the CORS origin sent to Mux when creating direct uploads. Defaults to the CP host when empty.
+     */
+    public string $uploadCorsOrigin = '';
+
 
     /**
      * @inheritdoc
@@ -206,6 +211,8 @@ class Settings extends Model
             ['defaultGeneratedSubtitleLanguage', 'default', 'value' => 'en'],
             ['autoGenerateCaptions', 'default', 'value' => true],
             [['muxSecurePlayback', 'autoGenerateCaptions'], 'validateBooleanMenuEnvSetting'],
+            ['uploadCorsOrigin', 'string'],
+            ['uploadCorsOrigin', 'default', 'value' => ''],
         ];
     }
 
@@ -235,6 +242,7 @@ class Settings extends Model
                     'uploadChunkSize',
                     'defaultGeneratedSubtitleLanguage',
                     'autoGenerateCaptions',
+                    'uploadCorsOrigin',
                 ],
             ],
         ];
