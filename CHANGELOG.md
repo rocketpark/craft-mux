@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.5.1 - 2026-06-09
+
+### Added
+- **`uploadCorsOrigin` setting**: New env-var-aware setting to override the CORS origin sent to Mux when creating direct uploads. Defaults to the CP host when empty; useful for sites behind reverse proxies.
+
+### Fixed
+- **Direct upload CORS**: CORS origin now defaults to the request host rather than `siteUrl()`, fixing direct uploads in headless setups where the front-end origin doesn't match the CP host.
+- **Assets controller response**: Response data now properly round-trips through JSON decode/encode.
+
 ## 2.5.0 - 2026-03-25
 
 ### Added
