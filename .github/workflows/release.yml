@@ -1,0 +1,63 @@
+name: Release
+
+# Only fires for stable version tags (e.g. 2.5.2) — never for beta tags
+# (e.g. 2.5.2-beta.1, 2.5.2-beta-1), which are intentionally excluded.
+on:
+  push:
+    tags:
+      - '*.*.*'
+      - '!*-beta*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify tag is on a production branch
+        run: |
+          set -e
+          TAG="${GITHUB_REF#refs/tags/}"
+
+          # Production branches are named craft-<N> (e.g. craft-5), never craft-<N>-dev
+          # or a feature/fix branch. Reject the release if the tagged commit isn't
+          # reachable from one of those branches.
+          if ! git branch -r --contains "$TAG" \
+              | sed 's/^[* ]*//' \
+              | grep -qE '^origin/craft-[0-9]+$'; then
+            echo "::error::Tag $TAG is not reachable from a production branch (origin/craft-<N>). Refusing to create a release."
+            exit 1
+          fi
+
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+
+      - name: Extract CHANGELOG section for this version
+        run: |
+          set -e
+          awk -v ver="$TAG" '
+            $0 ~ "^## " ver " " { found=1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > release_notes.md
+
+          if [ ! -s release_notes.md ]; then
+            echo "::error::No CHANGELOG.md section found for version $TAG (expected a '## $TAG - YYYY-MM-DD' heading)."
+            exit 1
+          fi
+
+          echo "Release notes for $TAG:"
+          cat release_notes.md
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes-file release_notes.md
