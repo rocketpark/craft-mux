@@ -30,10 +30,13 @@ class MuxAssetBehavior extends Behavior
         
         // Manually parse environment variables for the settings that need it
         if ($settings) {
-            // Dynamically parse all public string properties for environment variable references
+            // Dynamically parse all public string properties for environment variable references.
+            // parseEnv() can return null (unresolved $VAR) or bool, neither of which is assignable
+            // to these strictly-typed string properties, so fall back to the raw value in that case.
             foreach (get_object_vars($settings) as $key => $value) {
                 if (is_string($value)) {
-                    $settings->$key = App::parseEnv($value);
+                    $parsed = App::parseEnv($value);
+                    $settings->$key = is_string($parsed) ? $parsed : $value;
                 }
             }
         }

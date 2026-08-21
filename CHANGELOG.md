@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - **CP field crash on unready assets**: The mux-player field template and `getPlaybackId()`/`thumb()` no longer crash with a Twig `RuntimeError` when an asset has no `playback_ids` yet (still processing, errored, or a non-fatal derived-track error like auto-generated captions failing on a video with no audio track). The field now shows a processing/error message instead.
+- **Settings crash from empty env vars**: `craft.muxSettings` no longer throws a `TypeError` when a Mux setting references an environment variable that resolves to an empty string (which Craft's `App::parseEnv()` treats as unset and returns `null` for). The raw value is now preserved instead of being overwritten with `null`.
 
 ## 2.5.1 - 2026-06-09
 
