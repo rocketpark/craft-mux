@@ -36,10 +36,19 @@
 {{ titleFieldHtml }}
 
 <div id="mux-player-container-{{ muxAsset.id }}">
-    {% if muxAsset.securePlayback %}
+    {% if muxAsset.playback_ids is empty %}
+        <h3>
+            {% if muxAsset.asset_status == 'errored' %}
+                {{ "This asset failed to process."|t('mux') }}
+                {% if muxAsset.errors %}<br>{{ muxAsset.errors }}{% endif %}
+            {% else %}
+                {{ "This asset is still processing ({status}). Check back shortly."|t('mux', { status: muxAsset.asset_status ?? 'preparing' }) }}
+            {% endif %}
+        </h3>
+    {% elseif muxAsset.securePlayback %}
         {% set tokens = muxAsset.securePlaybackTokens %}
-        {% if tokens|length >= 1 %}       
-            {% set keyID = tokens[0]['key_id'] %} 
+        {% if tokens|length >= 1 %}
+            {% set keyID = tokens[0]['key_id'] %}
             {% set videoToken = muxAsset.getSecurePlaybackJWT(keyID) %}
             {% set thumbToken = muxAsset.getSecurePlaybackJWT(keyID, 't') %}
             {% set storyboardToken = muxAsset.getSecurePlaybackJWT(keyID, 's') %}

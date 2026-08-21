@@ -239,11 +239,11 @@ class MuxAsset extends Element implements Thumbable
 
     /**
      * Get Playback Id
-     * @return string 
+     * @return string|null
      */
-    public function getPlaybackId(): string
+    public function getPlaybackId(): ?string
     {
-        return $this->playback_ids[0]['id'];
+        return $this->playback_ids[0]['id'] ?? null;
     }
 
     /**
@@ -331,10 +331,14 @@ class MuxAsset extends Element implements Thumbable
      * @param int $height 
      * @param string $fit_mode
      * @param string $format
-     * @return string 
+     * @return string|null
      */
-    public function thumb(int $width=300, int $height=169, string $fit_mode = 'smartcrop', string $format='webp'): string
+    public function thumb(int $width=300, int $height=169, string $fit_mode = 'smartcrop', string $format='webp'): ?string
     {
+        if (empty($this->playback_ids)) {
+            return null;
+        }
+
         $options = [
             'width' => $width,
             'height' => $height,

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.5.2 - 2026-08-21
+
+### Fixed
+- **CP field crash on unready assets**: The mux-player field template and `getPlaybackId()`/`thumb()` no longer crash with a Twig `RuntimeError` when an asset has no `playback_ids` yet (still processing, errored, or a non-fatal derived-track error like auto-generated captions failing on a video with no audio track). The field now shows a processing/error message instead.
+
 ## 2.5.1 - 2026-06-09
 
 ### Added
