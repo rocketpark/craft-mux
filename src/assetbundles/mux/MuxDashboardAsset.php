@@ -38,6 +38,10 @@ class MuxDashboardAsset extends AssetBundle
             'type' => 'module'
         ];
         $this->js[] = 'js/mux-dashboard.js';
+        $this->js[] = 'js/mux-upload-system.js';
+
+        $this->css[] = 'css/mux-upload-wizard.css';
+        $this->css[] = 'css/mux-upload-tray.css';
 
         $this->depends = [
             CpAsset::class,
