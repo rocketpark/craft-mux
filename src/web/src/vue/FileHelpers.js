@@ -1,4 +1,4 @@
-const accept_extensions = (window.RocketPark?.Mux?.Settings?.defaultExtensions || '').trim() || 'mp4,webm,mov,m4v,mkv';
+const accept_extensions = (window.RocketPark?.Mux?.Settings?.defaultExtensions || '').trim() || 'mp4,webm,mov,m4v,mkv,mp3,m4a,wav,flac,aac,ogg,opus';
 const max_file_size = (Number.isInteger(Number(window.RocketPark?.Mux?.Settings?.maxUploadFileSize)) 
 && Number(window.RocketPark.Mux.Settings.maxUploadFileSize) > 0)
 ? Number(window.RocketPark.Mux.Settings.maxUploadFileSize) * 1024
@@ -64,7 +64,7 @@ export const preprocessFiles = function(files) {
                     reject(result);
                     break;
                 case 'EXTENSION_ERROR':
-                    alert(`These files are not supported. Upload video file types: (${accept_extensions})`);
+                    alert(`These files are not supported. Upload video or audio file types: (${accept_extensions})`);
                     reject(result);
                     break;
                 case 'FILE_SIZE_ERROR':

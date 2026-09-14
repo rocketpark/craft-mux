@@ -74,7 +74,10 @@
     z-index: 2;
 }
 
-.mux-thumb-figure:hover .mux-base-thumb {
+/* Only hide the base thumb on hover when there's an animated preview to reveal underneath it
+   (e.g. not for audio-only assets, which have no animated preview — see mux-thumb-figure--static
+   in MuxAsset::getThumbHtml()). */
+.mux-thumb-figure:not(.mux-thumb-figure--static):hover .mux-base-thumb {
     visibility: hidden;
     display: none;
     z-index: 1;

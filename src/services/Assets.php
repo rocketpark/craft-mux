@@ -1494,25 +1494,38 @@ class Assets extends Component
             return;
         }
 
-        // Server-side upscale prevention
-        $sourceMaxHeight = null;
-        if (is_array($asset->tracks)) {
-            foreach ($asset->tracks as $track) {
-                if (($track['type'] ?? '') === 'video' && isset($track['max_height'])) {
-                    $sourceMaxHeight = (int)$track['max_height'];
-                    break;
-                }
-            }
-        }
-        if ($sourceMaxHeight !== null) {
+        // Audio-only assets have no video track to size a resolution tier against — only
+        // 'highest'/'audio-only' are meaningful renditions for them.
+        if ($asset->getIsAudioOnly()) {
             foreach ($newResolutions as $res) {
-                $tierHeight = StaticRenditions::RESOLUTION_MAX_HEIGHTS[$res] ?? null;
-                if ($tierHeight !== null && $tierHeight > $sourceMaxHeight) {
-                    $session->setError(Craft::t('mux', '{resolution} cannot be requested — upscaling is not allowed (source is {height}p).', [
+                if (!in_array($res, ['highest', 'audio-only'], true)) {
+                    $session->setError(Craft::t('mux', '{resolution} is not available for audio-only assets — this asset has no video track.', [
                         'resolution' => $res,
-                        'height'     => $sourceMaxHeight,
                     ]));
                     return;
+                }
+            }
+        } else {
+            // Server-side upscale prevention
+            $sourceMaxHeight = null;
+            if (is_array($asset->tracks)) {
+                foreach ($asset->tracks as $track) {
+                    if (($track['type'] ?? '') === 'video' && isset($track['max_height'])) {
+                        $sourceMaxHeight = (int)$track['max_height'];
+                        break;
+                    }
+                }
+            }
+            if ($sourceMaxHeight !== null) {
+                foreach ($newResolutions as $res) {
+                    $tierHeight = StaticRenditions::RESOLUTION_MAX_HEIGHTS[$res] ?? null;
+                    if ($tierHeight !== null && $tierHeight > $sourceMaxHeight) {
+                        $session->setError(Craft::t('mux', '{resolution} cannot be requested — upscaling is not allowed (source is {height}p).', [
+                            'resolution' => $res,
+                            'height'     => $sourceMaxHeight,
+                        ]));
+                        return;
+                    }
                 }
             }
         }

@@ -49,7 +49,7 @@
                 {% endfor %}
             </div>
 
-            {% if muxAsset.aspect_ratio is defined %}
+            {% if not muxAsset.isAudioOnly and muxAsset.aspect_ratio is defined %}
                 <h5 class="heading">{{ "Aspect Ratio"|t('mux') }}</h5>
                 <div class="value flex">
                     {{ muxAsset.aspect_ratio }}
@@ -96,9 +96,13 @@
                     <div class="select">
                         <select id="{{ ns }}mux-mp4-support" name="mp4_support">
                             <option value="none" {% if muxAsset.mp4_support == 'none' %}selected{% endif %}>None</option>
-                            <option value="capped-1080p" {% if muxAsset.mp4_support == 'capped-1080p' %}selected{% endif %}>Capped 1080p</option>
+                            {% if not muxAsset.isAudioOnly %}
+                                <option value="capped-1080p" {% if muxAsset.mp4_support == 'capped-1080p' %}selected{% endif %}>Capped 1080p</option>
+                            {% endif %}
                             <option value="audio-only" {% if muxAsset.mp4_support == 'audio-only' %}selected{% endif %}>Audio Only</option>
-                            <option value="capped-1080p,audio-only" {% if muxAsset.mp4_support == 'capped-1080p,audio-only' %}selected{% endif %}>Capped 1080p,Audio Only</option>
+                            {% if not muxAsset.isAudioOnly %}
+                                <option value="capped-1080p,audio-only" {% if muxAsset.mp4_support == 'capped-1080p,audio-only' %}selected{% endif %}>Capped 1080p,Audio Only</option>
+                            {% endif %}
                         </select>
                     </div>
                 </div>
@@ -154,14 +158,17 @@
                 <div class="checkbox-group" id="{{ ns }}mux-static-renditions">
                     {% for value, label in renditionOptions %}
                         {% set isUpscale = sourceMaxHeight is not null and resolutionHeights[value] is defined and resolutionHeights[value] > sourceMaxHeight %}
+                        {% set isNotApplicableForAudio = muxAsset.isAudioOnly and resolutionHeights[value] is defined %}
+                        {% set isDisabled = isUpscale or isNotApplicableForAudio %}
+                        {% set disabledTitle = isNotApplicableForAudio ? 'Not applicable — this asset has no video track'|t('mux') : ('Upscaling not allowed — source is %sp'|t('mux', {'%s': sourceMaxHeight})) %}
                         <div class="checkboxfield">
                             <input type="checkbox"
                                    id="{{ ns }}mux-static-rendition-{{ value }}"
                                    name="static_renditions[]"
                                    value="{{ value }}"
                                    {% if value in activeRenditions|keys %}checked{% endif %}
-                                   {% if isUpscale %}disabled title="{{ 'Upscaling not allowed — source is %sp'|t('mux', {'%s': sourceMaxHeight}) }}"{% endif %}>
-                            <label for="{{ ns }}mux-static-rendition-{{ value }}"{% if isUpscale %} style="opacity:0.4"{% endif %}>{{ label }}</label>
+                                   {% if isDisabled %}disabled title="{{ disabledTitle }}"{% endif %}>
+                            <label for="{{ ns }}mux-static-rendition-{{ value }}"{% if isDisabled %} style="opacity:0.4"{% endif %}>{{ label }}</label>
                         </div>
                     {% endfor %}
                 </div>
@@ -211,6 +218,7 @@
         var staticRenditionsGroup = $("#{{ ns }}mux-static-renditions");
         var specificResolutions = {{ craft.muxSpecificResolutions|json_encode|raw }};
         var sourceMaxHeight = {{ sourceMaxHeight is not null ? sourceMaxHeight : 'null' }};
+        var isAudioOnly = {{ muxAsset.isAudioOnly ? 'true' : 'false' }};
         var resolutionHeights = { '2160p': 2160, '1440p': 1440, '1080p': 1080, '720p': 720, '540p': 540, '480p': 480, '360p': 360, '270p': 270 };
 
         function getCheckbox(value) {
@@ -219,6 +227,10 @@
 
         function isUpscaleDisabled(value) {
             return sourceMaxHeight !== null && resolutionHeights[value] !== undefined && resolutionHeights[value] > sourceMaxHeight;
+        }
+
+        function isDisabledForAsset(value) {
+            return isUpscaleDisabled(value) || (isAudioOnly && specificResolutions.indexOf(value) !== -1);
         }
 
         function anySpecificChecked() {
@@ -244,8 +256,8 @@
                         // Highest came FROM DB — two-step required, keep specific disabled
                         cb.prop('disabled', true);
                     } else {
-                        // Highest was checked this session then unchecked — re-enable specific (unless upscale-disabled)
-                        cb.prop('disabled', isUpscaleDisabled(r));
+                        // Highest was checked this session then unchecked — re-enable specific (unless upscale- or audio-disabled)
+                        cb.prop('disabled', isDisabledForAsset(r));
                     }
                 });
             } else if (specificResolutions.indexOf(changedValue) !== -1) {

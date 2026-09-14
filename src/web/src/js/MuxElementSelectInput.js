@@ -15,7 +15,7 @@ const CONSTANTS = {
     && Number(window.RocketPark.Mux.Settings.maxUploadFileSize) > 0)
     ? Number(window.RocketPark.Mux.Settings.maxUploadFileSize) * 1024
     : 700 * 1024 * 1024, // 700MB
-    DEFAULT_EXTENSIONS: (window.RocketPark?.Mux?.Settings?.defaultExtensions || '').trim() || 'mp4,webm,mov,m4v,mkv',
+    DEFAULT_EXTENSIONS: (window.RocketPark?.Mux?.Settings?.defaultExtensions || '').trim() || 'mp4,webm,mov,m4v,mkv,mp3,m4a,wav,flac,aac,ogg,opus',
     API_ENDPOINTS: {
         UPLOAD_ASSET: '/actions/mux/assets/upload-asset',
         CREATE_ASSET: '/actions/mux/assets/create',
@@ -210,9 +210,9 @@ export const MuxElementSelectInput = Craft.BaseElementSelectInput.extend({
     _createUploadButton: function() {
         if (!this.$addElementBtn) return;
 
-        const buttonText = this.settings.limit == 1 
-            ? Craft.t('mux', 'Upload a video')
-            : Craft.t('mux', 'Upload videos');
+        const buttonText = this.settings.limit == 1
+            ? Craft.t('mux', 'Upload a file')
+            : Craft.t('mux', 'Upload files');
 
         this.$uploadBtn = $('<button/>', {
             type: 'button',
@@ -430,7 +430,7 @@ export const MuxElementSelectInput = Craft.BaseElementSelectInput.extend({
             [CONSTANTS.ERROR_CODES.MULTIFILES_ERROR]: Craft.t('app', 'You can only upload {num} file.', {
                 num: this.settings.limit,
             }),
-            [CONSTANTS.ERROR_CODES.EXTENSION_ERROR]: Craft.t('mux', 'The selected file is not a valid video.'),
+            [CONSTANTS.ERROR_CODES.EXTENSION_ERROR]: Craft.t('mux', 'The selected file is not a valid video or audio file.'),
             [CONSTANTS.ERROR_CODES.FILE_SIZE_ERROR]: Craft.t('mux', 'The selected file is too large.'),
         };
 

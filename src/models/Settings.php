@@ -8,6 +8,7 @@ use craft\base\Model;
 use craft\helpers\App;
 use craft\behaviors\EnvAttributeParserBehavior;
 use craft\validators\ArrayValidator;
+use rocketpark\mux\constants\UploadExtensions;
 
 /**
  * Mux settings
@@ -148,6 +149,12 @@ class Settings extends Model
      */
     public string $uploadChunkSize = '30720'; // 30MB in kB
 
+    /**
+     * @var string Comma-separated list of file extensions accepted by CP uploads (video and audio).
+     * @example MP4,MOV,MKV,WEBM,M4V,MP3,M4A,WAV,FLAC,AAC,OGG,OPUS
+     */
+    public string $defaultExtensions = UploadExtensions::DEFAULT_EXTENSIONS_STRING;
+
 
     /**
      * @var string Default generated subtitle language.
@@ -207,6 +214,8 @@ class Settings extends Model
             ['maxUploadFileSize', 'default', 'value' => '716800'],
             ['uploadChunkSize', 'string'],
             ['uploadChunkSize', 'default', 'value' => '30720'],
+            ['defaultExtensions', 'string'],
+            ['defaultExtensions', 'default', 'value' => UploadExtensions::DEFAULT_EXTENSIONS_STRING],
             ['defaultGeneratedSubtitleLanguage', 'string'],
             ['defaultGeneratedSubtitleLanguage', 'default', 'value' => 'en'],
             ['autoGenerateCaptions', 'default', 'value' => true],
@@ -240,6 +249,7 @@ class Settings extends Model
                     'muxSecurePlayback',
                     'maxUploadFileSize',
                     'uploadChunkSize',
+                    'defaultExtensions',
                     'defaultGeneratedSubtitleLanguage',
                     'autoGenerateCaptions',
                     'uploadCorsOrigin',

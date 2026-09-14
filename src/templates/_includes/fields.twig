@@ -50,8 +50,8 @@
         {% if tokens|length >= 1 %}
             {% set keyID = tokens[0]['key_id'] %}
             {% set videoToken = muxAsset.getSecurePlaybackJWT(keyID) %}
-            {% set thumbToken = muxAsset.getSecurePlaybackJWT(keyID, 't') %}
-            {% set storyboardToken = muxAsset.getSecurePlaybackJWT(keyID, 's') %}
+            {% set thumbToken = muxAsset.isAudioOnly ? null : muxAsset.getSecurePlaybackJWT(keyID, 't') %}
+            {% set storyboardToken = muxAsset.isAudioOnly ? null : muxAsset.getSecurePlaybackJWT(keyID, 's') %}
             <mux-player
                     id="mux-player-{{ muxAsset.id }}"
                 style="aspect-ratio: 16/9;"
@@ -61,8 +61,8 @@
                 metadata-video-title="{{ muxAsset.title }} (CraftCMS Entry)"
                 playback-id="{{ muxAsset.playback_ids[0].id }}"
                 playback-token="{{ videoToken }}"
-                thumbnail-token="{{ thumbToken }}",
-                storyboard-token="{{ storyboardToken }}"
+                {% if thumbToken %}thumbnail-token="{{ thumbToken }}"{% endif %}
+                {% if storyboardToken %}storyboard-token="{{ storyboardToken }}"{% endif %}
                 disable-cookies="true"
                 default-hidden-captions="true"
                 title="{{ muxAsset.title }}"
@@ -91,7 +91,7 @@
     window.RocketPark.Mux.Settings = {
         maxUploadFileSize: {{ craft.muxSettings.maxUploadFileSize|json_encode|raw }},
         uploadChunkSize: {{ craft.muxSettings.uploadChunkSize|json_encode|raw }},
-        defaultExtensions: "MP4,MOV,MKV,WEBM,M4V",
+        defaultExtensions: {{ craft.muxSettings.defaultExtensions|json_encode|raw }},
     };
 {% endjs %}
 

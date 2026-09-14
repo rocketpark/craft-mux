@@ -180,7 +180,7 @@
             warning: configWarning("vertical_margin", "mux"),
             disabled: mux.settings.isSettingOverridden('vertical_margin'),
         }) }}
-        
+
         {{  forms.selectizeField({
             label: 'Horizontal Align <div class="info">Where the horizontal positioning of the overlay/watermark should begin from.</div>'|t('mux'),
             id: 'horizontal_align',
@@ -207,7 +207,6 @@
             warning: configWarning("horizontal_margin", "mux"),
             disabled: mux.settings.isSettingOverridden('horizontal_margin'),
         }) }}
-        
 
         {{ forms.autosuggestField({
             label: 'Width <div class="info">How wide the overlay should appear. Can be expressed as a percent (10%) or as a pixel value (100px). If both width and height are left blank the width will be the true pixels of the image, applied as if the video has been scaled to fit a 1920x1080 frame. If height is supplied with no width, the width will scale proportionally to the height.</div>'|t('mux'),
@@ -238,6 +237,7 @@
             warning: configWarning("opacity", "mux"),
             disabled: mux.settings.isSettingOverridden('opacity'),
         }) }}
+
 <hr>
     <h3>{{ "Upload Settings"|t('mux') }}</h3>
 
@@ -281,6 +281,16 @@
             suggestEnvVars: true,
             warning: configWarning('uploadCorsOrigin', 'mux'),
             disabled: mux.settings.isSettingOverridden('uploadCorsOrigin'),
+        }) }}
+
+        {{ forms.autosuggestField({
+            label: 'Accepted Upload Extensions <div class="info">Comma-separated list of file extensions accepted for CP uploads (video and audio).</div>'|t('mux'),
+            id: 'defaultExtensions',
+            name: 'defaultExtensions',
+            suggestEnvVars: true,
+            value: settings.defaultExtensions,
+            warning: configWarning("defaultExtensions", "mux"),
+            disabled: mux.settings.isSettingOverridden('defaultExtensions'),
         }) }}
 
         <hr>
@@ -441,6 +451,7 @@
                     }
                 });
             }
+
         });
     </script>
 {% endblock %}

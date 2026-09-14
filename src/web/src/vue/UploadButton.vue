@@ -15,10 +15,10 @@
         data-icon="upload"
         style="position: relative; overflow: hidden;"
         :class="[isOverDropZone ? 'dashed' : 'submit']"
-        aria-label="Upload video(s)"
+        aria-label="Upload file(s)"
         @click.stop.prevent="openFileSelectWindow"
     >
-        Upload video(s)
+        Upload file(s)
     </button>
 </template>
 

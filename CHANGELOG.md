@@ -9,6 +9,8 @@ All notable changes to this project will be documented in this file.
 - **Upload tray**: Persistent progress tray showing all in-flight and recent uploads with filterable tabs (All/Queued/Uploading/Uploaded/Failed), pause/resume/cancel/retry/remove actions, and automatic element-index refresh on batch completion.
 - **URL ingest**: New `actions/mux/assets/create-asset-from-url` endpoint lets the wizard create a Mux asset directly from a remote URL without a local file upload.
 - **Per-upload watermark override**: `resolveWatermarkOverride()`/`appendWatermarkInput()` let a single upload override the plugin's global watermark settings (or opt out) instead of always inheriting them.
+- **Audio-only uploads**: The CP now accepts audio files (mp3, m4a, wav, flac, aac, ogg, opus) alongside video everywhere uploads happen, via a new `defaultExtensions` setting (`Settings → Mux → Accepted Upload Extensions`). Audio-only assets (no video track) get a dedicated icon in place of a video thumbnail, skip the hover-to-animated-preview behavior, and have video-only sidebar controls (aspect ratio, MP4 Support's capped-resolution options, non-`audio-only`/`highest` static renditions) hidden or disabled instead of silently accepting meaningless values.
+- **`isAudioOnly` on `MuxAsset`**: New derived property (`hasVideoTrack()`/`getIsAudioOnly()`) — no track of type `video` — exposed in GraphQL and Twig (`muxAsset.isAudioOnly`).
 
 ## 2.5.2 - 2026-08-21
 
