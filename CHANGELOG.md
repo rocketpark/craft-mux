@@ -12,6 +12,9 @@ All notable changes to this project will be documented in this file.
 - **Audio-only uploads**: The CP now accepts audio files (mp3, m4a, wav, flac, aac, ogg, opus) alongside video everywhere uploads happen, via a new `defaultExtensions` setting (`Settings → Mux → Accepted Upload Extensions`). Audio-only assets (no video track) get a dedicated icon in place of a video thumbnail, skip the hover-to-animated-preview behavior, and have video-only sidebar controls (aspect ratio, MP4 Support's capped-resolution options, non-`audio-only`/`highest` static renditions) hidden or disabled instead of silently accepting meaningless values.
 - **`isAudioOnly` on `MuxAsset`**: New derived property (`hasVideoTrack()`/`getIsAudioOnly()`) — no track of type `video` — exposed in GraphQL and Twig (`muxAsset.isAudioOnly`).
 
+### Fixed
+- **Watermark vertical alignment**: The plugin settings' watermark "Center" vertical-alignment option sent Mux the value `center`, which Mux's API only accepts for horizontal alignment (`vertical_align` requires `top`/`middle`/`bottom`) — every upload using it failed with a `400` error. It now sends `middle`.
+
 ## 2.5.2 - 2026-08-21
 
 ### Fixed
