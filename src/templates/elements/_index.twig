@@ -32,7 +32,11 @@
 {% block actionButton %}
     {{ parent() }}
     {% if craft.app.user.checkPermission('mux:assets-create') %}
-        <div id="mux-upload">
+        <button type="button" id="mux-wizard-btn" class="btn submit icon" data-icon="upload">
+            {{ "Upload Files"|t('mux') }}
+        </button>
+        {# Vue app kept for page-level drag-drop functionality; button is visually hidden #}
+        <div id="mux-upload" class="hidden" aria-hidden="true">
             <upload-button view="element-index"></upload-button>
         </div>
     {% endif %}
@@ -44,7 +48,7 @@
     window.RocketPark.Mux.Settings = {
         maxUploadFileSize: {{ craft.muxSettings.maxUploadFileSize|json_encode|raw }},
         uploadChunkSize: {{ craft.muxSettings.uploadChunkSize|json_encode|raw }},
-        defaultExtensions: "MP4,MOV,MKV,WEBM,M4V",
+        defaultExtensions: {{ craft.muxSettings.defaultExtensions|json_encode|raw }},
     };
 {% endjs %}
 

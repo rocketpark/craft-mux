@@ -197,6 +197,10 @@ class MuxAsset extends Element
                 'type' => Type::string(),
                 'description' => 'Aspect ratio of the object'
             ],
+            'isAudioOnly' => [
+                'type' => Type::boolean(),
+                'description' => 'Whether this asset has no video track (audio-only).'
+            ],
             'playback_ids' => [
                 'type' => Type::listOf(PlaybackIdType::getType()),
                 'description' => 'Playback IDs of the object',

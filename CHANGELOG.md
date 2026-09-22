@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.6.0 - 2026-09-14
+
+### Added
+- **Upload wizard**: New multi-step modal (`Upload Files` button on the Mux element index) for uploading local files or ingesting from a public URL, with per-upload settings for playback policy, video quality, auto-generated captions and language, audio normalization, and a watermark overlay override. Replaces the old single-click dashboard uploader as the primary CP upload flow.
+- **Upload tray**: Persistent progress tray showing all in-flight and recent uploads with filterable tabs (All/Queued/Uploading/Uploaded/Failed), pause/resume/cancel/retry/remove actions, and automatic element-index refresh on batch completion.
+- **URL ingest**: New `actions/mux/assets/create-asset-from-url` endpoint lets the wizard create a Mux asset directly from a remote URL without a local file upload.
+- **Per-upload watermark override**: `resolveWatermarkOverride()`/`appendWatermarkInput()` let a single upload override the plugin's global watermark settings (or opt out) instead of always inheriting them.
+- **Audio-only uploads**: The CP now accepts audio files (mp3, m4a, wav, flac, aac, ogg, opus) alongside video everywhere uploads happen, via a new `defaultExtensions` setting (`Settings → Mux → Accepted Upload Extensions`). Audio-only assets (no video track) get a dedicated icon in place of a video thumbnail, skip the hover-to-animated-preview behavior, and have video-only sidebar controls (aspect ratio, MP4 Support's capped-resolution options, non-`audio-only`/`highest` static renditions) hidden or disabled instead of silently accepting meaningless values.
+- **`isAudioOnly` on `MuxAsset`**: New derived property (`hasVideoTrack()`/`getIsAudioOnly()`) — no track of type `video` — exposed in GraphQL and Twig (`muxAsset.isAudioOnly`).
+
+### Fixed
+- **Watermark vertical alignment**: The plugin settings' watermark "Center" vertical-alignment option sent Mux the value `center`, which Mux's API only accepts for horizontal alignment (`vertical_align` requires `top`/`middle`/`bottom`) — every upload using it failed with a `400` error. It now sends `middle`.
+
 ## 2.5.2 - 2026-08-21
 
 ### Fixed

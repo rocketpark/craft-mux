@@ -363,12 +363,97 @@ class AssetsController extends Controller
         $volumeUid = $request->getBodyParam('volumeUid');
         $folderId = $request->getBodyParam('folderId');
 
+        $normalizeAudioParam = $request->getBodyParam('normalizeAudio');
+        $captionsParam = $request->getBodyParam('autoGenerateCaptions');
+        $captionsLanguage = $request->getBodyParam('captionsLanguage');
+        $playbackPolicy = $request->getBodyParam('playbackPolicy');
+        $videoQuality = $request->getBodyParam('videoQuality');
+
+        $normalizeAudio = $normalizeAudioParam !== null ? (bool) $normalizeAudioParam : null;
+        $autoGenerateCaptions = $captionsParam !== null ? (bool) $captionsParam : null;
+
+        $watermarkOverride = self::resolveWatermarkOverride($request);
+
         if ($request->getAcceptsJson()) {
-            $result = MUX::$plugin->assets->uploadMuxAsset($title, $volumeUid, $folderId);
+            $result = MUX::$plugin->assets->uploadMuxAsset(
+                $title,
+                $volumeUid,
+                $folderId,
+                $normalizeAudio,
+                $autoGenerateCaptions,
+                $captionsLanguage,
+                $playbackPolicy,
+                $videoQuality,
+                $watermarkOverride,
+            );
             return $this->asJson(\craft\helpers\Json::decode($result));
         };
     }
 
+    /**
+     * Create Mux Asset from a remote URL (URL ingest — no file upload required)
+     */
+    public function actionCreateAssetFromUrl()
+    {
+        $this->requirePostRequest();
+
+        $request = Craft::$app->getRequest();
+        $url = $request->getBodyParam('url');
+        $title = $request->getBodyParam('title');
+        $volumeUid = $request->getBodyParam('volumeUid');
+        $folderId = $request->getBodyParam('folderId');
+
+        $normalizeAudioParam = $request->getBodyParam('normalizeAudio');
+        $captionsParam = $request->getBodyParam('autoGenerateCaptions');
+        $captionsLanguage = $request->getBodyParam('captionsLanguage');
+        $playbackPolicy = $request->getBodyParam('playbackPolicy');
+        $videoQuality = $request->getBodyParam('videoQuality');
+
+        $normalizeAudio = $normalizeAudioParam !== null ? (bool) $normalizeAudioParam : null;
+        $autoGenerateCaptions = $captionsParam !== null ? (bool) $captionsParam : null;
+
+        $watermarkOverride = self::resolveWatermarkOverride($request);
+
+        if ($request->getAcceptsJson()) {
+            $result = MUX::$plugin->assets->createMuxAssetFromUrl(
+                $url,
+                $title,
+                $volumeUid,
+                $folderId,
+                $normalizeAudio,
+                $autoGenerateCaptions,
+                $captionsLanguage,
+                $playbackPolicy,
+                $videoQuality,
+                $watermarkOverride,
+            );
+            return $this->asJson(\craft\helpers\Json::decode($result));
+        };
+    }
+
+
+    /**
+     * Build a watermark override array from POST params, or return null if not provided.
+     * When null the service falls back to global plugin settings.
+     */
+    private static function resolveWatermarkOverride(\craft\web\Request $request): ?array
+    {
+        $enabled = $request->getBodyParam('watermarkEnabled');
+        if ($enabled === null) {
+            return null;
+        }
+        return [
+            'enabled'          => (bool)$enabled,
+            'url'              => (string)($request->getBodyParam('watermarkUrl') ?? ''),
+            'verticalAlign'    => (string)($request->getBodyParam('watermarkVerticalAlign') ?? ''),
+            'verticalMargin'   => (string)($request->getBodyParam('watermarkVerticalMargin') ?? ''),
+            'horizontalAlign'  => (string)($request->getBodyParam('watermarkHorizontalAlign') ?? ''),
+            'horizontalMargin' => (string)($request->getBodyParam('watermarkHorizontalMargin') ?? ''),
+            'width'            => (string)($request->getBodyParam('watermarkWidth') ?? ''),
+            'height'           => (string)($request->getBodyParam('watermarkHeight') ?? ''),
+            'opacity'          => (string)($request->getBodyParam('watermarkOpacity') ?? ''),
+        ];
+    }
 
     /**
      * Get Mux Upload By Asset ID

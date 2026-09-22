@@ -1,0 +1,279 @@
+/* ==========================================================================
+   Mux Upload Tray — persistent bottom-right progress panel
+   ========================================================================== */
+
+/* Custom element wrapper is transparent to layout */
+mux-upload-tray { display: contents; }
+
+.mux-tray {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 380px;
+    max-height: 520px;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    background: var(--white, #fff);
+    border: 1px solid var(--hairline-color, #e3e5e8);
+    border-radius: var(--large-border-radius, 6px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.14);
+    font-size: 13px;
+    color: var(--text-color, #3f4d5a);
+}
+
+/* Header */
+.mux-tray__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--hairline-color, #e3e5e8);
+    flex-shrink: 0;
+}
+
+.mux-tray__collapse-btn,
+.mux-tray__dismiss-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    border-radius: var(--border-radius, 4px);
+    color: var(--medium-text-color, #8f98a3);
+    transition: color 0.1s, background 0.1s;
+    flex-shrink: 0;
+}
+
+.mux-tray__collapse-btn:hover,
+.mux-tray__dismiss-btn:hover {
+    background: var(--gray-050, #f3f7fc);
+    color: var(--text-color, #3f4d5a);
+}
+
+.mux-tray__collapse-btn svg,
+.mux-tray__dismiss-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+.mux-tray__chevron {
+    transition: transform 0.2s;
+}
+
+.mux-tray.is-collapsed .mux-tray__chevron {
+    transform: rotate(-90deg);
+}
+
+.mux-tray__title {
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.mux-tray__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--gray-200, #dfe3e8);
+    color: var(--text-color, #3f4d5a);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.mux-tray__dismiss-btn {
+    margin-left: auto;
+}
+
+/* Body */
+.mux-tray__body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* Tabs */
+.mux-tray__tabs {
+    display: flex;
+    border-bottom: 1px solid var(--hairline-color, #e3e5e8);
+    padding: 0 6px;
+    gap: 0;
+    flex-shrink: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.mux-tray__tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.mux-tray__tab {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 8px;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--medium-text-color, #8f98a3);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    white-space: nowrap;
+    transition: color 0.1s, border-color 0.1s;
+}
+
+.mux-tray__tab:hover {
+    color: var(--text-color, #3f4d5a);
+}
+
+.mux-tray__tab.is-active {
+    color: var(--link-color, #0d78f2);
+    font-weight: 600;
+    border-bottom-color: var(--link-color, #0d78f2);
+}
+
+.mux-tray__tab-count {
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--gray-100, #e8ecf0);
+    border-radius: 8px;
+    padding: 1px 5px;
+    min-width: 16px;
+    text-align: center;
+    color: var(--medium-text-color, #8f98a3);
+}
+
+.mux-tray__tab.is-active .mux-tray__tab-count {
+    background: color-mix(in srgb, var(--link-color, #0d78f2) 15%, transparent);
+    color: var(--link-color, #0d78f2);
+}
+
+/* Items */
+.mux-tray__items {
+    overflow-y: auto;
+    flex: 1;
+    padding: 4px 0;
+    min-height: 160px;
+}
+
+.mux-tray__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--hairline-color, #e3e5e8);
+    transition: background 0.1s;
+}
+
+.mux-tray__item:last-child {
+    border-bottom: 0;
+}
+
+.mux-tray__item:hover {
+    background: var(--gray-050, #f9fbfd);
+}
+
+/* State icon */
+.mux-tray__item-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: var(--medium-text-color, #8f98a3);
+    transition: color 0.15s;
+}
+
+.mux-tray__item-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.mux-tray__item[data-state="uploading"] .mux-tray__item-icon,
+.mux-tray__item[data-state="paused"]    .mux-tray__item-icon { color: var(--link-color, #0d78f2); }
+.mux-tray__item[data-state="complete"]  .mux-tray__item-icon { color: var(--success-color, #27ab83); }
+.mux-tray__item[data-state="failed"]    .mux-tray__item-icon,
+.mux-tray__item[data-state="cancelled"] .mux-tray__item-icon { color: var(--error-color, #d63864); }
+
+/* Body */
+.mux-tray__item-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.mux-tray__item-title,
+.mux-tray__item-title-link {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-color, #3f4d5a);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+}
+
+.mux-tray__item-title-link {
+    color: var(--link-color, #0d78f2);
+    text-decoration: none;
+}
+
+.mux-tray__item-title-link:hover {
+    text-decoration: underline;
+}
+
+/* Progress */
+.mux-tray__progress-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mux-tray__progress-track {
+    flex: 1;
+    height: 4px;
+    background: var(--gray-100, #e8ecf0);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.mux-tray__progress-bar {
+    height: 100%;
+    width: var(--mux-progress, 0%);
+    background: var(--link-color, #0d78f2);
+    border-radius: 2px;
+    transition: width 0.3s linear;
+}
+
+.mux-tray__progress-label {
+    font-size: 11px;
+    color: var(--medium-text-color, #8f98a3);
+    width: 30px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+/* Actions */
+.mux-tray__item-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+    align-items: center;
+}
+
+.mux-tray__item-actions .btn.small {
+    font-size: 11px;
+    padding: 4px 8px;
+}

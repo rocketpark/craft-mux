@@ -147,10 +147,12 @@
                                             {% endfor %}
                                         </div>
 
-                                        <h5 class="heading">{{ "Aspect Ratio:"|t('mux') }}</h5>
-                                        <div class="value flex">
-                                            {{ muxAsset.aspect_ratio}}
-                                        </div>
+                                        {% if not muxAsset.isAudioOnly %}
+                                            <h5 class="heading">{{ "Aspect Ratio:"|t('mux') }}</h5>
+                                            <div class="value flex">
+                                                {{ muxAsset.aspect_ratio}}
+                                            </div>
+                                        {% endif %}
 
                                         <h5 class="heading">{{ "Upload ID:"|t('mux') }}</h5>
                                         <div class="value flex read-only">

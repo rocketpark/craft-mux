@@ -261,11 +261,39 @@ class MuxAsset extends Element implements Thumbable
 
     /**
      * Get Secure Playback
-     * @return bool 
+     * @return bool
      */
     public function getSecurePlayback(): bool
     {
         return $this->securePlayback();
+    }
+
+    /**
+     * Whether this asset has a video track.
+     * @return bool
+     */
+    public function hasVideoTrack(): bool
+    {
+        if (!is_array($this->tracks)) {
+            return false;
+        }
+
+        foreach ($this->tracks as $track) {
+            if (($track['type'] ?? null) === 'video') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Whether this asset is audio-only (has tracks, but no video track).
+     * @return bool
+     */
+    public function getIsAudioOnly(): bool
+    {
+        return !empty($this->tracks) && !$this->hasVideoTrack();
     }
 
     /**
@@ -378,14 +406,38 @@ class MuxAsset extends Element implements Thumbable
     }
 
     /**
+     * A generic audio icon used as the thumbnail for audio-only assets, sized to the same
+     * 16:9 aspect ratio as a real video thumbnail (see getThumbHtml()).
+     * @return string
+     */
+    private function audioThumbSvg(): string
+    {
+        return '<svg width="240" height="135" viewBox="0 0 240 135" fill="none" xmlns="http://www.w3.org/2000/svg">'
+            . '<rect width="240" height="135" fill="#E4EBF6"/>'
+            . '<path d="M85.8333 61.5V71.25" stroke="#7C8793" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>'
+            . '<path d="M99.5 48.5V84.25" stroke="#7C8793" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>'
+            . '<path d="M113.167 38.75V97.25" stroke="#7C8793" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>'
+            . '<path d="M126.833 55V77.75" stroke="#7C8793" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>'
+            . '<path d="M140.5 45.25V87.5" stroke="#7C8793" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>'
+            . '<path d="M154.167 61.5V71.25" stroke="#7C8793" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>'
+            . '</svg>';
+    }
+
+    /**
      * Get Thumb Url
-     * @param int $size 
-     * @return string|null 
+     * @param int $size
+     * @return string|null
      */
     public function getThumbUrl(int $size, bool $animated = false): ?string
     {
         if ($this->isFolder) {
             return null;
+        }
+
+        if ($this->getIsAudioOnly()) {
+            // Mux has no video frame to derive a thumbnail/storyboard from — use a generic audio icon
+            // for the base thumb, and skip the animated hover state entirely.
+            return $animated ? null : ('data:image/svg+xml;base64,' . base64_encode($this->audioThumbSvg()));
         }
 
         $options = [
@@ -431,7 +483,12 @@ class MuxAsset extends Element implements Thumbable
         
         $baseImg = $url ? Html::img($url, ['width' => $size, 'height' => $height, 'class' => 'mux-base-thumb']) : null;
         $animImg = $animated ? Html::img($animated, ['width' => $size, 'height' => $height, 'class' => 'mux-animated-thumb']) : null;
-        $div = Html::tag('figure', $baseImg . $animImg, ['class' => 'mux-thumb-figure']);
+        $figureClasses = ['mux-thumb-figure'];
+        if (!$animImg) {
+            // No animated preview to reveal on hover (e.g. audio-only assets) — don't hide the base thumb.
+            $figureClasses[] = 'mux-thumb-figure--static';
+        }
+        $div = Html::tag('figure', $baseImg . $animImg, ['class' => $figureClasses]);
 
         return $div;
 

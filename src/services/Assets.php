@@ -403,6 +403,84 @@ class Assets extends Component
     }
 
     /**
+     * Append a watermark InputSettings to $inputSettings when watermark is enabled.
+     * Per-upload $override array takes full precedence over global $settings.
+     */
+    private static function appendWatermarkInput(array &$inputSettings, mixed $settings, ?array $override): void
+    {
+        if ($override !== null) {
+            // Per-upload path: explicit toggle controls whether watermark is applied
+            if (!(bool)($override['enabled'] ?? false)) {
+                return;
+            }
+            $watermarkUrl = (string)($override['url'] ?? '');
+        } else {
+            // Global settings path: watermark applied implicitly when a URL is configured
+            $watermarkUrl = App::parseEnv($settings->watermark_url ?? '');
+        }
+
+        if (empty($watermarkUrl)) {
+            return;
+        }
+
+        // Helper: pick from override array or fall back to global setting via App::parseEnv.
+        // App::parseEnv() returns null when given an env var reference (e.g. "$SOME_VAR") that
+        // resolves to an unset/empty environment variable — coalesce that to '' so it's treated
+        // the same as "not set" by the !empty() checks below, instead of a TypeError.
+        $resolve = function (string $overrideKey, string $settingProp) use ($override, $settings): string {
+            return $override !== null
+                ? (string)($override[$overrideKey] ?? '')
+                : (App::parseEnv($settings->{$settingProp} ?? '') ?? '');
+        };
+
+        $overlayParams = [];
+
+        // Alignment values (no unit needed)
+        foreach ([
+            ['vertical_align',   'vertical_align',   'verticalAlign'],
+            ['horizontal_align', 'horizontal_align', 'horizontalAlign'],
+        ] as [$muxKey, $settingProp, $overrideKey]) {
+            $val = $resolve($overrideKey, $settingProp);
+            if ($muxKey === 'vertical_align' && $val === 'center') {
+                // Mux's vertical_align only accepts top/middle/bottom ('center' is only valid
+                // for horizontal_align) — normalize any pre-existing saved settings or stale
+                // client requests that still send the old, invalid CP option value.
+                $val = 'middle';
+            }
+            if (!empty($val)) {
+                $overlayParams[$muxKey] = $val;
+            }
+        }
+
+        // Dimension values: bare integers must be suffixed with 'px'
+        foreach ([
+            ['vertical_margin',   'vertical_margin',   'verticalMargin'],
+            ['horizontal_margin', 'horizontal_margin', 'horizontalMargin'],
+            ['width',             'width',             'width'],
+            ['height',            'height',            'height'],
+        ] as [$muxKey, $settingProp, $overrideKey]) {
+            $val = self::normalizeMuxDimensionForMux($resolve($overrideKey, $settingProp));
+            if (!empty($val)) {
+                $overlayParams[$muxKey] = $val;
+            }
+        }
+
+        $opacity = $resolve('opacity', 'opacity');
+        if (!empty($opacity)) {
+            $overlayParams['opacity'] = self::normalizeMuxOverlayOpacityForMux($opacity);
+        }
+
+        $watermarkInput = !empty($overlayParams)
+            ? new MuxPhp\Models\InputSettings([
+                'url' => $watermarkUrl,
+                'overlay_settings' => new MuxPhp\Models\InputSettingsOverlaySettings($overlayParams),
+            ])
+            : new MuxPhp\Models\InputSettings(['url' => $watermarkUrl]);
+
+        $inputSettings[] = $watermarkInput;
+    }
+
+    /**
      * Mux Video API expects overlay opacity as a percentage string (e.g. "80%").
      * Bare integer strings like "80" are rejected with invalid_parameters.
      */
@@ -420,6 +498,28 @@ class Assets extends Component
     }
 
     /**
+     * Mux overlay dimensions (margin, width, height) require a unit suffix.
+     * Appends "px" to bare integer strings. Percent and existing px values pass through.
+     */
+    private static function normalizeMuxDimensionForMux(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return $value;
+        }
+        // Already has a unit (px, %, em, etc.)
+        if (preg_match('/[a-zA-Z%]$/', $value)) {
+            return $value;
+        }
+        // Bare integer or decimal → append px
+        if (preg_match('/^-?\d+(\.\d+)?$/', $value)) {
+            return $value . 'px';
+        }
+
+        return $value;
+    }
+
+    /**
      * Upload Asset to MUX
      * @param null|string $passthrough
      * @return string|false 
@@ -427,8 +527,17 @@ class Assets extends Component
      * @throws ApiException 
      * @throws InvalidArgumentException 
      */
-    public static function uploadMuxAsset(string $title, ?string $volumeUid, ?string $folderId)
-    {
+    public static function uploadMuxAsset(
+        string $title,
+        ?string $volumeUid,
+        ?string $folderId,
+        ?bool $normalizeAudio = null,
+        ?bool $autoGenerateCaptionsOverride = null,
+        ?string $captionsLanguageOverride = null,
+        ?string $playbackPolicyOverride = null,
+        ?string $videoQualityOverride = null,
+        ?array $watermarkOverride = null,
+    ) {
         $service = Mux::$plugin->assets;
         
         // Fire before upload event
@@ -451,82 +560,33 @@ class Assets extends Component
             $config
         );
 
-        $policy = Mux::$plugin->assets->getPlaybackPolicy();
+        $policy = $playbackPolicyOverride !== null
+            ? ($playbackPolicyOverride === 'signed' ? MuxPhp\Models\PlaybackPolicy::SIGNED : MuxPhp\Models\PlaybackPolicy::_PUBLIC)
+            : Mux::$plugin->assets->getPlaybackPolicy();
 
         $inputSettings = [];
 
-        $autoGenerateCaptions = (bool) App::parseEnv($settings->autoGenerateCaptions ?? true);
-        $defaultGeneratedSubtitleLanguage = App::parseEnv($settings->defaultGeneratedSubtitleLanguage ?? 'en');
-        $languageName = Languages::getSubtitleLanguageLabel($defaultGeneratedSubtitleLanguage);
+        $autoGenerateCaptions = $autoGenerateCaptionsOverride ?? (bool) App::parseEnv($settings->autoGenerateCaptions ?? true);
+        $globalSubtitleLanguage = App::parseEnv($settings->defaultGeneratedSubtitleLanguage ?? 'en');
+        $subtitleLanguage = ($captionsLanguageOverride !== null && $captionsLanguageOverride !== '')
+            ? $captionsLanguageOverride
+            : $globalSubtitleLanguage;
+        $languageName = Languages::getSubtitleLanguageLabel($subtitleLanguage);
 
         // Create the main input object (no URL for direct uploads, optionally with subtitles)
         $mainInput = [];
         if ($autoGenerateCaptions) {
             $mainInput["generated_subtitles"] = [
                 new MuxPhp\Models\AssetGeneratedSubtitleSettings([
-                    "language_code" => $defaultGeneratedSubtitleLanguage,
+                    "language_code" => $subtitleLanguage,
                     "name" => $languageName
                 ])
             ];
         }
         $inputSettings[] = new MuxPhp\Models\InputSettings($mainInput);
 
-        // Add watermark/overlay as a separate input if configured
-        $watermarkUrl = App::parseEnv($settings->watermark_url ?? '');
-        if (!empty($watermarkUrl)) {
-            $overlayParams = [];
-            
-            // Parse environment variables for each setting with null coalescing
-            $verticalAlign = App::parseEnv($settings->vertical_align ?? '');
-            $verticalMargin = App::parseEnv($settings->vertical_margin ?? '');
-            $horizontalAlign = App::parseEnv($settings->horizontal_align ?? '');
-            $horizontalMargin = App::parseEnv($settings->horizontal_margin ?? '');
-            $width = App::parseEnv($settings->width ?? '');
-            $height = App::parseEnv($settings->height ?? '');
-            $opacity = App::parseEnv($settings->opacity ?? '');
-            
-            // Only add overlay parameters if they have meaningful values
-            if (!empty($verticalAlign)) {
-                $overlayParams["vertical_align"] = $verticalAlign;
-            }
-            if (!empty($verticalMargin)) {
-                $overlayParams["vertical_margin"] = $verticalMargin;
-            }
-            if (!empty($horizontalAlign)) {
-                $overlayParams["horizontal_align"] = $horizontalAlign;
-            }
-            if (!empty($horizontalMargin)) {
-                $overlayParams["horizontal_margin"] = $horizontalMargin;
-            }
-            if (!empty($width)) {
-                $overlayParams["width"] = $width;
-            }
-            if (!empty($height)) {
-                $overlayParams["height"] = $height;
-            }
-            if (!empty($opacity)) {
-                $opacityForMux = self::normalizeMuxOverlayOpacityForMux($opacity);
-                
-                $overlayParams["opacity"] = $opacityForMux;
-            }
-
-            // Only create overlay settings if we have parameters
-            if (!empty($overlayParams)) {
-                $overlaySettings = new MuxPhp\Models\InputSettingsOverlaySettings($overlayParams);
-                
-                $watermarkInput = new MuxPhp\Models\InputSettings([
-                    "url" => $watermarkUrl,
-                    "overlay_settings" => $overlaySettings
-                ]);
-            } else {
-                // Just the URL without overlay settings
-                $watermarkInput = new MuxPhp\Models\InputSettings([
-                    "url" => $watermarkUrl
-                ]);
-            }
-            
-            $inputSettings[] = $watermarkInput;
-        }
+        // Add watermark/overlay: per-upload override takes precedence over global settings
+        self::appendWatermarkInput($inputSettings, $settings, $watermarkOverride);
 
         $staticRenditions = [];
 
@@ -561,8 +621,10 @@ class Assets extends Component
         $createAssetRequest = new MuxPhp\Models\CreateAssetRequest([
             "inputs" => $inputSettings,
             "playback_policy" => [$policy],
+            "video_quality" => $videoQualityOverride,
             "max_resolution_tier" => App::parseEnv($settings->maxResolutionTier),
             "mp4_support" => App::parseEnv($settings->mp4Support), //-- DEPRECATED
+            "normalize_audio" => $normalizeAudio ?? false,
             "static_renditions" =>  $staticRenditions,
             "passthrough" => json_encode($passthrough),
             "meta" => new MuxPhp\Models\AssetMetadata([
@@ -583,6 +645,78 @@ class Assets extends Component
         $service->trigger(self::EVENT_AFTER_UPLOAD_ASSET, $event);
         
         return $uploadData;
+    }
+
+    /**
+     * Create a Mux asset by ingesting from a remote URL.
+     * Returns JSON-encoded asset data (same shape as getMuxAssetById).
+     */
+    public static function createMuxAssetFromUrl(
+        string $url,
+        string $title,
+        ?string $volumeUid,
+        ?string $folderId,
+        ?bool $normalizeAudio = null,
+        ?bool $autoGenerateCaptionsOverride = null,
+        ?string $captionsLanguageOverride = null,
+        ?string $playbackPolicyOverride = null,
+        ?string $videoQualityOverride = null,
+        ?array $watermarkOverride = null,
+    ): string {
+        $settings = Mux::$settings;
+        $config = Mux::$plugin->assets->muxConf();
+        $apiInstance = new MuxPhp\Api\AssetsApi(new Client(), $config);
+
+        $policy = $playbackPolicyOverride !== null
+            ? ($playbackPolicyOverride === 'signed' ? MuxPhp\Models\PlaybackPolicy::SIGNED : MuxPhp\Models\PlaybackPolicy::_PUBLIC)
+            : Mux::$plugin->assets->getPlaybackPolicy();
+
+        $autoGenerateCaptions = $autoGenerateCaptionsOverride ?? (bool) App::parseEnv($settings->autoGenerateCaptions ?? true);
+        $globalSubtitleLanguage = App::parseEnv($settings->defaultGeneratedSubtitleLanguage ?? 'en');
+        $subtitleLanguage = ($captionsLanguageOverride !== null && $captionsLanguageOverride !== '')
+            ? $captionsLanguageOverride
+            : $globalSubtitleLanguage;
+        $languageName = Languages::getSubtitleLanguageLabel($subtitleLanguage);
+
+        $mainInputParams = ['url' => $url];
+        if ($autoGenerateCaptions) {
+            $mainInputParams['generated_subtitles'] = [
+                new MuxPhp\Models\AssetGeneratedSubtitleSettings([
+                    'language_code' => $subtitleLanguage,
+                    'name' => $languageName,
+                ])
+            ];
+        }
+        $inputSettings = [new MuxPhp\Models\InputSettings($mainInputParams)];
+
+        // Add watermark/overlay: per-upload override takes precedence over global settings
+        self::appendWatermarkInput($inputSettings, $settings, $watermarkOverride);
+
+        $passthrough = [];
+        if ($volumeUid) {
+            $volume = MuxVolumeRecord::findOne(['uid' => $volumeUid]);
+            $passthrough['volumeId'] = $volume ? (int) $volume->id : null;
+        }
+        if ($folderId) {
+            $passthrough['folderId'] = (int) $folderId;
+        }
+
+        $createAssetRequest = new MuxPhp\Models\CreateAssetRequest([
+            'inputs' => $inputSettings,
+            'playback_policy' => [$policy],
+            'video_quality' => $videoQualityOverride,
+            'max_resolution_tier' => App::parseEnv($settings->maxResolutionTier),
+            'normalize_audio' => $normalizeAudio ?? false,
+            'passthrough' => json_encode($passthrough),
+            'meta' => new MuxPhp\Models\AssetMetadata([
+                'title' => $title,
+                'external_id' => '',
+                'creator_id' => '',
+            ]),
+        ]);
+
+        $asset = $apiInstance->createAsset($createAssetRequest);
+        return json_encode($asset->getData());
     }
 
     /**
@@ -1360,25 +1494,38 @@ class Assets extends Component
             return;
         }
 
-        // Server-side upscale prevention
-        $sourceMaxHeight = null;
-        if (is_array($asset->tracks)) {
-            foreach ($asset->tracks as $track) {
-                if (($track['type'] ?? '') === 'video' && isset($track['max_height'])) {
-                    $sourceMaxHeight = (int)$track['max_height'];
-                    break;
-                }
-            }
-        }
-        if ($sourceMaxHeight !== null) {
+        // Audio-only assets have no video track to size a resolution tier against — only
+        // 'highest'/'audio-only' are meaningful renditions for them.
+        if ($asset->getIsAudioOnly()) {
             foreach ($newResolutions as $res) {
-                $tierHeight = StaticRenditions::RESOLUTION_MAX_HEIGHTS[$res] ?? null;
-                if ($tierHeight !== null && $tierHeight > $sourceMaxHeight) {
-                    $session->setError(Craft::t('mux', '{resolution} cannot be requested — upscaling is not allowed (source is {height}p).', [
+                if (!in_array($res, ['highest', 'audio-only'], true)) {
+                    $session->setError(Craft::t('mux', '{resolution} is not available for audio-only assets — this asset has no video track.', [
                         'resolution' => $res,
-                        'height'     => $sourceMaxHeight,
                     ]));
                     return;
+                }
+            }
+        } else {
+            // Server-side upscale prevention
+            $sourceMaxHeight = null;
+            if (is_array($asset->tracks)) {
+                foreach ($asset->tracks as $track) {
+                    if (($track['type'] ?? '') === 'video' && isset($track['max_height'])) {
+                        $sourceMaxHeight = (int)$track['max_height'];
+                        break;
+                    }
+                }
+            }
+            if ($sourceMaxHeight !== null) {
+                foreach ($newResolutions as $res) {
+                    $tierHeight = StaticRenditions::RESOLUTION_MAX_HEIGHTS[$res] ?? null;
+                    if ($tierHeight !== null && $tierHeight > $sourceMaxHeight) {
+                        $session->setError(Craft::t('mux', '{resolution} cannot be requested — upscaling is not allowed (source is {height}p).', [
+                            'resolution' => $res,
+                            'height'     => $sourceMaxHeight,
+                        ]));
+                        return;
+                    }
                 }
             }
         }

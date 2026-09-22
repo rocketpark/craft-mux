@@ -19,7 +19,10 @@ export default ({ command }) => {
                     'mux-asset-index': 'src/web/src/js/mux-asset-index.js',
                     'mux-volume-folder-selector-modal': 'src/web/src/js/MuxVolumeFolderSelectorModal.js',
                     'mux-asset-mover': 'src/web/src/js/MuxAssetMover.js',
+                    'mux-upload-system': 'src/web/src/js/mux-upload-system.js',
                     'mux-cp': 'src/web/src/css/mux-cp.css',
+                    'mux-upload-wizard': 'src/web/src/css/mux-upload-wizard.css',
+                    'mux-upload-tray': 'src/web/src/css/mux-upload-tray.css',
                     'mux': 'src/web/src/Mux.js'
                 },
                 output: {
