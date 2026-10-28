@@ -989,7 +989,9 @@ class Assets extends Component
                 }
             }
 
-            try {    
+            $this->applyMetaTitle($element, $muxAsset);
+
+            try {
                 $this->saveAsset($element);
                 return true;
                 
@@ -1144,14 +1146,31 @@ class Assets extends Component
                 }
             }
 
-            
+            $this->applyMetaTitle($element, $muxAsset);
+
             if(!$this->saveAsset($element)) {
                 return false;
             }
         }
 
         return true;
-        
+
+    }
+
+    /**
+     * Mux keeps an asset's title in meta.title; mirror it onto the element title.
+     * An empty or missing title leaves the element title unchanged.
+     * @param MuxAssetElement $element
+     * @param array $muxAsset Mux asset data (API or webhook payload shape)
+     * @return void
+     */
+    private function applyMetaTitle(MuxAssetElement $element, array $muxAsset): void
+    {
+        $title = $muxAsset['meta']['title'] ?? null;
+
+        if (is_string($title) && trim($title) !== '') {
+            $element->title = $title;
+        }
     }
 
     /**
@@ -1245,6 +1264,14 @@ class Assets extends Component
                 ] : [],
         ];
 
+        // Leave assets whose element is in the trash alone; restoring them is up to the user
+        $elementQuery = MuxAssetElement::find()->asset_id($asset->getId())->status(null);
+        if (!(clone $elementQuery)->exists() && (clone $elementQuery)->trashed()->exists()) {
+            Mux::info("Skipped synchronizing MUX Asset ID #{$asset->getId()}: its element is in the trash.", 'mux');
+
+            return false;
+        }
+
         /** @var MuxAssetRecord $assetData */
         $assetRecord = MuxAssetsRecord::find()->where(['asset_id' => $asset->getId()])->one();
         if($assetRecord) {
@@ -1260,12 +1287,13 @@ class Assets extends Component
             ->one();
 
         // Get the title from the meta data
-        $title = !empty($asset->getMeta()) ? $asset->getMeta()->getTitle() : '';
-            
+        $title = !empty($asset->getMeta()) ? (string) $asset->getMeta()->getTitle() : '';
+
         if ($muxAssetElement === null) {
             /** @var MuxAssetElement $muxAssetElement */
             $muxAssetElement = new muxAssetElement();
-            $muxAssetElement->title = $title;
+            // Assets created without a meta title (e.g. some direct uploads) still need an element title
+            $muxAssetElement->title = $title !== '' ? $title : $asset->getId();
             $muxAssetElement->meta = [
                 'title' => $title,
                 'external_id' => $asset->getId(),
@@ -1360,7 +1388,10 @@ class Assets extends Component
                 }
             }
         } else {
-            $muxAssetElement->title = $title;
+            // Keep the existing element title when Mux has none
+            if ($title !== '') {
+                $muxAssetElement->title = $title;
+            }
             $muxAssetElement->meta = [
                 'title' => $title,
                 'external_id' => $asset['id'],
@@ -1769,24 +1800,27 @@ class Assets extends Component
             $config
         );
 
-        do {
-            $assets = $apiInstance->listAssets($limit, $page)->getData();
+        $allAssets = [];
 
-            // This helps to prevent a loop occuring with webhook enabled
-            if(empty($assets)) {
-                $this->deleteOrphanedMuxElements($assets);
-                break;
-            }
+        do {
+            $assets = $apiInstance->listAssets($limit, $page)->getData() ?? [];
 
             foreach ($assets as $asset) {
                 $this->createOrUpdateMuxAsset($asset, true, $defaultVolumeId, $defaultFolderId);
+                $allAssets[] = $asset;
             }
 
-            // Remove any mux assets elements that are no longer in MUX just in case.
-            $this->deleteOrphanedMuxElements($assets);
-           
             $page++;
-        } while (!empty($assets) && count($assets) >= $limit);
+        } while (count($assets) >= $limit);
+
+        // An empty list is more likely wrong credentials or environment than an empty account; don't trash everything
+        if (empty($allAssets)) {
+            Mux::warning('Sync found no assets in Mux; skipped removing local Mux asset elements.', 'mux');
+            return;
+        }
+
+        // Remove Mux asset elements that are no longer in Mux, only once every page has been fetched
+        $this->deleteOrphanedMuxElements($allAssets);
     }
 
     /**
@@ -1828,6 +1862,12 @@ class Assets extends Component
     public function deleteOrphanedMuxElements(Array $assets): void
     {
         $muxAssetIds = ArrayHelper::getColumn($assets, 'id');
+
+        // ['not', []] would match every element
+        if (empty($muxAssetIds)) {
+            return;
+        }
+
         $deletableMuxAssetElements = MuxAssetElement::find()->asset_id(['not', $muxAssetIds])->all();
 
         foreach ($deletableMuxAssetElements as $element) {

@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - **Saving settings with an empty environment variable**: Saving the plugin settings threw `Cannot assign null to property … of type string` when a field (e.g. watermark **Height**) referenced an environment variable that is empty or unset. Env-aware settings now accept the empty value, so you can leave the watermark height empty and it will scale proportionally to the width.
+- **Syncing assets without a title**: Mux assets with no `meta.title` (e.g. some direct uploads) failed to sync with `Title cannot be blank`, so they never appeared in Craft from `mux/sync/all` or webhooks. New elements now fall back to the Mux asset ID as their title, and an existing element keeps its title when Mux has none.
+- **Sync trashing assets on large accounts**: `mux/sync/all` removed orphaned elements after each page of 50 Mux assets, so on accounts with more than 50 assets it trashed every element that wasn't on the current page (and could then create duplicates for them on later pages). Orphan cleanup now runs once after all pages are fetched, and is skipped when Mux returns no assets at all (more likely wrong credentials or environment than an empty account).
+- **Sync duplicating trashed assets**: When a Mux asset's element was in the trash (trashing in Craft doesn't delete the video in Mux), syncing created a new element for it instead of leaving it alone. Sync now skips assets whose element is trashed; restore the element from the trash to bring it back.
+- **Title changes from Mux not applied**: Renaming an asset in Mux (`meta.title`) updated only the stored metadata on `video.asset.updated` webhooks and the "update from Mux" actions; the element title stayed unchanged until a full sync. These updates now set the element title from `meta.title` (an empty title leaves it unchanged).
 
 ## 2.6.0 - 2026-09-14
 
