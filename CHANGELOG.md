@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.7.0 - 2026-10-28
+
+### Fixed
+- **Saving settings with an empty environment variable**: Saving the plugin settings threw `Cannot assign null to property … of type string` when a field (e.g. watermark **Height**) referenced an environment variable that is empty or unset. Env-aware settings now accept the empty value, so you can leave the watermark height empty and it will scale proportionally to the width.
+
 ## 2.6.0 - 2026-09-14
 
 ### Added
