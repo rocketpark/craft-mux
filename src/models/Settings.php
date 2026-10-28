@@ -16,6 +16,8 @@ use rocketpark\mux\constants\UploadExtensions;
  * @property-read string $pluginName The public-facing name of the plugin
  * @property-read string $muxTokenId Mux's TokenID for Authentication
  * @property-read string $muxTokenSecret Mux's TokenSecret for Authentication
+ * @property-read string $muxWebhookSecret Signing secret of the Mux webhook endpoint
+ * @property-read int $webhookTimestampTolerance Allowed webhook signature age in seconds
  * @property-read bool $muxSecurePlayback The MUX Asset has secure playback
  * @property-read string $maxResolutionTier The MUX Asset resolution tier
  * @property-read string $mp4Support Enable static MP4 renditions
@@ -32,12 +34,23 @@ class Settings extends Model
     /**
      * @var string Mux's TokenID for Authentication
      */
-    public string $muxTokenId = '';
+    public ?string $muxTokenId = '';
 
     /**
      * @var string Mux's TokenSecret for Authentication
      */
-    public string $muxTokenSecret = '';
+    public ?string $muxTokenSecret = '';
+
+    /**
+     * @var string Signing secret of the Mux webhook endpoint, used to verify the `Mux-Signature` header.
+     * Webhooks are rejected while this is empty.
+     */
+    public ?string $muxWebhookSecret = '';
+
+    /**
+     * @var int Allowed difference in seconds between a webhook's signature timestamp and the server clock.
+     */
+    public int $webhookTimestampTolerance = 300;
 
     /**
      * @var bool|string The MUX Asset has secure playback
@@ -47,12 +60,12 @@ class Settings extends Model
     /**
      * @var string The MUX Asset resolution teir
      */
-    public string $maxResolutionTier = '';
+    public ?string $maxResolutionTier = '';
 
     /**
      * @var string Enable static MP4 renditions on your video assets for offline viewing and other use cases.
      */
-    public string $mp4Support = '';
+    public ?string $mp4Support = '';
 
     /**
      * @var array Default static renditions applied to new video uploads (e.g. ['1080p', '720p']).
@@ -75,7 +88,7 @@ class Settings extends Model
     /**
      * @var string URL of the watermark/overlay image.
      */
-    public string $watermark_url = '';
+    public ?string $watermark_url = '';
 
     /**
      * @var string Vertical alignment of the overlay/watermark.
@@ -83,7 +96,7 @@ class Settings extends Model
      * @example center
      * @example bottom
      */
-    public string $vertical_align = '';
+    public ?string $vertical_align = '';
 
     /**
      * @var string Vertical margin of the overlay/watermark.
@@ -91,7 +104,7 @@ class Settings extends Model
      * @example 100px
      * @example 0
      */
-    public string $vertical_margin = '';
+    public ?string $vertical_margin = '';
 
     /**
      * @var string Horizontal alignment of the overlay/watermark.
@@ -99,7 +112,7 @@ class Settings extends Model
      * @example middle
      * @example right
      */
-    public string $horizontal_align = '';
+    public ?string $horizontal_align = '';
 
     /**
      * @var string Horizontal margin of the overlay/watermark.
@@ -107,7 +120,7 @@ class Settings extends Model
      * @example 100px
      * @example 0
      */
-    public string $horizontal_margin = '';
+    public ?string $horizontal_margin = '';
 
     /**
      * @var string Width of the overlay/watermark.
@@ -115,7 +128,7 @@ class Settings extends Model
      * @example 100px
      * @example 0
      */
-    public string $width = '';
+    public ?string $width = '';
 
     /**
      * @var string Height of the overlay/watermark.
@@ -123,7 +136,7 @@ class Settings extends Model
      * @example 100px
      * @example 0
      */
-    public string $height = '';
+    public ?string $height = '';
 
     /**
      * @var string Opacity of the overlay/watermark.
@@ -131,7 +144,7 @@ class Settings extends Model
      * @example 50%
      * @example 0
      */
-    public string $opacity = '';
+    public ?string $opacity = '';
 
     /**
      * @var string Maximum upload file size in kB.
@@ -139,7 +152,7 @@ class Settings extends Model
      * @example 0
      * @default 700MB in kB
      */
-    public string $maxUploadFileSize = '716800'; // 700MB in kB
+    public ?string $maxUploadFileSize = '716800'; // 700MB in kB
 
     /**
      * @var string Upload chunk size in kB.
@@ -147,13 +160,13 @@ class Settings extends Model
      * @example 0
      * @default 30720 in kB
      */
-    public string $uploadChunkSize = '30720'; // 30MB in kB
+    public ?string $uploadChunkSize = '30720'; // 30MB in kB
 
     /**
      * @var string Comma-separated list of file extensions accepted by CP uploads (video and audio).
      * @example MP4,MOV,MKV,WEBM,M4V,MP3,M4A,WAV,FLAC,AAC,OGG,OPUS
      */
-    public string $defaultExtensions = UploadExtensions::DEFAULT_EXTENSIONS_STRING;
+    public ?string $defaultExtensions = UploadExtensions::DEFAULT_EXTENSIONS_STRING;
 
 
     /**
@@ -166,7 +179,7 @@ class Settings extends Model
      * @example it (Italian)
      * @example pt (Portuguese)
      */
-    public string $defaultGeneratedSubtitleLanguage = 'en';
+    public ?string $defaultGeneratedSubtitleLanguage = 'en';
 
     /**
      * @var bool|string Whether to automatically generate captions when a new video is uploaded.
@@ -176,7 +189,7 @@ class Settings extends Model
     /**
      * @var string Override the CORS origin sent to Mux when creating direct uploads. Defaults to the CP host when empty.
      */
-    public string $uploadCorsOrigin = '';
+    public ?string $uploadCorsOrigin = '';
 
 
     /**
@@ -189,6 +202,9 @@ class Settings extends Model
             ['pluginName', 'default', 'value' => 'MUX'],
             ['muxTokenId', 'string'],
             ['muxTokenSecret', 'string'],
+            ['muxWebhookSecret', 'string'],
+            ['webhookTimestampTolerance', 'integer', 'min' => 1],
+            ['webhookTimestampTolerance', 'default', 'value' => 300],
             ['muxSecurePlayback', 'default', 'value' => false],
             ['maxResolutionTier', 'string'],
             ['maxResolutionTier', 'default', 'value' => '1080p'],
@@ -236,6 +252,7 @@ class Settings extends Model
                 'attributes' => [
                     'muxTokenId',
                     'muxTokenSecret',
+                    'muxWebhookSecret',
                     'maxResolutionTier',
                     'watermark_url',
                     'vertical_align',

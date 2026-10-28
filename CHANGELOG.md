@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.7.0 - 2026-10-28
+
+> [!WARNING]
+> **Action required: configure a webhook signing secret when you update.** This release fixes a security issue in the webhook endpoint. From this version on, every Mux webhook is rejected with a `401` until a signing secret is configured, so uploads, title changes, deletions and static rendition updates from Mux stop reaching Craft until you add it.
+>
+> 1. Open the [Mux webhooks settings page](https://dashboard.mux.com/settings/webhooks) for each Mux environment this site uses and copy the **signing secret** of the webhook that points to `https://your-site.com/actions/mux/webhooks/mux-webhooks`. Each environment (e.g. development, staging, production) has its own webhook and its own secret.
+> 2. Add it to that environment's `.env`, e.g. `MUX_WEBHOOK_SECRET="…"`.
+> 3. Select `$MUX_WEBHOOK_SECRET` in **Mux → Settings → Webhook Signing Secret** (or set `muxWebhookSecret` in `config/mux.php`). Avoid pasting the secret itself into the field: it would be saved to project config and committed.
+>
+> Mux retries failed deliveries for up to 24 hours. If the secret is added later than that, run `php craft mux/sync/all` to catch up. Until it is configured, users with the Mux settings permission see a CP alert.
+
+### Added
+- **Webhook signing secret**: New env-aware `muxWebhookSecret` setting (**Mux → Settings → Webhook Signing Secret**) used to verify the `Mux-Signature` header on incoming webhooks.
+- **`webhookTimestampTolerance` setting**: Config-file setting for the allowed age of a webhook signature in seconds. Defaults to `300`, matching Mux's SDKs.
+- **CP alert**: Users with the Mux settings permission see a CP alert while no webhook signing secret is configured.
+- **Duplicate webhook handling**: Repeated deliveries of the same Mux event are acknowledged without queueing a second job.
+
+### Fixed
+- **Unauthenticated webhooks**: The webhook endpoint accepted anonymous, unsigned requests, so anyone could post `video.asset.deleted`, `video.asset.ready` or `video.asset.updated` events to delete Mux asset elements or overwrite their data (including playback IDs). Webhooks are now verified with HMAC-SHA256 against the signing secret and a timestamp tolerance before anything is queued; requests with a missing, invalid or expired signature, or received while no secret is configured, get a `401`.
+- **Saving settings with an empty environment variable**: Saving the plugin settings threw `Cannot assign null to property … of type string` when a field (e.g. watermark **Height**) referenced an environment variable that is empty or unset. Env-aware settings now accept the empty value, so you can leave the watermark height empty and it will scale proportionally to the width.
+- **Syncing assets without a title**: Mux assets with no `meta.title` (e.g. some direct uploads) failed to sync with `Title cannot be blank`, so they never appeared in Craft from `mux/sync/all` or webhooks. New elements now fall back to the Mux asset ID as their title, and an existing element keeps its title when Mux has none.
+- **Sync trashing assets on large accounts**: `mux/sync/all` removed orphaned elements after each page of 50 Mux assets, so on accounts with more than 50 assets it trashed every element that wasn't on the current page (and could then create duplicates for them on later pages). Orphan cleanup now runs once after all pages are fetched, and is skipped when Mux returns no assets at all (more likely wrong credentials or environment than an empty account).
+- **Sync duplicating trashed assets**: When a Mux asset's element was in the trash (trashing in Craft doesn't delete the video in Mux), syncing created a new element for it instead of leaving it alone. Sync now skips assets whose element is trashed; restore the element from the trash to bring it back.
+- **Title changes from Mux not applied**: Renaming an asset in Mux (`meta.title`) updated only the stored metadata on `video.asset.updated` webhooks and the "update from Mux" actions; the element title stayed unchanged until a full sync. These updates now set the element title from `meta.title` (an empty title leaves it unchanged).
+
 ## 2.6.0 - 2026-09-14
 
 ### Added

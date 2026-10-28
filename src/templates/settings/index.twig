@@ -339,6 +339,19 @@
         name: 'muxWebhookUrl-Field',
     }, copywebhook) }}
 
+    {{ forms.autosuggestField({
+        label: "Webhook Signing Secret"|t("mux"),
+        instructions: "The signing secret Mux shows for this webhook URL on the [webhooks settings page](https://dashboard.mux.com/settings/webhooks). Each Mux environment's webhook has its own secret, so use an environment variable such as `$MUX_WEBHOOK_SECRET`."|t('mux'),
+        tip: "Webhooks without a valid `Mux-Signature` header are rejected. While this is empty, all webhooks are rejected."|t("mux"),
+        id: "muxWebhookSecret",
+        name: "muxWebhookSecret",
+        suggestEnvVars: true,
+        value: settings.muxWebhookSecret,
+        warning: configWarning("muxWebhookSecret", "mux"),
+        errors: settings.getErrors("muxWebhookSecret"),
+        disabled: mux.settings.isSettingOverridden('muxWebhookSecret'),
+    }) }}
+
     {% endnamespace %}
 
     {# include our JavaScript modules #}
