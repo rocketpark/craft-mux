@@ -11,11 +11,13 @@ use craft\base\Model;
 use craft\base\Plugin;
 use craft\events\DefineBehaviorsEvent;
 use craft\events\ElementEvent;
+use craft\events\RegisterCpAlertsEvent;
 use craft\events\RegisterComponentTypesEvent;
 use craft\events\RegisterGqlQueriesEvent;
 use craft\events\RegisterGqlTypesEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
+use craft\helpers\Cp;
 use craft\helpers\UrlHelper;
 use craft\log\MonologTarget;
 use craft\services\Elements;
@@ -39,6 +41,7 @@ use rocketpark\mux\services\Volumes;
 use rocketpark\mux\services\PlaybackRestrictions;
 use rocketpark\mux\services\SettingsService;
 use rocketpark\mux\services\SignedKeys;
+use rocketpark\mux\services\Webhooks;
 use rocketpark\mux\variables\MuxAssetBehavior;
 use yii\base\Event;
 
@@ -60,6 +63,7 @@ use craft\elements\actions\Duplicate;
  * @property-read Volumes $volumes
  * @property-read SettingsService $settings
  * @property-read Data $data
+ * @property-read Webhooks $webhooks
  */
 class Mux extends Plugin
 {
@@ -102,7 +106,8 @@ class Mux extends Plugin
                 'volumes' => Volumes::class,
                 'playbackRestrictions' => PlaybackRestrictions::class,
                 'signedKeys' => SignedKeys::class,
-                'data' => Data::class
+                'data' => Data::class,
+                'webhooks' => Webhooks::class,
             ],
         ];
     }
@@ -314,6 +319,23 @@ class Mux extends Plugin
             }
         );
 
+        /*
+         * Warn in the CP while webhooks can't be verified (they are all rejected until a secret is set)
+         */
+        Event::on(
+            Cp::class,
+            Cp::EVENT_REGISTER_ALERTS,
+            function (RegisterCpAlertsEvent $event) {
+                $currentUser = Craft::$app->getUser()->getIdentity();
+                if (!$currentUser || !$currentUser->can('mux:settings') || $this->webhooks->hasSigningSecret()) {
+                    return;
+                }
+
+                $event->alerts[] = Craft::t('mux', 'Mux webhooks are being rejected because no webhook signing secret is configured. Video updates from Mux won’t reach this site until it’s added.') .
+                    ' <a class="go" href="' . UrlHelper::cpUrl('mux/settings') . '">' . Craft::t('mux', 'Add the signing secret') . '</a>';
+            }
+        );
+
         $this->_registerLogTarget();
 
         // Register services
@@ -324,7 +346,8 @@ class Mux extends Plugin
             'settings' => \rocketpark\mux\services\SettingsService::class,
             'playbackRestrictions' => \rocketpark\mux\services\PlaybackRestrictions::class,
             'signedKeys' => \rocketpark\mux\services\SignedKeys::class,
-            'data' => \rocketpark\mux\services\Data::class
+            'data' => \rocketpark\mux\services\Data::class,
+            'webhooks' => \rocketpark\mux\services\Webhooks::class,
         ]);
 
         // Register Twig extension for global mux variable

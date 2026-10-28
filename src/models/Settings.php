@@ -16,6 +16,8 @@ use rocketpark\mux\constants\UploadExtensions;
  * @property-read string $pluginName The public-facing name of the plugin
  * @property-read string $muxTokenId Mux's TokenID for Authentication
  * @property-read string $muxTokenSecret Mux's TokenSecret for Authentication
+ * @property-read string $muxWebhookSecret Signing secret of the Mux webhook endpoint
+ * @property-read int $webhookTimestampTolerance Allowed webhook signature age in seconds
  * @property-read bool $muxSecurePlayback The MUX Asset has secure playback
  * @property-read string $maxResolutionTier The MUX Asset resolution tier
  * @property-read string $mp4Support Enable static MP4 renditions
@@ -38,6 +40,17 @@ class Settings extends Model
      * @var string Mux's TokenSecret for Authentication
      */
     public ?string $muxTokenSecret = '';
+
+    /**
+     * @var string Signing secret of the Mux webhook endpoint, used to verify the `Mux-Signature` header.
+     * Webhooks are rejected while this is empty.
+     */
+    public ?string $muxWebhookSecret = '';
+
+    /**
+     * @var int Allowed difference in seconds between a webhook's signature timestamp and the server clock.
+     */
+    public int $webhookTimestampTolerance = 300;
 
     /**
      * @var bool|string The MUX Asset has secure playback
@@ -189,6 +202,9 @@ class Settings extends Model
             ['pluginName', 'default', 'value' => 'MUX'],
             ['muxTokenId', 'string'],
             ['muxTokenSecret', 'string'],
+            ['muxWebhookSecret', 'string'],
+            ['webhookTimestampTolerance', 'integer', 'min' => 1],
+            ['webhookTimestampTolerance', 'default', 'value' => 300],
             ['muxSecurePlayback', 'default', 'value' => false],
             ['maxResolutionTier', 'string'],
             ['maxResolutionTier', 'default', 'value' => '1080p'],
@@ -236,6 +252,7 @@ class Settings extends Model
                 'attributes' => [
                     'muxTokenId',
                     'muxTokenSecret',
+                    'muxWebhookSecret',
                     'maxResolutionTier',
                     'watermark_url',
                     'vertical_align',
