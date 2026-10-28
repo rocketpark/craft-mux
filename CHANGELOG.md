@@ -4,14 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## 2.7.0 - 2026-10-28
 
-> {warning} **Action required: configure a webhook signing secret when you update.** This release fixes a security issue in the webhook endpoint. From this version on, every Mux webhook is rejected with a `401` until a signing secret is configured, so uploads, title changes, deletions and static rendition updates from Mux stop reaching Craft until you add it.
+> [!WARNING]
+> **Action required: configure a webhook signing secret when you update.** This release fixes a security issue in the webhook endpoint. From this version on, every Mux webhook is rejected with a `401` until a signing secret is configured, so uploads, title changes, deletions and static rendition updates from Mux stop reaching Craft until you add it.
 >
 > 1. Open the [Mux webhooks settings page](https://dashboard.mux.com/settings/webhooks) for each Mux environment this site uses and copy the **signing secret** of the webhook that points to `https://your-site.com/actions/mux/webhooks/mux-webhooks`. Each environment (e.g. development, staging, production) has its own webhook and its own secret.
 > 2. Add it to that environment's `.env`, e.g. `MUX_WEBHOOK_SECRET="…"`.
 > 3. Select `$MUX_WEBHOOK_SECRET` in **Mux → Settings → Webhook Signing Secret** (or set `muxWebhookSecret` in `config/mux.php`). Avoid pasting the secret itself into the field: it would be saved to project config and committed.
 >
 > Mux retries failed deliveries for up to 24 hours. If the secret is added later than that, run `php craft mux/sync/all` to catch up. Until it is configured, users with the Mux settings permission see a CP alert.
-
 
 ### Added
 - **Webhook signing secret**: New env-aware `muxWebhookSecret` setting (**Mux → Settings → Webhook Signing Secret**) used to verify the `Mux-Signature` header on incoming webhooks.
