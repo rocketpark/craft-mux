@@ -141,6 +141,23 @@
             disabled: mux.settings.isSettingOverridden('muxSecurePlayback'),
         }) }}
 
+        {% set restrictionWarning = (defaultRestrictionMissing ?? false)
+            ? "This restriction ID doesn’t exist in the Mux environment for these API credentials, so Mux will refuse signed playback. Pick one from the list or check the environment variable."|t('mux')
+            : configWarning("playbackRestrictionId", "mux") %}
+        {{ forms.autosuggestField({
+            label: "Default Playback Restriction ID"|t('mux'),
+            instructions: "The playback restriction enforced on every signed video. Pick one of your [Playback Restrictions]({url}), or an environment variable such as `$MUX_PLAYBACK_RESTRICTION_ID` (recommended: each Mux environment has its own restriction IDs). Leave empty for no restriction. Public videos can’t be restricted."|t('mux', { url: cpUrl('mux/restrictions') }),
+            tip: "Signed tokens are valid for 24 hours by default. Set `signedTokenLifetime`, `maxSignedTokenLifetime` and `signedTokenWindow` (seconds) in `config/mux.php` to change this."|t('mux'),
+            id: "playbackRestrictionId",
+            name: "playbackRestrictionId",
+            suggestEnvVars: true,
+            suggestions: restrictionSuggestions ?? [],
+            value: settings.playbackRestrictionId,
+            warning: restrictionWarning,
+            errors: settings.getErrors("playbackRestrictionId"),
+            disabled: mux.settings.isSettingOverridden('playbackRestrictionId'),
+        }) }}
+
 <hr>
         <h3>{{ "Overlay/Watermark"|t('mux') }}</h3>
 

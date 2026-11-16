@@ -6,7 +6,6 @@ use Craft;
 use craft\base\Element as BaseElement;
 use craft\gql\GqlEntityRegistry;
 use craft\gql\interfaces\Element;
-use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Definition\InterfaceType as GqlInterfaceType;
 use yii\db\Schema;
@@ -67,83 +66,6 @@ class MuxAsset extends Element
      */
     public static function getFieldDefinitions(): array
     {
-        $PlaybackIdType = new ObjectType([
-            'name' => 'PlaybackID',
-            'fields' => [
-                'id' => [
-                    'type' => Type::string(),
-                    'description' => 'ID of the playback'
-                ],
-                'policy' => [
-                    'type' => Type::string(),
-                    'description' => 'Policy of the playback'
-                ]
-            ]
-        ]);
-
-        $TracksType = new ObjectType([
-            'name' => 'Track',
-            'description' => 'Mux Asset Track',
-            'fields' => [
-                'id' => [
-                    'type' => Type::string(),
-                    'description' => 'Track ID'
-                ],
-                'type' => Type::string(),
-                'text_source' => Type::string(),
-                'text_type' => Type::string(),
-                'language_code' => Type::string(),
-                'name' => Type::string(),
-                'closed_captions' => Type::string(),
-                'duration' => [
-                    'type' => Type::int(),
-                    'description' => 'The duration of the track in seconds'
-                ],
-                'max_width' => [
-                    'type' => Type::int(),
-                    'description' => 'The maximum video bitrate of the track'
-                ],
-                'max_height' => [
-                    'type' => Type::int(),
-                    'description' => 'The maximum video bitrate of the track'
-                ],
-                'max_video_bitrate' => [
-                    'type' => Type::int(),
-                    'description' => 'The maximum video bitrate of the track'
-                ],
-                'max_audio_bitrate' => [
-                    'type' => Type::int(),
-                    'description' => 'The maximum audio bitrate of the track'
-                ],
-                'created_at' => [
-                    'type' => Type::string(),
-                    'description' => 'The creation time of the track'
-                ],
-                'updated_at' => [
-                    'type' => Type::string(),
-                    'description' => 'The last update time of the track'
-                ],
-            ]
-        ]);
-
-        $MetaType = new ObjectType([
-            'name' => 'Meta',
-            'fields' => [
-                'title' => [
-                    'type' => Type::string(),
-                    'description' => 'Title of the asset'
-                ],
-                'external_id' => [
-                    'type' => Type::string(),
-                    'description' => 'External ID of the asset'
-                ],
-                'creator_id' => [
-                    'type' => Type::string(),
-                    'description' => 'Creator ID of the asset'
-                ],
-            ]
-        ]);
-
         return Craft::$app->getGql()->prepareFieldDefinitions(array_merge(parent::getFieldDefinitions(), [
             'id' => [
                 'type' => Type::ID(),
@@ -203,7 +125,13 @@ class MuxAsset extends Element
             ],
             'playback_ids' => [
                 'type' => Type::listOf(PlaybackIdType::getType()),
-                'description' => 'Playback IDs of the object',
+                'description' => 'Playback IDs of the object. Each one can return signed tokens and ready-to-use URLs.',
+                'args' => [
+                    'policy' => [
+                        'type' => Type::string(),
+                        'description' => 'Only return playback IDs with this policy: `public` or `signed`.',
+                    ],
+                ],
             ],
             'tracks' => [
                 'name' => 'tracks',

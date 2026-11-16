@@ -58,6 +58,30 @@ class Settings extends Model
     public bool|string $muxSecurePlayback = false;
 
     /**
+     * @var int Default lifetime in seconds of signed playback tokens, used when no `expiresIn` is given.
+     * Every token handed out stays valid for at least this long.
+     */
+    public int $signedTokenLifetime = 86400;
+
+    /**
+     * @var int Upper bound in seconds for any requested signed playback token lifetime (GraphQL `expiresIn`,
+     * Twig `expiresIn` arguments and `signedTokenLifetime`). Defaults to 365 days.
+     */
+    public int $maxSignedTokenLifetime = 31536000;
+
+    /**
+     * @var int Rotation window in seconds. Tokens for the same URL are identical within a window, which keeps
+     * page, GraphQL and CDN caches stable. A token may stay valid up to one window longer than its lifetime.
+     */
+    public int $signedTokenWindow = 3600;
+
+    /**
+     * @var string|null Default Mux playback restriction ID added as the `playback_restriction_id` claim to every
+     * signed playback token (needed for referrer/user-agent restrictions on signed playback IDs). Env-aware.
+     */
+    public ?string $playbackRestrictionId = '';
+
+    /**
      * @var string The MUX Asset resolution teir
      */
     public ?string $maxResolutionTier = '';
@@ -206,6 +230,12 @@ class Settings extends Model
             ['webhookTimestampTolerance', 'integer', 'min' => 1],
             ['webhookTimestampTolerance', 'default', 'value' => 300],
             ['muxSecurePlayback', 'default', 'value' => false],
+            [['signedTokenLifetime', 'maxSignedTokenLifetime', 'signedTokenWindow'], 'integer', 'min' => 1],
+            ['signedTokenLifetime', 'default', 'value' => 86400],
+            ['maxSignedTokenLifetime', 'default', 'value' => 31536000],
+            ['signedTokenWindow', 'default', 'value' => 3600],
+            ['playbackRestrictionId', 'string'],
+            ['playbackRestrictionId', 'default', 'value' => ''],
             ['maxResolutionTier', 'string'],
             ['maxResolutionTier', 'default', 'value' => '1080p'],
             ['mp4Support', 'string'],
@@ -264,6 +294,7 @@ class Settings extends Model
                     'opacity',
                     'mp4Support',
                     'muxSecurePlayback',
+                    'playbackRestrictionId',
                     'maxUploadFileSize',
                     'uploadChunkSize',
                     'defaultExtensions',

@@ -190,4 +190,73 @@ class PlaybackRestrictions extends Component
             ];
         }
     }
+
+    /**
+     * Returns the Mux environment's playback restrictions as plain arrays
+     * (`id`, `allowed_domains`, `allow_no_referrer`), or `null` when the Mux API can't be reached.
+     *
+     * @return array<int, array{id: string, allowed_domains: string[], allow_no_referrer: bool}>|null
+     */
+    public function getRestrictionSummaries(int $limit = 100): ?array
+    {
+        try {
+            $response = $this->listPlaybackRestrictions(1, $limit);
+        } catch (\Throwable $e) {
+            Mux::warning('Could not list Mux playback restrictions: ' . $e->getMessage());
+            return null;
+        }
+
+        $result = $response['result'] ?? null;
+
+        if (!$result instanceof MuxPhp\Models\ListPlaybackRestrictionsResponse) {
+            return null;
+        }
+
+        $summaries = [];
+
+        foreach ($result->getData() ?? [] as $restriction) {
+            $referrer = $restriction->getReferrer();
+            $summaries[] = [
+                'id' => (string) $restriction->getId(),
+                'allowed_domains' => array_values((array) ($referrer?->getAllowedDomains() ?? [])),
+                'allow_no_referrer' => (bool) $referrer?->getAllowNoReferrer(),
+            ];
+        }
+
+        return $summaries;
+    }
+
+    /**
+     * Returns the restrictions as Craft autosuggest suggestions, for the Default Playback Restriction ID setting.
+     */
+    public function getRestrictionSuggestions(?array $summaries = null): array
+    {
+        $summaries ??= $this->getRestrictionSummaries() ?? [];
+
+        if (empty($summaries)) {
+            return [];
+        }
+
+        return [[
+            'label' => Craft::t('mux', 'Playback Restrictions'),
+            'data' => array_map(fn(array $r) => [
+                'name' => $r['id'],
+                'hint' => self::describe($r),
+            ], $summaries),
+        ]];
+    }
+
+    /**
+     * Short human-readable description of a restriction, e.g. `example.com, *.example.com · no referrer blocked`.
+     */
+    public static function describe(array $summary): string
+    {
+        $domains = $summary['allowed_domains'] ?? [];
+        $domainText = empty($domains) ? Craft::t('mux', 'no domains allowed') : implode(', ', $domains);
+        $referrerText = !empty($summary['allow_no_referrer'])
+            ? Craft::t('mux', 'no referrer allowed')
+            : Craft::t('mux', 'no referrer blocked');
+
+        return "{$domainText} · {$referrerText}";
+    }
 }

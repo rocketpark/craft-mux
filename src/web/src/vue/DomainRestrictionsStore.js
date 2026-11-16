@@ -4,11 +4,26 @@ import { reactive, toRefs, toRaw } from "vue";
 export const state  = reactive({
     restrictions: [],
     loading: false,
+    defaultInfo: { id: null, raw: '', source: 'none' },
+    error: null,
     params: {
         limit: 50,
         page: 1
     }
 });
+
+/**
+ * Reads a JSON response and rejects with the server's error message when the request failed.
+ * @param {Response} res
+ */
+function readJson(res) {
+    return res.json().catch(() => ({})).then((json) => {
+        if (!res.ok || json.success === false) {
+            throw new Error(json.error || `Request failed (HTTP ${res.status}).`);
+        }
+        return json;
+    });
+}
 
 export function addRestriction(restriction)
 {
@@ -24,22 +39,16 @@ export function usePlaybackRestrictionsList() {
 
     const params = new URLSearchParams(state.params).toString();
 
-    fetch(`/actions/mux/settings/use-playback-restrictions-list?${params}`)
-        .then((response) => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
+    return fetch(`/actions/mux/settings/use-playback-restrictions-list?${params}`, { headers: { Accept: 'application/json' } })
+        .then(readJson)
         .then((data) => {
-            if (data.success) {
-                state.restrictions = data.result.data;
-            }
+            state.restrictions = Array.isArray(data.result?.data) ? data.result.data : [];
+            state.error = null;
             state.loading = false;
         })
         .catch((error) => {
             state.loading = false;
-            console.error('There was a problem with the usePlaybackRestrictionsList fetch operation:', error);
+            state.error = Craft.t('mux', 'Couldn’t load playback restrictions from Mux.') + ' ' + error.message;
         });
 }
 
@@ -55,11 +64,9 @@ export function createPlaybackRestriction(request) {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify(body)
-    }).then((res) => {
-        if (!res.ok) {return Promise.reject(new Error(`HTTP error ${res.status}`));}
-        state.restrictions = res.data;
+    }).then(readJson).then((json) => {
         state.loading = false;
-        return res.json();
+        return json;
     }).catch((err) => {
         state.loading = false;
         return Promise.reject(err);
@@ -78,10 +85,9 @@ export function updatePlaybackRestriction(id, request) {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify(body)
-    }).then((res) => {
-        if (!res.ok) { return Promise.reject(new Error(`HTTP error ${res.status}`)); }
+    }).then(readJson).then((json) => {
         state.loading = false;
-        return res.json();
+        return json;
     }).catch((err) => {
         state.loading = false;
         return Promise.reject(err);
@@ -100,10 +106,43 @@ export function deletePlaybackRestriction(id) {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify(body)
+    }).then(readJson).then((json) => {
+        state.loading = false;
+        return json;
+    }).catch((err) => {
+        state.loading = false;
+        return Promise.reject(err);
+    });
+}
+
+/**
+ * Make a restriction the default for signed playback tokens ('' clears the default).
+ * @param {string} id
+ */
+export function setDefaultPlaybackRestriction(id) {
+    state.loading = true;
+    const body = { id };
+    body[window.Craft.csrfTokenName] = window.Craft.csrfTokenValue;
+
+    return fetch('/actions/mux/settings/set-default-playback-restriction', {
+        method: 'POST',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
     }).then((res) => {
         if (!res.ok) { return Promise.reject(new Error(`HTTP error ${res.status}`)); }
-        state.loading = false;
         return res.json();
+    }).then((json) => {
+        state.loading = false;
+        if (json.default) {
+            state.defaultInfo = json.default;
+        }
+        if (!json.success) {
+            return Promise.reject(new Error(json.error || 'Could not set the default restriction.'));
+        }
+        return json;
     }).catch((err) => {
         state.loading = false;
         return Promise.reject(err);
