@@ -30,6 +30,8 @@ All notable changes to this project will be documented in this file.
 - **Signed animated thumbnails**: CP hover previews sent `width`/`fps` in the query string, which Mux ignores for signed playback IDs.
 - **Missing CP thumbnail icon**: Assets without a usable thumbnail now show Craft's video icon instead of a PHP warning for a missing `video.svg`.
 - **Signing keys in an unused template**: Removed the signing keys (including private keys) from the unused `mux/elements/_edit` template's JSON.
+- **GraphQL `static_renditions`, `master`, `recording_times` and `non_standard_input_reasons` always `null`**: These `String` fields returned an error ("String cannot represent value") on every asset, even when empty. They now return the value as a JSON-encoded string (`"[]"` when empty). The fields stay `String`, and the Twig properties stay arrays.
+- **GraphQL `nomralize_audio` error**: The field (name misspelled in the schema, kept for backwards compatibility) failed on every asset with "Getting unknown property". It now returns the asset's `normalize_audio` value.
 
 ## 2.7.0 - 2026-10-28
 

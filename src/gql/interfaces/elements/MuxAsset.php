@@ -163,7 +163,7 @@ class MuxAsset extends Element
             ],
             'master' => [
                 'type' => Type::string(),
-                'description' => 'Master of the object'
+                'description' => 'Master (source file) access details, as a JSON-encoded string, e.g. `{"status":"ready","url":"…"}`. `"[]"` when empty, `null` when not set.'
             ],
             'master_access' => [
                 'type' => Type::string(),
@@ -179,19 +179,19 @@ class MuxAsset extends Element
             ],
             'nomralize_audio' => [
                 'type' => Type::string(),
-                'description' => 'Normalize Audio'
+                'description' => 'Whether audio normalization was requested for the asset. (The field name is misspelled; it is kept for backwards compatibility.)'
             ],
             'static_renditions' => [
                 'type' => Type::string(),
-                'description' => 'Static Renditions'
+                'description' => 'Static renditions, as a JSON-encoded string, e.g. `{"status":"ready","files":[{"id":"…","name":"720p.mp4","ext":"mp4","resolution":"720p","width":1280,"height":720,"bitrate":1853080,"filesize":"1849844","status":"ready"}]}`. `"[]"` when empty, `null` when not set.'
             ],
             'recording_times' => [
                 'type' => Type::string(),
-                'description' => 'Recording Times'
+                'description' => 'Recording times (assets created from a live stream), as a JSON-encoded string: a list of `{"started_at","duration","type"}` objects. `"[]"` when empty, `null` when not set.'
             ],
             'non_standard_input_reasons' => [
                 'type' => Type::string(),
-                'description' => 'Non Standard Input Reasons'
+                'description' => 'Reasons the input file was non-standard, as a JSON-encoded string, e.g. `{"video_codec":"…","audio_codec":"…"}`. `"[]"` when empty, `null` when not set.'
             ],
             'test' => [
                 'type' => Type::string(),
