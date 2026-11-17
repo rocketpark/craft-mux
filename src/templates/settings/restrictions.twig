@@ -11,7 +11,9 @@
 ] %}
 
 {% block content %}
-    <div id="mux-domain-restrictions">
+    <div id="mux-domain-restrictions"
+        data-default="{{ craft.app.plugins.getPlugin('mux').signedPlayback.getDefaultPlaybackRestrictionInfo()|json_encode|e('html_attr') }}"
+        data-settings-url="{{ cpUrl('mux/settings') }}">
         <mux-domain-restrictions>
         </mux-domain-restrictions>
     </div>

@@ -14,6 +14,7 @@ use craft\events\ElementEvent;
 use craft\events\RegisterCpAlertsEvent;
 use craft\events\RegisterComponentTypesEvent;
 use craft\events\RegisterGqlQueriesEvent;
+use craft\events\RegisterGqlSchemaComponentsEvent;
 use craft\events\RegisterGqlTypesEvent;
 use craft\events\RegisterUrlRulesEvent;
 use craft\events\RegisterUserPermissionsEvent;
@@ -32,6 +33,7 @@ use rocketpark\mux\elements\MuxAsset as MuxAssetElement;
 use rocketpark\mux\fields\MuxAsset as MuxAssetField;
 use rocketpark\mux\gql\interfaces\elements\MuxAsset as MuxAssetInterface;
 use rocketpark\mux\gql\queries\MuxAsset as MuxAssetGqlQuery;
+use rocketpark\mux\helpers\Gql as GqlHelper;
 use rocketpark\mux\models\MuxAsset;
 use rocketpark\mux\models\Settings;
 use rocketpark\mux\services\Assets;
@@ -41,6 +43,7 @@ use rocketpark\mux\services\Volumes;
 use rocketpark\mux\services\PlaybackRestrictions;
 use rocketpark\mux\services\SettingsService;
 use rocketpark\mux\services\SignedKeys;
+use rocketpark\mux\services\SignedPlayback;
 use rocketpark\mux\services\Webhooks;
 use rocketpark\mux\variables\MuxAssetBehavior;
 use yii\base\Event;
@@ -58,6 +61,7 @@ use craft\elements\actions\Duplicate;
  * @license https://craftcms.github.io/license/ Craft License
  * @property-read PlaybackRestrictions $playbackRestrictions
  * @property-read SignedKeys $signedKeys
+ * @property-read SignedPlayback $signedPlayback
  * @property-read Assets $assets
  * @property-read Folders $folders
  * @property-read Volumes $volumes
@@ -106,6 +110,7 @@ class Mux extends Plugin
                 'volumes' => Volumes::class,
                 'playbackRestrictions' => PlaybackRestrictions::class,
                 'signedKeys' => SignedKeys::class,
+                'signedPlayback' => SignedPlayback::class,
                 'data' => Data::class,
                 'webhooks' => Webhooks::class,
             ],
@@ -170,6 +175,18 @@ class Mux extends Plugin
                     $event->queries,
                     MuxAssetGqlQuery::getQueries()
                 );
+            }
+        );
+
+        Event::on(
+            Gql::class,
+            Gql::EVENT_REGISTER_GQL_SCHEMA_COMPONENTS,
+            function (RegisterGqlSchemaComponentsEvent $event) {
+                $label = Craft::t('mux', 'Mux');
+                $event->queries[$label][GqlHelper::SIGNED_PLAYBACK_COMPONENT . ':read'] = [
+                    'label' => Craft::t('mux', 'Generate signed playback tokens and URLs'),
+                    'info' => Craft::t('mux', 'Allows this schema to receive tokens and signed URLs for signed Mux playback IDs. Anyone using this schema can play every signed video it can query, so only enable it on private schemas.'),
+                ];
             }
         );
 

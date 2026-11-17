@@ -45,43 +45,32 @@
                 {{ "This asset is still processing ({status}). Check back shortly."|t('mux', { status: muxAsset.asset_status ?? 'preparing' }) }}
             {% endif %}
         </h3>
-    {% elseif muxAsset.securePlayback %}
-        {% set tokens = muxAsset.securePlaybackTokens %}
-        {% if tokens|length >= 1 %}
-            {% set keyID = tokens[0]['key_id'] %}
-            {% set videoToken = muxAsset.getSecurePlaybackJWT(keyID) %}
-            {% set thumbToken = muxAsset.isAudioOnly ? null : muxAsset.getSecurePlaybackJWT(keyID, 't') %}
-            {% set storyboardToken = muxAsset.isAudioOnly ? null : muxAsset.getSecurePlaybackJWT(keyID, 's') %}
+    {% else %}
+        {# Prefer a public playback ID; fall back to a signed one with tokens. #}
+        {% set publicPlaybackId = muxAsset.getPlaybackId('public') %}
+        {% set signedPlaybackId = publicPlaybackId ? null : muxAsset.getPlaybackId('signed') %}
+        {% set videoToken = signedPlaybackId ? muxAsset.getPlaybackToken('v', {}, null, 'signed') : null %}
+        {% if signedPlaybackId and not videoToken %}
+            <h3>{{ "Must create Signed Keys to playback this video and view thumbnails."|t('mux') }}</h3>
+        {% else %}
+            {% set thumbToken = signedPlaybackId and not muxAsset.isAudioOnly ? muxAsset.getPlaybackToken('t', {}, null, 'signed') : null %}
+            {% set storyboardToken = signedPlaybackId and not muxAsset.isAudioOnly ? muxAsset.getPlaybackToken('s', {}, null, 'signed') : null %}
             <mux-player
-                    id="mux-player-{{ muxAsset.id }}"
+                id="mux-player-{{ muxAsset.id }}"
                 style="aspect-ratio: 16/9;"
                 accent-color="#cf3f40"
                 stream-type="on-demand"
                 metadata-video-id="{{ muxAsset.asset_id }}"
                 metadata-video-title="{{ muxAsset.title }} (CraftCMS Entry)"
-                playback-id="{{ muxAsset.playback_ids[0].id }}"
-                playback-token="{{ videoToken }}"
+                playback-id="{{ publicPlaybackId ?: signedPlaybackId ?: muxAsset.getPlaybackId() }}"
+                {% if videoToken %}playback-token="{{ videoToken }}"{% endif %}
                 {% if thumbToken %}thumbnail-token="{{ thumbToken }}"{% endif %}
                 {% if storyboardToken %}storyboard-token="{{ storyboardToken }}"{% endif %}
                 disable-cookies="true"
                 default-hidden-captions="true"
                 title="{{ muxAsset.title }}"
             ></mux-player>
-        {% else %}
-            <h3>{{ "Must create Signed Keys to playback this video and view thumbnails."|t('mux') }}</h3>
         {% endif %}
-    {% else %}
-        <mux-player
-                id="mux-player-{{ muxAsset.id }}"
-            style="aspect-ratio: 16/9;"
-            accent-color="#cf3f40"
-            stream-type="on-demand"
-            metadata-video-id="{{ muxAsset.asset_id }}"
-            metadata-video-title="{{ muxAsset.title }} (CraftCMS Entry)"
-            playback-id="{{ muxAsset.playback_ids[0].id }}"
-            disable-cookies="true"
-            default-hidden-captions="true"
-            title="{{ muxAsset.title }}"></mux-player>
     {% endif %}
 </div>
 

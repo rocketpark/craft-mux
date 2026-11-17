@@ -30,11 +30,10 @@ use rocketpark\mux\elements\actions\SyncAssets;
 use rocketpark\mux\elements\actions\MoveMuxAssets;
 use rocketpark\mux\fieldlayoutelements\MuxAssetFieldContentTab;
 use rocketpark\mux\fieldlayoutelements\MuxAssetFieldTracksTab;
-use rocketpark\mux\records\SignedKeys;
 use rocketpark\mux\models\SignedKey;
 use rocketpark\mux\models\MuxFolder;
 use rocketpark\mux\models\MuxVolume;
-use rocketpark\mux\helpers\JWT as JWTHelper;
+use rocketpark\mux\services\SignedPlayback;
 use yii\base\InvalidConfigException;
 use yii\base\NotSupportedException;
 use yii\base\InvalidArgumentException;
@@ -238,25 +237,54 @@ class MuxAsset extends Element implements Thumbable
     public bool $isWebhookUpdate = false;
 
     /**
-     * Get Playback Id
-     * @return string|null
+     * Returns a playback ID entry (`['id' => …, 'policy' => 'public'|'signed']`).
+     *
+     * With no policy this is the first playback ID. With a policy it is the first playback ID with
+     * that policy, which matters for assets that carry both a public and a signed playback ID.
+     *
+     * @param string|null $policy `public`, `signed` or null for the first playback ID
+     * @return array|null
      */
-    public function getPlaybackId(): ?string
+    public function getPlaybackIdData(?string $policy = null): ?array
     {
-        return $this->playback_ids[0]['id'] ?? null;
+        foreach ($this->playback_ids ?? [] as $entry) {
+            if (!is_array($entry) || empty($entry['id'])) {
+                continue;
+            }
+
+            if ($policy === null || ($entry['policy'] ?? null) === $policy) {
+                return $entry;
+            }
+        }
+
+        return null;
     }
 
     /**
-     * Secure Playback
+     * The signed playback service.
+     */
+    private static function signedPlayback(): SignedPlayback
+    {
+        return Mux::getInstance()->signedPlayback;
+    }
+
+    /**
+     * Get Playback Id
+     * @param string|null $policy `public`, `signed` or null for the first playback ID
+     * @return string|null
+     */
+    public function getPlaybackId(?string $policy = null): ?string
+    {
+        return $this->getPlaybackIdData($policy)['id'] ?? null;
+    }
+
+    /**
+     * Whether the first playback ID is signed.
      * @return bool 
      */
     public function securePlayback(): bool
     {
-        if (empty($this->playback_ids)) {
-            return false;
-        }
-          
-        return $this->playback_ids[0]['policy'] === 'signed';
+        return SignedPlayback::isSigned($this->getPlaybackIdData());
     }
 
     /**
@@ -298,59 +326,150 @@ class MuxAsset extends Element implements Thumbable
 
     /**
      * Secure Playback Tokens
-     * @return array 
-     * @throws InvalidConfigException 
-     * @throws NotSupportedException 
-     * @throws Exception 
-     * @throws InvalidArgumentException 
-     * @throws GlobalException 
+     *
+     * Returns the stored signing keys (including their private keys).
+     *
+     * @deprecated in 2.8.0. Use `hasSigningKey()` to check whether signed playback is possible, and
+     * `getPlaybackToken()` / the `*Url()` helpers to create tokens. Never output the returned keys.
+     * @return SignedKey[]
      */
     public function securePlaybackTokens(): array
     {
-        $query = SignedKeys::find()->all();
-        return array_map(fn($record) => new SignedKey($record->getAttributes()), $query);
+        return self::signedPlayback()->getSigningKeys();
     }
 
     /**
      * Signed Keys
-     * @return array 
-     * @throws InvalidConfigException 
-     * @throws NotSupportedException 
-     * @throws Exception 
-     * @throws InvalidArgumentException 
-     * @throws GlobalException 
+     *
+     * @deprecated in 2.8.0. See `securePlaybackTokens()`.
+     * @return SignedKey[]
      */
     public function signedKeys(): array
     {
-        $query = SignedKeys::find()->all();
-        return array_map(fn($record) => new SignedKey($record->getAttributes()), $query);
+        return self::signedPlayback()->getSigningKeys();
+    }
+
+    /**
+     * Whether a signing key exists, i.e. whether tokens can be created for signed playback IDs.
+     * @return bool
+     */
+    public function hasSigningKey(): bool
+    {
+        return self::signedPlayback()->getSigningKey() !== null;
     }
 
     /**
      * Get Secure Playback JWT
-     * @param null|string $tokenKeyId 
+     *
+     * Returns a token for the first playback ID when it is signed, otherwise null.
+     *
+     * @param null|string $tokenKeyId Signing key ID; defaults to the oldest stored key
      * @param null|string $mediaType v = video, t = thumbnail, g = gif, s = storyboard
-     * @param null|array $options ["time" => 10, "width" => 640, "fit_mode" => "smartcrop"]
-     * @return mixed 
-     * @throws InvalidConfigException 
-     * @throws NotSupportedException 
-     * @throws Exception 
-     * @throws InvalidArgumentException 
-     * @throws GlobalException 
+     * @param null|array $options Claims for this token type, e.g. ["time" => 10, "width" => 640, "fit_mode" => "smartcrop"]
+     * @param null|int $expiresIn Minimum lifetime in seconds; defaults to the `signedTokenLifetime` setting
+     * @return string|null
      */
-    public function getSecurePlaybackJWT(?string $tokenKeyId, ?string $mediaType = 'v', ?array $options = []): ?string
+    public function getSecurePlaybackJWT(?string $tokenKeyId = null, ?string $mediaType = 'v', ?array $options = [], ?int $expiresIn = null): ?string
     {
-        if (!$this->securePlayback()) {
-            return null; 
-        }
-    
-        $tokenData = $this->getTokenData($tokenKeyId);
-    
-        if (!$tokenData) {
+        return $this->getPlaybackToken($mediaType ?: SignedPlayback::AUD_VIDEO, $options ?? [], $expiresIn, null, $tokenKeyId);
+    }
+
+    /**
+     * Returns a signed playback token, or null when the selected playback ID is public (or no signing key exists).
+     *
+     * ```twig
+     * <mux-player
+     *   playback-id="{{ asset.getPlaybackId('signed') }}"
+     *   playback-token="{{ asset.getPlaybackToken('v', {}, null, 'signed') }}"
+     *   thumbnail-token="{{ asset.getPlaybackToken('t', {time: 2}, null, 'signed') }}"
+     *   storyboard-token="{{ asset.getPlaybackToken('s', {}, null, 'signed') }}">
+     * </mux-player>
+     * ```
+     *
+     * @param string $type v = video, t = thumbnail, g = gif, s = storyboard
+     * @param array $claims Modifiers for this token type, e.g. `{time: 2, width: 1280}` or `{max_resolution: '720p'}`
+     * @param int|null $expiresIn Minimum lifetime in seconds; capped at `maxSignedTokenLifetime`
+     * @param string|null $policy Which playback ID to use: `signed`, `public` or null for the first one
+     * @param string|null $keyId Signing key ID; defaults to the oldest stored key
+     * @return string|null
+     */
+    public function getPlaybackToken(string $type = 'v', array $claims = [], ?int $expiresIn = null, ?string $policy = null, ?string $keyId = null): ?string
+    {
+        $playbackId = $this->getPlaybackIdData($policy);
+
+        if (!SignedPlayback::isSigned($playbackId)) {
             return null;
         }
-    
-        return $this->generateJwt($tokenData, $mediaType, $options);
+
+        return self::signedPlayback()->getToken($playbackId['id'], $type, $claims, $expiresIn, $keyId);
+    }
+
+    /**
+     * HLS stream URL, signed when the playback ID is signed.
+     * @param array $params Playback modifiers, e.g. `{max_resolution: '720p'}`
+     */
+    public function getStreamUrl(array $params = [], ?int $expiresIn = null, ?string $policy = null): ?string
+    {
+        $playbackId = $this->getPlaybackIdData($policy);
+
+        return $playbackId ? self::signedPlayback()->streamUrl($playbackId, $params, $expiresIn) : null;
+    }
+
+    /**
+     * Still thumbnail URL, signed when the playback ID is signed.
+     * @param array $params e.g. `{width: 640, height: 360, fit_mode: 'smartcrop', time: 2}`
+     * @param string $format webp, jpg or png
+     */
+    public function getThumbnailUrl(array $params = [], string $format = 'webp', ?int $expiresIn = null, ?string $policy = null): ?string
+    {
+        $playbackId = $this->getPlaybackIdData($policy);
+
+        return $playbackId ? self::signedPlayback()->thumbnailUrl($playbackId, $params, $format, $expiresIn) : null;
+    }
+
+    /**
+     * Animated GIF/WebP preview URL, signed when the playback ID is signed.
+     * @param array $params e.g. `{start: 0, end: 5, width: 320, fps: 15}`
+     * @param string $format gif or webp
+     */
+    public function getAnimatedUrl(array $params = [], string $format = 'gif', ?int $expiresIn = null, ?string $policy = null): ?string
+    {
+        $playbackId = $this->getPlaybackIdData($policy);
+
+        return $playbackId ? self::signedPlayback()->animatedUrl($playbackId, $params, $format, $expiresIn) : null;
+    }
+
+    /**
+     * Timeline hover storyboard URL, signed when the playback ID is signed.
+     * @param string $format vtt, json, jpg, png or webp
+     */
+    public function getStoryboardUrl(string $format = 'vtt', ?int $expiresIn = null, ?string $policy = null): ?string
+    {
+        $playbackId = $this->getPlaybackIdData($policy);
+
+        return $playbackId ? self::signedPlayback()->storyboardUrl($playbackId, $format, [], $expiresIn) : null;
+    }
+
+    /**
+     * Caption/subtitle (WebVTT) URL for a text track, signed when the playback ID is signed.
+     */
+    public function getTextTrackUrl(string $trackId, ?int $expiresIn = null, ?string $policy = null): ?string
+    {
+        $playbackId = $this->getPlaybackIdData($policy);
+
+        return $playbackId ? self::signedPlayback()->textTrackUrl($playbackId, $trackId, [], $expiresIn) : null;
+    }
+
+    /**
+     * Static rendition (MP4/M4A) URL, signed when the playback ID is signed.
+     * @param string $name Rendition file name, e.g. `highest.mp4` or `1080p.mp4`
+     * @param string|null $download File name to download as
+     */
+    public function getStaticRenditionUrl(string $name, ?string $download = null, ?int $expiresIn = null, ?string $policy = null): ?string
+    {
+        $playbackId = $this->getPlaybackIdData($policy);
+
+        return $playbackId ? self::signedPlayback()->staticRenditionUrl($playbackId, $name, $download, [], $expiresIn) : null;
     }
 
     /**
@@ -363,21 +482,11 @@ class MuxAsset extends Element implements Thumbable
      */
     public function thumb(int $width=300, int $height=169, string $fit_mode = 'smartcrop', string $format='webp'): ?string
     {
-        if (empty($this->playback_ids)) {
-            return null;
-        }
-
-        $options = [
+        return $this->getThumbnailUrl([
             'width' => $width,
             'height' => $height,
             'fit_mode' => $fit_mode,
-        ];
-
-        if ($jwt = $this->getSecurePlaybackJWT(null,'t', $options)) {
-            $options = [ 'token' => $jwt ];
-        }
-
-        return UrlHelper::urlWithParams("https://image.mux.com/{$this->playback_ids[0]['id']}/thumbnail.{$format}", $options);
+        ], $format);
     }
 
     /**
@@ -389,8 +498,8 @@ class MuxAsset extends Element implements Thumbable
             return file_get_contents(Craft::getAlias('@app/elements/thumbs/folder.svg'));
         }
         
-        // Return a video icon or your custom icon for Mux assets
-        return file_get_contents(Craft::getAlias('@app/elements/thumbs/video.svg'));
+        // Craft's built-in video icon (there is no @app/elements/thumbs/video.svg)
+        return Cp::iconSvg('video');
     }
 
     /**
@@ -440,27 +549,20 @@ class MuxAsset extends Element implements Thumbable
             return $animated ? null : ('data:image/svg+xml;base64,' . base64_encode($this->audioThumbSvg()));
         }
 
-        $options = [
+        if (!$this->getPlaybackIdData()) {
+            return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAE0AAABNCAAAAADGYrZsAAABU0lEQVR4Ae3VhXLDMAwA0P3/H6rMDHEtD0JarUSBgpfB0U4+sui14Rf4y6Waaqr9Q0011VRTTbX+yQyrYMTBzq7bieV+Xg/s7OK5diL6EG4UE1kYEVG/zBifGCPiSvoPXH2scX9uhhVGDuZEJP/F+YTXmGPsSw2ZYyw/tbRzmpwA1gUn2AHCmucKzB1b2hHxCDVXY0ENzbTA8JEmnGBBLTWILiOi+IKPNOE+BAtq8cAgY8PjY425BhbWYHBhDAIaWI9Z6KDBMPZYSDt4LMZVFw1g3pfhCRHt5A8h7psYChfWmn8lu6b6HK8QcV7fZ/V911njUT7u/hIRzaBx0wrXTTsnyfmqxH74zaFf6wbG3Hu66aghkQOACXOUl9hcMM+9BZ/TEwM1zcHIFZpdgsdrDGAb1EbGDh8E85Nz+2U5trO7euDAgX5lVFMtpKmmmmqqqabaJw622lG0jNePAAAAAElFTkSuQmCC';
+        }
+
+        if ($animated) {
+            // Animated previews are limited to 640px wide and don't support fit_mode/height crops.
+            return $this->getAnimatedUrl(['width' => min($size, 640), 'fps' => 5]);
+        }
+
+        return $this->getThumbnailUrl([
             'width' => $size,
             'height' => $size,
             'fit_mode' => 'smartcrop',
-        ];
-
-        $mediaType = $animated ? 'g' : 't';
-
-        if ($jwt = $this->getSecurePlaybackJWT(null, $mediaType , $options)) {
-            $options = [ 'token' => $jwt ];
-        }
-
-        if($this->playback_ids) {
-            if ($animated) {
-                return UrlHelper::urlWithParams("https://image.mux.com/{$this->playback_ids[0]['id']}/animated.gif?width=".$size."&fps=5", $options);
-            } else {
-                return UrlHelper::urlWithParams("https://image.mux.com/{$this->playback_ids[0]['id']}/thumbnail.webp", $options);
-            }
-        } else {
-            return 'data:image/svg+xml;base64,iVBORw0KGgoAAAANSUhEUgAAAE0AAABNCAAAAADGYrZsAAABU0lEQVR4Ae3VhXLDMAwA0P3/H6rMDHEtD0JarUSBgpfB0U4+sui14Rf4y6Waaqr9Q0011VRTTbX+yQyrYMTBzq7bieV+Xg/s7OK5diL6EG4UE1kYEVG/zBifGCPiSvoPXH2scX9uhhVGDuZEJP/F+YTXmGPsSw2ZYyw/tbRzmpwA1gUn2AHCmucKzB1b2hHxCDVXY0ENzbTA8JEmnGBBLTWILiOi+IKPNOE+BAtq8cAgY8PjY425BhbWYHBhDAIaWI9Z6KDBMPZYSDt4LMZVFw1g3pfhCRHt5A8h7psYChfWmn8lu6b6HK8QcV7fZ/V911njUT7u/hIRzaBx0wrXTTsnyfmqxH74zaFf6wbG3Hu66aghkQOACXOUl9hcMM+9BZ/TEwM1zcHIFZpdgsdrDGAb1EbGDh8E85Nz+2U5trO7euDAgX5lVFMtpKmmmmqqqabaJw622lG0jNePAAAAAElFTkSuQmCC';
-        }
+        ]);
     }
 
     /**
@@ -479,9 +581,15 @@ class MuxAsset extends Element implements Thumbable
 
         $height = round($size * 9 / 16);
         $url = $this->getThumbUrl($size);
+
+        if (!$url) {
+            // e.g. a signed playback ID with no signing key to create a token
+            return parent::getThumbHtml($size);
+        }
+
         $animated = $this->getThumbUrl($size, true);
         
-        $baseImg = $url ? Html::img($url, ['width' => $size, 'height' => $height, 'class' => 'mux-base-thumb']) : null;
+        $baseImg = Html::img($url, ['width' => $size, 'height' => $height, 'class' => 'mux-base-thumb']);
         $animImg = $animated ? Html::img($animated, ['width' => $size, 'height' => $height, 'class' => 'mux-animated-thumb']) : null;
         $figureClasses = ['mux-thumb-figure'];
         if (!$animImg) {
@@ -1409,69 +1517,6 @@ class MuxAsset extends Element implements Thumbable
             // Don't throw - let the main save operation complete
         }
     }
-
-    /**
-     * Generate Jwt
-     * @param SignedKey $tokenData 
-     * @param string $type 
-     * @param array $options 
-     * @return string 
-     * @throws InvalidConfigException 
-     */
-    private function generateJwt(SignedKey $tokenData, string $type, array $options): string 
-    {
-        $playbackId = $this->playback_ids[0]['id'];
-        $cacheId = sprintf("%s-%s-%s", $playbackId, $type, $tokenData->key_id); // playbackId-type-tokenIdx
-        $jwt = Craft::$app->getCache()->get($cacheId);
-
-        if(!$jwt) {
-            $jwt = JWTHelper::getJWT(
-                $playbackId,
-                $tokenData->key_id,
-                $tokenData->private_key,
-                $type,
-                $options
-            );
-
-            Craft::$app->getCache()->set($cacheId, $jwt, 86400);
-        }
-
-        return $jwt;
-    }
-
-    
-    /**
-     * Get Token Data
-     * @param string $keyId
-     * @return null|SignedKey 
-     * @throws InvalidConfigException 
-     * @throws NotSupportedException 
-     * @throws Exception 
-     * @throws InvalidArgumentException 
-     * @throws GlobalException 
-     */
-    private function getTokenData(?string $keyId): ?SignedKey
-    {
-        $tokens = $this->securePlaybackTokens();
-    
-        if(!empty($tokens)) {
-            $token = null;
-            if(!$keyId) {
-                $token = $tokens[0];
-            } else {
-                $token = array_map(function($tkn) use($keyId) {
-                    if($tkn->key_id === $keyId) {
-                        return $tkn;
-                    }
-                }, $tokens);
-            }
-            
-            return is_array($token) ? $token[0] : $token;
-        }
-
-        return null;
-    }
-    
 
     /**
      * @inheritdoc

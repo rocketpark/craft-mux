@@ -24,6 +24,11 @@
     // Constants
     // =========================================================================
 
+    /**
+     * Schema component that allows a schema to receive signed playback tokens and signed URLs.
+     */
+    public const SIGNED_PLAYBACK_COMPONENT = 'muxSignedPlayback';
+
 
     // Public Methods
     // =========================================================================
@@ -33,6 +38,14 @@
         return true; //isset($allowedEntities['muxAssets']);
     }
 
+
+    /**
+     * Whether the active schema may receive signed playback tokens and signed URLs.
+     */
+    public static function canGenerateSignedPlayback(): bool
+    {
+        return self::canSchema(self::SIGNED_PLAYBACK_COMPONENT, 'read');
+    }
 
     // Private Methods
     // =========================================================================

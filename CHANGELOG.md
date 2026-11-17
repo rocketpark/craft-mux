@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2.8.0 - 2026-11-16
+
+### Added
+- **Signed playback in GraphQL** ([#9](https://github.com/rocketpark/craft-mux/issues/9)): `PlaybackID` now has a `token(type, expiresIn, …)` field and ready-to-use `streamUrl`, `thumbnailUrl`, `animatedUrl`, `storyboardUrl`, `textTrackUrl` and `staticRenditionUrl` fields. URL modifiers (`time`, `width`, `height`, `fit_mode`, `max_resolution`, `playback_restriction_id`, …) are passed as arguments and placed in the token for signed playback IDs, or in the query string for public ones.
+- **“Generate signed playback tokens and URLs” GraphQL schema permission**: Tokens and signed URLs are only returned to schemas with this permission; without it those fields return `null`. Enable it only on private schemas.
+- **`playback_ids(policy:)` GraphQL argument** to return only `public` or `signed` playback IDs.
+- **Twig helpers for signed playback**: `getPlaybackToken()`, `getStreamUrl()`, `getThumbnailUrl()`, `getAnimatedUrl()`, `getStoryboardUrl()`, `getTextTrackUrl()`, `getStaticRenditionUrl()` and `hasSigningKey()` on Mux assets. `getPlaybackId()` and the new helpers take an optional `policy` to pick between a public and a signed playback ID.
+- **Token lifetime settings**: `signedTokenLifetime` (default 24 hours), `maxSignedTokenLifetime` (default 365 days) and `signedTokenWindow` (default 1 hour) in `config/mux.php`.
+- **Default Playback Restriction ID setting**: Env-aware setting (**Mux → Settings**) added as the `playback_restriction_id` claim to every signed token, so referrer restrictions are enforced for signed playback IDs. The field suggests the restrictions in your Mux environment and warns when the saved ID doesn't exist there.
+- **Playback Restrictions page**: Shows each restriction's ID with a copy button and adds a **Default** checkbox column to choose the default restriction (disabled when the default comes from an environment variable or `config/mux.php`). Deleting a restriction now asks for confirmation.
+
+### Updated
+- **Stable token expiry**: Token expiry is rounded up to the rotation window, so the same URL returns the same token for up to an hour and every token handed out is valid for at least its lifetime. Craft's GraphQL response cache and `{% cache %}` blocks containing tokens now expire when the window rotates instead of serving expired tokens.
+- **CP player**: The asset edit screen plays an asset's public playback ID when it has one and only signs when it has to.
+- **`getSecurePlaybackJWT()`** accepts an optional `expiresIn`. `securePlaybackTokens()`, `signedKeys()` and `rocketpark\mux\helpers\JWT` are deprecated in favour of the helpers above.
+
+### Fixed
+- **Playback restrictions never enforced**: Restrictions created under **Mux → Playback Restrictions** were never added to signed tokens, so Mux never applied them. Set **Default Playback Restriction ID** to enforce one.
+- **Allow No Referrer checkboxes**: Every row's checkbox label pointed at the first row, so clicking it toggled the wrong restriction.
+- **Playback Restrictions page failing silently**: When Mux rejected a request (e.g. invalid API credentials), adding, updating or deleting a restriction did nothing and the list stayed empty. The page now shows Mux's error message.
+- **Playback restriction actions without permission check**: Listing, creating, updating and deleting playback restrictions only required a logged-in user. They now require the Mux settings permission, like the page itself.
+- **Signed thumbnail options ignored**: `time`, `width`, `height` and `fit_mode` never reached signed tokens, so signed thumbnails (including `thumb()` and CP thumbnails) were always full-size defaults.
+- **One token per playback ID**: Tokens were cached per playback ID and type only, so every size or crop of a signed thumbnail shared the first token created.
+- **Tokens served close to expiry**: Cached tokens could be returned moments before they expired.
+- **Requesting a specific signing key**: `getSecurePlaybackJWT('<key id>')` returned `null` unless that key happened to be the first one stored.
+- **Signed animated thumbnails**: CP hover previews sent `width`/`fps` in the query string, which Mux ignores for signed playback IDs.
+- **Missing CP thumbnail icon**: Assets without a usable thumbnail now show Craft's video icon instead of a PHP warning for a missing `video.svg`.
+- **Signing keys in an unused template**: Removed the signing keys (including private keys) from the unused `mux/elements/_edit` template's JSON.
+- **GraphQL `static_renditions`, `master`, `recording_times` and `non_standard_input_reasons` always `null`**: These `String` fields returned an error ("String cannot represent value") on every asset, even when empty. They now return the value as a JSON-encoded string (`"[]"` when empty). The fields stay `String`, and the Twig properties stay arrays.
+- **GraphQL `nomralize_audio` error**: The field (name misspelled in the schema, kept for backwards compatibility) failed on every asset with "Getting unknown property". It now returns the asset's `normalize_audio` value.
+
 ## 2.7.0 - 2026-10-28
 
 > [!WARNING]
